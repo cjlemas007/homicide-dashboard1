@@ -38,8 +38,8 @@ jobs:
           git push
 
       - name: Send Gmail Alert if Job Fails
-        if: failure()
         uses: dawidd6/action-send-mail@v3
+        if: failure()
         with:
           server_address: smtp.gmail.com
           server_port: 587
