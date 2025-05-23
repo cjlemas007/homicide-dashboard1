@@ -317,7 +317,8 @@
 
     <script>
         // --- Configuration ---
-        const HOMICIDE_DATA_API_URL = 'https://homicide-test.netlify.app/.netlify/functions/getHomicideData?key=4a8d9c7f98@secure_key_2024';
+        // MODIFIED: URL for main homicide data is now the static JSON file with relative path
+        const HOMICIDE_DATA_API_URL = './data/homicide.json'; 
         const CITY_COMPARISON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiORmxzjhdAokYzM0NhcTjAk1e3hJp81B5OCG03XcPnUaSVrCRiwIXmah2iPSHFaaWbSoKKwFA1Uc/pub?gid=0&single=true&output=csv'; 
         const JACKSON_POPULATION = 143709; 
 
@@ -436,17 +437,20 @@
         async function fetchDataAndProcess(url, isMainHomicideData = false) { 
             let rawData;
             const dataType = isMainHomicideData ? 'main homicide data' : 'city comparison data';
-            const placeholderUrlMain = 'YOUR_HOMICIDE_DATA_API_URL_PLACEHOLDER'; 
             const placeholderUrlCity = 'YOUR_CITY_COMPARISON_CSV_URL_HERE';
 
-            let isPlaceholderUrl = false;
-            if (isMainHomicideData && (url === placeholderUrlMain || !url || url.includes("YOUR_HOMICIDE_DATA_API_URL_PLACEHOLDER"))) { 
-                isPlaceholderUrl = true;
+            let usePlaceholder = false;
+            // For main homicide data, we are now using HOMICIDE_DATA_API_URL.
+            // It's not a placeholder if it's the defined relative path.
+            if (isMainHomicideData && !url.startsWith('./data/')) { // A simple check if it's not the expected relative path
+                 console.warn(`Main homicide data URL might be incorrect: ${url}. Using placeholder.`);
+                 usePlaceholder = true;
             } else if (!isMainHomicideData && (url === placeholderUrlCity || !url)) {
-                isPlaceholderUrl = true;
+                usePlaceholder = true;
             }
 
-            if (isPlaceholderUrl) {
+
+            if (usePlaceholder) {
                 console.warn(`URL for ${dataType} is placeholder or not provided. Using local placeholder data.`);
                 rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
             } else {
@@ -461,34 +465,22 @@
                         throw new Error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}.`);
                     }
 
-                    if (isMainHomicideData) {
+                    if (isMainHomicideData) { // Main data is now JSON from API/file
                         const contentType = response.headers.get("content-type");
                         if (contentType && contentType.indexOf("application/json") !== -1) {
                             rawData = await response.json(); 
                             console.log(`Successfully fetched JSON for ${dataType}.`);
                         } else {
                             const responseText = await response.text();
-                            console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text (first 500 chars):`, responseText.substring(0, 500));
+                            console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text:`, responseText.substring(0, 500));
                             throw new Error(`Invalid content type for ${dataType}. Expected JSON, got ${contentType}`);
                         }
-                    } else { // For city comparison data, still expecting CSV
+                    } else { // City comparison data is still CSV
                         const csvText = await response.text(); 
                         rawData = csvToJSON(csvText);
                     }
                 } catch (error) {
-                    // Enhanced error logging
-                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${url}`);
-                    console.error("Error Name:", error.name);
-                    console.error("Error Message:", error.message);
-                    if (error.stack) {
-                        console.error("Error Stack:", error.stack);
-                    }
-                    if (typeof error.cause !== 'undefined') { 
-                        console.error("Error Cause:", error.cause);
-                    }
-                     console.error("Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
-
-
+                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${url}`, error);
                     console.warn(`Falling back to placeholder data for ${dataType} due to fetch error.`);
                     rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
                 }
@@ -503,73 +495,81 @@
                 const headers = rawData.headers.map(h => String(h).trim()); 
                 const headerMap = {};
                 headers.forEach((header, index) => {
-                    headerMap[header] = index;
+                    headerMap[header.toLowerCase()] = index; 
                 });
                 
-                const requiredBaseHeaders = ['Latitude', 'Longitude'];
-                const hasYMD = typeof headerMap['Year'] !== 'undefined' && typeof headerMap['Month'] !== 'undefined' && typeof headerMap['Day'] !== 'undefined';
-                const hasSingleDate = typeof headerMap['Date'] !== 'undefined';
-
-                for (const reqHeader of requiredBaseHeaders) {
-                    if (typeof headerMap[reqHeader] === 'undefined') {
-                        console.error(`Essential header "${reqHeader}" not found in API response for main homicide data.`);
+                const getHeaderIndex = (possibleNames) => {
+                    for (let name of possibleNames) {
+                        if (typeof headerMap[name.toLowerCase()] !== 'undefined') return headerMap[name.toLowerCase()];
                     }
-                }
-                if (!hasYMD && !hasSingleDate) {
-                     console.error("Essential date headers ('Year', 'Month', 'Day' OR 'Date') not found in API response for main homicide data.");
-                }
+                    console.warn(`Header not found for any of: ${possibleNames.join(', ')}`);
+                    return -1;
+                };
+
+                const victimIdx = getHeaderIndex(['Victim']);
+                const ageIdx = getHeaderIndex(['Age']);
+                const raceIdx = getHeaderIndex(['Race']);
+                const sexIdx = getHeaderIndex(['Sex']);
+                const circumstanceIdx = getHeaderIndex(['Circumstance']);
+                const dateIdx = getHeaderIndex(['Date']); 
+                const yearIdx = getHeaderIndex(['Year']);   
+                const monthIdx = getHeaderIndex(['Month']);
+                const dayIdx = getHeaderIndex(['Day']);
+                const addressIdx = getHeaderIndex(['Address', 'Location']); 
+                const officerInvolvedIdx = getHeaderIndex(['Officer-Involved Death?', 'Officer Involved', 'Officer_Involved']);
+                const agencyIdx = getHeaderIndex(['Investigating Agency', 'Agency']);
+                const precinctIdx = getHeaderIndex(['Precinct']);
+                const latitudeIdx = getHeaderIndex(['Latitude', 'Lat']);
+                const longitudeIdx = getHeaderIndex(['Longitude', 'Lon', 'Long']);
+                const locationNotesIdx = getHeaderIndex(['Location Notes', 'Notes']); 
 
                 const mappedData = rawData.entries.map((entry, index) => {
                     let parsedYear = null;
                     let formattedDate = null; 
                     let originalDateStrForDisplay = 'N/A';
 
-                    if (hasYMD) {
-                        const y = parseInt(entry[headerMap['Year']]);
-                        const m = parseInt(entry[headerMap['Month']]); 
-                        const day = parseInt(entry[headerMap['Day']]);  
+                    if (dateIdx !== -1 && entry[dateIdx]) { 
+                        const dateStr = String(entry[dateIdx]).trim();
+                        originalDateStrForDisplay = dateStr;
+                        const dateObj = new Date(dateStr.replace(/\//g, '-')); 
+                        if (dateObj && !isNaN(dateObj.getTime())) {
+                            parsedYear = dateObj.getFullYear();
+                            formattedDate = `${parsedYear}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
+                        }
+                    } else if (yearIdx !== -1 && monthIdx !== -1 && dayIdx !== -1) { 
+                        const y = parseInt(entry[yearIdx]);
+                        const m = parseInt(entry[monthIdx]); 
+                        const day = parseInt(entry[dayIdx]);  
                         if (!isNaN(y) && !isNaN(m) && !isNaN(day) && y >= 1900 && y <= CURRENT_YEAR + 10 && m >= 1 && m <= 12 && day >= 1 && day <= 31) {
                             const dateObj = new Date(y, m - 1, day); 
                             if (dateObj && dateObj.getFullYear() === y && dateObj.getMonth() === (m - 1) && dateObj.getDate() === day) {
                                 parsedYear = y;
-                                const monthPadded = m.toString().padStart(2, '0');
-                                const dayPadded = day.toString().padStart(2, '0');
-                                formattedDate = `${y}-${monthPadded}-${dayPadded}`;
-                                originalDateStrForDisplay = `${monthPadded}/${dayPadded}/${y}`;
-                            }
-                        }
-                    } else if (hasSingleDate) {
-                        const dateStr = entry[headerMap['Date']] ? String(entry[headerMap['Date']]).trim() : null;
-                        if (dateStr) {
-                            originalDateStrForDisplay = dateStr; 
-                            const dateObj = new Date(dateStr.replace(/\//g, '-')); 
-                            if (dateObj && !isNaN(dateObj.getTime())) {
-                                parsedYear = dateObj.getFullYear();
-                                formattedDate = `${parsedYear}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
+                                formattedDate = `${y}-${m.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                originalDateStrForDisplay = `${m.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${y}`;
                             }
                         }
                     }
                     
-                    const lat = parseFloat(entry[headerMap['Latitude']]);
-                    const lon = parseFloat(entry[headerMap['Longitude']]);
+                    const lat = latitudeIdx !== -1 ? parseFloat(entry[latitudeIdx]) : NaN;
+                    const lon = longitudeIdx !== -1 ? parseFloat(entry[longitudeIdx]) : NaN;
                     const isValidLat = !isNaN(lat) && lat >= -90 && lat <= 90;
                     const isValidLon = !isNaN(lon) && lon >= -180 && lon <= 180;
 
                     return {
-                        Victim: entry[headerMap['Victim']] || 'N/A', 
-                        Age: entry[headerMap['Age']] ? parseInt(entry[headerMap['Age']]) : null, 
-                        Race: entry[headerMap['Race']] || 'N/A', 
-                        Sex: entry[headerMap['Sex']] || 'N/A',
-                        Circumstance: entry[headerMap['Circumstance']] || 'N/A', 
+                        Victim: victimIdx !== -1 ? entry[victimIdx] : 'N/A', 
+                        Age: ageIdx !== -1 && entry[ageIdx] ? parseInt(entry[ageIdx]) : null, 
+                        Race: raceIdx !== -1 ? entry[raceIdx] : 'N/A', 
+                        Sex: sexIdx !== -1 ? entry[sexIdx] : 'N/A',
+                        Circumstance: circumstanceIdx !== -1 ? entry[circumstanceIdx] : 'N/A', 
                         Date: formattedDate, 
                         DisplayDate: originalDateStrForDisplay, 
-                        Address: entry[headerMap['Address']] || 'N/A', 
-                        'Officer-Involved Death?': entry[headerMap['Officer-Involved Death?']] || 'N/A',
-                        'Investigating Agency': entry[headerMap['Agency']] || entry[headerMap['Investigating Agency']] || 'N/A', 
-                        Precinct: entry[headerMap['Precinct']] ? String(entry[headerMap['Precinct']]).trim() : 'N/A',
+                        Address: addressIdx !== -1 ? entry[addressIdx] : 'N/A', 
+                        'Officer-Involved Death?': officerInvolvedIdx !== -1 ? entry[officerInvolvedIdx] : 'N/A',
+                        'Investigating Agency': agencyIdx !== -1 ? entry[agencyIdx] : 'N/A', 
+                        Precinct: precinctIdx !== -1 && entry[precinctIdx] ? String(entry[precinctIdx]).trim() : 'N/A',
                         Latitude: lat, 
                         Longitude: lon, 
-                        Location: entry[headerMap['Location']] || '', 
+                        Location: locationNotesIdx !== -1 ? entry[locationNotesIdx] : '', 
                         Year: parsedYear, 
                         _isValidForProcessing: parsedYear !== null && isValidLat && isValidLon
                     };
@@ -674,10 +674,14 @@
         }
 
         function getPlaceholderData() { 
-            return [
-                { Victim: 'John Doe', Age: 30, Race: 'Black', Sex: 'Male', Circumstance: 'Argument', Date: `${CURRENT_YEAR}-01-15`, Year: CURRENT_YEAR, OriginalYear: String(CURRENT_YEAR), OriginalMonth: '1', OriginalDay: '15', Address: '123 Main St, Jackson, MS', 'Officer-Involved Death?': 'No', 'Investigating Agency': 'JPD', Precinct: '1', Latitude: 32.3010, Longitude: -90.1850, Location: 'Near Capitol Building' },
-                { Victim: 'Jane Smith', Age: 25, Race: 'White', Sex: 'Female', Circumstance: 'Robbery', Date: `${CURRENT_YEAR}-02-20`, Year: CURRENT_YEAR, OriginalYear: String(CURRENT_YEAR), OriginalMonth: '2', OriginalDay: '20', Address: '456 Oak Ave, Jackson, MS', 'Officer-Involved Death?': 'No', 'Investigating Agency': 'Capitol Police', Precinct: '2', Latitude: 32.2950, Longitude: -90.1900, Location: 'Downtown Area' },
-            ];
+            // Placeholder for main homicide data, structure matches expected output of API processing
+            return {
+                headers: ["Date", "Location", "Victim", "Agency", "Precinct", "Age", "Sex", "Race", "Circumstance", "Officer-Involved Death?", "Latitude", "Longitude", "Notes"],
+                entries: [
+                    [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", "1", 30, "Male", "Black", "Argument", "No", 32.3010, -90.1850, "Near Capitol Building"],
+                    [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", "2", 25, "Female", "White", "Robbery", "No", 32.2950, -90.1900, "Downtown Area"]
+                ]
+            };
         }
         function getPlaceholderCityData() { // Placeholder for city comparison data
             return [
@@ -989,9 +993,9 @@
                         color: "#c82333",     
                         weight: 1, opacity: 1, fillOpacity: 0.8
                     });
-                    let displayDate = d.DisplayDate; // Use DisplayDate for tooltip
-                    if (!displayDate) {
-                        displayDate = 'N/A';
+                    let displayDate = d.DisplayDate; 
+                    if (!displayDate) { 
+                        displayDate = d.Date || 'N/A';
                     }
                     const tooltipContent = `
                         <p><b>Victim:</b> ${d.Victim}</p>
