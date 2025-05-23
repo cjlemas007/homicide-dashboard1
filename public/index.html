@@ -1,0 +1,1240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Jackson's Homicides</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
+    <style>
+        :root {
+            --body-bg: #e9ecef;
+            --content-bg: #ffffff;
+            --text-color: #212529;
+            --header-bg: #ffffff;
+            --header-border: #dee2e6;
+            --banner-bg: #d9534f; 
+            --banner-text: #ffffff;
+            --legend-bg: #f8f9fa;
+            --legend-border: #dee2e6;
+            --legend-label-text: #495057;
+            --input-border: #ced4da;
+            --input-bg: #ffffff;
+            --chart-title-text: #343a40;
+            --chart-axis-text: #6c757d;
+            --chart-grid-color: rgba(0, 0, 0, 0.1);
+            --chart-legend-text: #333;
+            --footer-bg: #f8f9fa;
+            --footer-text: #6c757d;
+            --footer-link: #0056b3;
+            --tooltip-bg: rgba(33, 37, 41, 0.9);
+            --tooltip-text: #f8f9fa;
+            --map-placeholder-bg: #adb5bd;
+            --boundary-city-color: #000000; 
+            --boundary-ccid-color: #E65100; 
+            --rank-banner-rank1-bg: #d9534f; 
+            --rank-banner-rank2to5-bg: #f0ad4e; 
+            --rank-banner-ranklow-bg: #5cb85c; 
+            --rank-banner-error-bg: #777777; 
+            --percentage-increase-color: #d9534f; 
+            --percentage-decrease-color: #5cb85c; 
+            --percentage-neutral-color: var(--text-color); 
+        }
+        
+        body, html {
+            height: 100%; margin: 0; padding: 0;
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            display: flex; flex-direction: column;
+            background-color: var(--body-bg);
+            color: var(--text-color);
+            -webkit-text-size-adjust: 100%; 
+            text-size-adjust: 100%;
+        }
+
+        .header {
+            display: flex; justify-content: center; align-items: center;
+            padding: 10px 15px; 
+            background-color: var(--header-bg);
+            border-bottom: 2px solid var(--header-border);
+            flex-shrink: 0;
+            position: relative; 
+        }
+        .header-logo-main { }
+        .header-logo-secondary {
+            position: absolute;
+            right: 20px; 
+            top: 50%;
+            transform: translateY(-50%);
+        }
+        .header-logo-main img, .header-logo-secondary img { 
+            max-height: 45px; 
+            width: auto; 
+            object-fit: contain; 
+            vertical-align: middle; 
+        } 
+        
+        .count-banner, .ranking-banner { 
+            color: var(--banner-text);
+            text-align: center; padding: 8px 15px; 
+            font-size: 1.8em; 
+            font-weight: bold;
+            flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        .count-banner { background-color: var(--banner-bg); }
+        .ranking-banner { 
+            font-size: 1.3em; 
+            padding: 6px 15px;
+            background-color: var(--rank-banner-error-bg); 
+        }
+
+
+        .main-content-area { display: flex; flex: 1 1 55%; min-height: 450px; background-color: var(--content-bg); }
+        
+        .legend-container {
+            width: 30%; 
+            max-width: 400px; 
+            padding: 15px; 
+            border-right: 1px solid var(--legend-border);
+            overflow-y: auto; background-color: var(--legend-bg); 
+            display: flex; 
+            flex-direction: column; 
+        }
+        
+        .filter-columns-wrapper { 
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between; 
+            flex-grow: 1; 
+            margin-bottom: 10px; 
+        }
+
+        .filter-group { 
+            margin-bottom: 10px; 
+            box-sizing: border-box;
+        } 
+        
+        .filter-group.year-filter, .filter-group.agency-filter {
+            width: 48%; 
+        }
+        .filter-group.circumstance-filter, .filter-group.percentage-change-display { 
+            width: 100%;
+            margin-top: 10px; 
+        }
+        .filter-group.percentage-change-display {
+            margin-top: 15px; 
+        }
+
+
+        .filter-group label.group-label { 
+            display: block; margin-bottom: 5px; 
+            font-weight: bold;
+            font-size: 0.95em; 
+            color: var(--legend-label-text); 
+        }
+        .filter-group select, .filter-group .checkbox-group {
+            width: 100%; padding: 6px; 
+            border: 1px solid var(--input-border);
+            border-radius: 4px; font-size: 0.9em; 
+            box-sizing: border-box; background-color: var(--input-bg); color: var(--text-color);
+        }
+        .checkbox-group { 
+            max-height: 150px; 
+            overflow-y: auto; 
+            background-color: var(--input-bg); 
+            padding: 8px; 
+        }
+        .checkbox-group div { margin-bottom: 3px; display: flex; align-items: center;}
+        .checkbox-group input[type="checkbox"] { margin-right: 5px; }
+        .checkbox-group label { font-weight: normal; font-size: 0.85em; color: var(--legend-label-text);}
+        
+        #percentageChangeText { 
+            text-align: center; 
+            font-weight: bold; 
+            padding: 10px; 
+            background-color: var(--input-bg); 
+            border: 1px solid var(--input-border); 
+            border-radius: 4px;
+            font-size: 1.8em; 
+        }
+
+        .map-container { flex-grow: 1; }
+        #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); } 
+        
+        .charts-area { display: flex; flex: 1 1 45%; min-height: 400px; background-color: var(--content-bg); border-top: 1px solid var(--legend-border); }
+        .chart-box { width: 50%; padding: 20px; position: relative; display: flex; flex-direction: column; }
+        .chart-box:first-child { border-right: 1px solid var(--legend-border); } 
+        .chart-box h4 { text-align: center; margin-top: 0; margin-bottom: 15px; font-size: 1.1em; color: var(--chart-title-text); }
+        .chart-canvas-container { flex-grow: 1; position: relative; min-height: 250px; } 
+
+        .footer {
+            padding: 10px 15px; text-align: center; 
+            font-size: 0.8em; color: var(--footer-text); 
+            background-color: var(--footer-bg);
+            border-top: 1px solid var(--header-border); flex-shrink: 0;
+        }
+        .footer p { margin-bottom: 5px; } 
+        .footer a { color: var(--footer-link); text-decoration: none; } 
+        .footer a:hover { text-decoration: underline; }
+
+        .leaflet-tooltip {
+            background-color: var(--tooltip-bg); 
+            color: var(--tooltip-text);
+            border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
+            border-radius: 4px; padding: 10px 15px; 
+            font-size: 1em; 
+        }
+        .leaflet-tooltip p { margin: 5px 0; } 
+        .leaflet-tooltip b { color: var(--tooltip-text); font-weight: bold; } 
+
+        .leaflet-control-layers { background: var(--content-bg); border: 1px solid var(--legend-border); }
+        .leaflet-control-layers-selector { color: var(--text-color); }
+        .leaflet-control-layers label { color: var(--text-color); }
+        .leaflet-control-layers label span { color: var(--text-color); }
+
+
+        @media (max-width: 992px) { 
+            .main-content-area { flex-direction: column; }
+            .legend-container { width: 100%; max-width: none; border-right: none; border-bottom: 1px solid var(--legend-border); max-height: none; } 
+            .filter-group.year-filter, .filter-group.agency-filter { width: 48%; } 
+            .filter-group.circumstance-filter, .filter-group.percentage-change-display { width: 100%; }
+            .map-container { height: 350px; } 
+        }
+        @media (max-width: 768px) {
+            .header { 
+                flex-direction: row; 
+                justify-content: space-around; 
+                padding: 8px 10px;
+            }
+            .header-logo-main img, .header-logo-secondary img { max-height: 30px; } 
+
+            .count-banner { font-size: 1.3em; padding: 6px 10px;} 
+            .ranking-banner { font-size: 1.0em; padding: 5px 10px;}
+            .charts-area { flex-direction: column; }
+            .chart-box { width: 100%; padding: 15px; }
+            .chart-box:first-child { border-bottom: 1px solid var(--legend-border); }
+            .legend-container { padding: 10px; } 
+            
+            .filter-columns-wrapper {
+                flex-direction: column; 
+            }
+            .filter-group.year-filter, .filter-group.agency-filter, .filter-group.circumstance-filter, .filter-group.percentage-change-display { 
+                width: 100%; 
+                margin-bottom: 8px; 
+            } 
+            .checkbox-group { 
+                max-height: 120px; 
+                padding: 6px;
+            }
+            .filter-group label.group-label { font-size: 0.9em; margin-bottom: 4px;}
+            .filter-group select { font-size: 0.85em; padding: 6px;}
+            .checkbox-group label { font-size: 0.8em; }
+            #percentageChangeText { font-size: 1.5em; } 
+
+            .chart-box h4 { font-size: 1em; }
+            .chart-canvas-container { min-height: 200px;}
+            .footer { font-size: 0.75em; padding: 8px 10px;}
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="header-logo-main">
+            <img id="trackingLogoImg" src="https://www.dropbox.com/scl/fi/w6dquhfz2yacmbd9ayl76/TRACKING-LOGO.png?rlkey=zmj5l9icsyjh5wfs3lafphaqz&st=w3gmp7s0&dl=1" alt="Tracking Jackson's Homicides">
+        </div>
+        <div class="header-logo-secondary">
+            <img id="wlbtLogoImg" src="https://www.dropbox.com/scl/fi/y17zye5wu9wg23kzsxeco/WLBT-Logo-Investigates-black-text.png?rlkey=r11v3u4z5kpg7f3vevp7kbhvu&st=9nkgy4kh&dl=1" alt="WLBT Investigates">
+        </div>
+    </div>
+
+    <div class="count-banner" id="homicideCountBanner">
+        TRACKING HOMICIDES...
+    </div>
+    <div class="ranking-banner" id="rankingBanner">
+        City Ranking: Loading...
+    </div>
+
+
+    <div class="main-content-area">
+        <div class="legend-container">
+            <div class="filter-columns-wrapper">
+                <div class="filter-group year-filter">
+                    <label class="group-label" for="yearFilter">Year:</label>
+                    <div id="yearFilter" class="checkbox-group">
+                        </div>
+                </div>
+                <div class="filter-group agency-filter">
+                    <label class="group-label" for="agencyFilter">Agency:</label>
+                    <div id="agencyFilter" class="checkbox-group">
+                        </div>
+                </div>
+                <div class="filter-group circumstance-filter">
+                    <label class="group-label" for="circumstanceFilter">Circumstance:</label>
+                    <select id="circumstanceFilter">
+                        <option value="">All Circumstances</option>
+                        </select>
+                </div>
+                 <div class="filter-group percentage-change-display">
+                    <label class="group-label">YTD Comparison:</label>
+                    <div id="percentageChangeText">Calculating...</div>
+                </div>
+            </div> 
+            </div>
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+    </div>
+
+    <div class="charts-area">
+        <div class="chart-box">
+            <h4>Homicide Trends Comparison</h4>
+            <div class="chart-canvas-container">
+                <canvas id="homicideTrendsChart"></canvas>
+            </div>
+        </div>
+        <div class="chart-box">
+            <h4>Homicides by Year</h4>
+            <div class="chart-canvas-container">
+                <canvas id="homicidesByYearChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Data Sources: JPD, DPS, Hinds County, JSUPD | Design/Layout: C.J. LeMaster</p>
+        <p><a href="https://www.wlbt.com/2025/01/10/methodology-heres-how-we-track-homicides-mississippis-largest-city/">How do we track killings? See our methodology</a></p> 
+    </div>
+
+    <script>
+        // --- Configuration ---
+        const HOMICIDE_DATA_API_URL = 'https://homicide-test.netlify.app/.netlify/functions/getHomicideData?key=4a8d9c7f98@secure_key_2024';
+        const CITY_COMPARISON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiORmxzjhdAokYzM0NhcTjAk1e3hJp81B5OCG03XcPnUaSVrCRiwIXmah2iPSHFaaWbSoKKwFA1Uc/pub?gid=0&single=true&output=csv'; 
+        const JACKSON_POPULATION = 143709; 
+
+        const CURRENT_YEAR = 2025; 
+        const PREVIOUS_YEAR = CURRENT_YEAR - 1;
+        const START_YEAR_DATA = 2016;
+        const MAP_CENTER = [32.2988, -90.1848]; 
+        const MAP_ZOOM = 12; 
+
+        const JACKSON_CITY_LIMITS_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1'; 
+        const CCID_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/wva5rzfwwbr8shiz4fkjj/Current-CCID-2024.geojson?rlkey=tvheyfxe94colnxphaan0bsar&st=sqqs09s6&dl=1'; 
+        
+        const TRACKING_LOGO_URL = 'https://www.dropbox.com/scl/fi/w6dquhfz2yacmbd9ayl76/TRACKING-LOGO.png?rlkey=zmj5l9icsyjh5wfs3lafphaqz&st=w3gmp7s0&dl=1';
+        const WLBT_LOGO_URL = 'https://www.dropbox.com/scl/fi/y17zye5wu9wg23kzsxeco/WLBT-Logo-Investigates-black-text.png?rlkey=r11v3u4z5kpg7f3vevp7kbhvu&st=9nkgy4kh&dl=1';
+
+
+        const AGENCY_CATEGORIES = {
+            CAPITOL_POLICE: 'Capitol Police',
+            JPD: 'JPD',
+            OTHER: 'Other Agencies' 
+        };
+        
+        const agencyColors = {
+            [AGENCY_CATEGORIES.JPD]: 'rgba(0, 123, 255, 0.7)',
+            [AGENCY_CATEGORIES.CAPITOL_POLICE]: 'rgba(255, 193, 7, 0.7)',
+            [AGENCY_CATEGORIES.OTHER]: 'rgba(40, 167, 69, 0.7)'
+        };
+
+        // --- Global State ---
+        let allHomicideData = [];
+        let cityComparisonData = []; 
+        let filteredHomicideDataForMap = []; 
+        let map;
+        let markersLayer = L.layerGroup();
+        let cityLimitsLayer; 
+        let ccidLayer;       
+        let overlayLayersControl; 
+        let currentMapTileLayer; 
+
+        let homicidesByYearChartInstance;
+        let homicideTrendsChartInstance;
+
+        // --- Initial Load ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            initMap(); 
+            document.getElementById('trackingLogoImg').src = TRACKING_LOGO_URL; 
+            document.getElementById('wlbtLogoImg').src = WLBT_LOGO_URL;
+
+            document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: Loading...`;
+            document.getElementById('rankingBanner').innerText = 'City Ranking: Loading...';
+            document.getElementById('percentageChangeText').innerText = 'Calculating...';
+
+
+            try {
+                const [homicideDataResult, cityDataResult] = await Promise.all([
+                    fetchDataAndProcess(HOMICIDE_DATA_API_URL, true), 
+                    fetchDataAndProcess(CITY_COMPARISON_CSV_URL, false) 
+                ]);
+
+                allHomicideData = homicideDataResult;
+                cityComparisonData = cityDataResult;
+
+                logProcessedDataSummary(allHomicideData, "Homicide Data");
+                if (cityComparisonData && cityComparisonData.length > 0) {
+                    logProcessedDataSummary(cityComparisonData, "City Comparison Data");
+                } else if (CITY_COMPARISON_CSV_URL !== 'YOUR_CITY_COMPARISON_CSV_URL_HERE' && CITY_COMPARISON_CSV_URL.trim() !== '') {
+                     console.warn("City comparison data is empty or failed to load properly.");
+                }
+
+
+                populateFiltersForMap(); 
+                updateCurrentYearHomicideCount();
+                updateRankingBanner(); 
+                updatePercentageChangeDisplay(); 
+                updateDashboard(); 
+                if (map) { 
+                    map.invalidateSize();
+                }
+            } catch (error) {
+                console.error("Fatal Error initializing dashboard:", error);
+                document.getElementById('homicideCountBanner').innerText = 'Error loading data.';
+                document.getElementById('rankingBanner').innerText = 'City Ranking: Error';
+                document.getElementById('percentageChangeText').innerText = 'Error calculating.';
+                 displayErrorInCharts("Failed to load data.");
+            }
+        });
+        
+        function updateMapTiles() { 
+            if (!map) return;
+            if (currentMapTileLayer) {
+                map.removeLayer(currentMapTileLayer);
+            }
+            currentMapTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 18
+            });
+            currentMapTileLayer.addTo(map);
+        }
+        
+        function updateBoundaryLayerStyles() { 
+            const cityColor = getComputedStyle(document.documentElement).getPropertyValue('--boundary-city-color').trim();
+            const ccidColor = getComputedStyle(document.documentElement).getPropertyValue('--boundary-ccid-color').trim();
+
+            const cityStyle = { color: cityColor, weight: 3, opacity: 0.85, fillOpacity: 0.0 }; 
+            const ccidStyle = { color: ccidColor, weight: 4, opacity: 0.9, fillOpacity: 0.25 }; 
+
+            if (cityLimitsLayer && map.hasLayer(cityLimitsLayer)) {
+                cityLimitsLayer.setStyle(cityStyle);
+            }
+            if (ccidLayer && map.hasLayer(ccidLayer)) {
+                ccidLayer.setStyle(ccidStyle);
+            }
+        }
+
+
+        async function fetchDataAndProcess(url, isMainHomicideData = false) { 
+            let rawData;
+            const dataType = isMainHomicideData ? 'main homicide data' : 'city comparison data';
+            const placeholderUrlMain = 'YOUR_HOMICIDE_DATA_API_URL_PLACEHOLDER'; 
+            const placeholderUrlCity = 'YOUR_CITY_COMPARISON_CSV_URL_HERE';
+
+            let isPlaceholderUrl = false;
+            if (isMainHomicideData && (url === placeholderUrlMain || !url || url.includes("YOUR_HOMICIDE_DATA_API_URL_PLACEHOLDER"))) { 
+                isPlaceholderUrl = true;
+            } else if (!isMainHomicideData && (url === placeholderUrlCity || !url)) {
+                isPlaceholderUrl = true;
+            }
+
+            if (isPlaceholderUrl) {
+                console.warn(`URL for ${dataType} is placeholder or not provided. Using local placeholder data.`);
+                rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
+            } else {
+                console.log(`Attempting to fetch ${dataType} from:`, url);
+                try {
+                    const response = await fetch(url);
+                    console.log(`Fetch response status for ${dataType}: ${response.status}`); 
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text().catch(() => `Could not read error response text. Status: ${response.status}`);
+                        console.error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}. URL: ${url}. Response text snippet: ${errorText.substring(0, 200)}`);
+                        throw new Error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}.`);
+                    }
+
+                    if (isMainHomicideData) {
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            rawData = await response.json(); 
+                            console.log(`Successfully fetched JSON for ${dataType}.`);
+                        } else {
+                            const responseText = await response.text();
+                            console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text (first 500 chars):`, responseText.substring(0, 500));
+                            throw new Error(`Invalid content type for ${dataType}. Expected JSON, got ${contentType}`);
+                        }
+                    } else { // For city comparison data, still expecting CSV
+                        const csvText = await response.text(); 
+                        rawData = csvToJSON(csvText);
+                    }
+                } catch (error) {
+                    // Enhanced error logging
+                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${url}`);
+                    console.error("Error Name:", error.name);
+                    console.error("Error Message:", error.message);
+                    if (error.stack) {
+                        console.error("Error Stack:", error.stack);
+                    }
+                    if (typeof error.cause !== 'undefined') { 
+                        console.error("Error Cause:", error.cause);
+                    }
+                     console.error("Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+
+
+                    console.warn(`Falling back to placeholder data for ${dataType} due to fetch error.`);
+                    rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
+                }
+            }
+            
+            if (isMainHomicideData) {
+                if (!rawData || !rawData.headers || !rawData.entries || rawData.entries.length === 0) {
+                    console.warn(`No valid ${dataType} loaded or data structure is incorrect. Raw data received:`, rawData);
+                    return [];
+                }
+                let excludedRecordsLog = [];
+                const headers = rawData.headers.map(h => String(h).trim()); 
+                const headerMap = {};
+                headers.forEach((header, index) => {
+                    headerMap[header] = index;
+                });
+                
+                const requiredBaseHeaders = ['Latitude', 'Longitude'];
+                const hasYMD = typeof headerMap['Year'] !== 'undefined' && typeof headerMap['Month'] !== 'undefined' && typeof headerMap['Day'] !== 'undefined';
+                const hasSingleDate = typeof headerMap['Date'] !== 'undefined';
+
+                for (const reqHeader of requiredBaseHeaders) {
+                    if (typeof headerMap[reqHeader] === 'undefined') {
+                        console.error(`Essential header "${reqHeader}" not found in API response for main homicide data.`);
+                    }
+                }
+                if (!hasYMD && !hasSingleDate) {
+                     console.error("Essential date headers ('Year', 'Month', 'Day' OR 'Date') not found in API response for main homicide data.");
+                }
+
+                const mappedData = rawData.entries.map((entry, index) => {
+                    let parsedYear = null;
+                    let formattedDate = null; 
+                    let originalDateStrForDisplay = 'N/A';
+
+                    if (hasYMD) {
+                        const y = parseInt(entry[headerMap['Year']]);
+                        const m = parseInt(entry[headerMap['Month']]); 
+                        const day = parseInt(entry[headerMap['Day']]);  
+                        if (!isNaN(y) && !isNaN(m) && !isNaN(day) && y >= 1900 && y <= CURRENT_YEAR + 10 && m >= 1 && m <= 12 && day >= 1 && day <= 31) {
+                            const dateObj = new Date(y, m - 1, day); 
+                            if (dateObj && dateObj.getFullYear() === y && dateObj.getMonth() === (m - 1) && dateObj.getDate() === day) {
+                                parsedYear = y;
+                                const monthPadded = m.toString().padStart(2, '0');
+                                const dayPadded = day.toString().padStart(2, '0');
+                                formattedDate = `${y}-${monthPadded}-${dayPadded}`;
+                                originalDateStrForDisplay = `${monthPadded}/${dayPadded}/${y}`;
+                            }
+                        }
+                    } else if (hasSingleDate) {
+                        const dateStr = entry[headerMap['Date']] ? String(entry[headerMap['Date']]).trim() : null;
+                        if (dateStr) {
+                            originalDateStrForDisplay = dateStr; 
+                            const dateObj = new Date(dateStr.replace(/\//g, '-')); 
+                            if (dateObj && !isNaN(dateObj.getTime())) {
+                                parsedYear = dateObj.getFullYear();
+                                formattedDate = `${parsedYear}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
+                            }
+                        }
+                    }
+                    
+                    const lat = parseFloat(entry[headerMap['Latitude']]);
+                    const lon = parseFloat(entry[headerMap['Longitude']]);
+                    const isValidLat = !isNaN(lat) && lat >= -90 && lat <= 90;
+                    const isValidLon = !isNaN(lon) && lon >= -180 && lon <= 180;
+
+                    return {
+                        Victim: entry[headerMap['Victim']] || 'N/A', 
+                        Age: entry[headerMap['Age']] ? parseInt(entry[headerMap['Age']]) : null, 
+                        Race: entry[headerMap['Race']] || 'N/A', 
+                        Sex: entry[headerMap['Sex']] || 'N/A',
+                        Circumstance: entry[headerMap['Circumstance']] || 'N/A', 
+                        Date: formattedDate, 
+                        DisplayDate: originalDateStrForDisplay, 
+                        Address: entry[headerMap['Address']] || 'N/A', 
+                        'Officer-Involved Death?': entry[headerMap['Officer-Involved Death?']] || 'N/A',
+                        'Investigating Agency': entry[headerMap['Agency']] || entry[headerMap['Investigating Agency']] || 'N/A', 
+                        Precinct: entry[headerMap['Precinct']] ? String(entry[headerMap['Precinct']]).trim() : 'N/A',
+                        Latitude: lat, 
+                        Longitude: lon, 
+                        Location: entry[headerMap['Location']] || '', 
+                        Year: parsedYear, 
+                        _isValidForProcessing: parsedYear !== null && isValidLat && isValidLon
+                    };
+                });
+                const finalData = mappedData.filter(d => {
+                    if (!d._isValidForProcessing) {
+                        if (excludedRecordsLog.length < 10) { 
+                             excludedRecordsLog.push({reason: `Year: ${d.Year}, Date: ${d.Date}, Lat: ${d.Latitude}, Lon: ${d.Longitude}`, data: d});
+                        }
+                        return false;
+                    }
+                    return true;
+                });
+                if(excludedRecordsLog.length > 0 || mappedData.length !== finalData.length){ 
+                    console.warn(`Total homicide records excluded: ${mappedData.length - finalData.length}.`);
+                }
+                return finalData;
+            } else { // City comparison data (still CSV)
+                if (!rawData || rawData.length === 0) {
+                    console.warn(`No ${dataType} loaded.`);
+                    return [];
+                }
+                let excludedCitiesLogDetailed = [];
+                const processedCityData = rawData.map(d => { 
+                    const city = d.City ? String(d.City).trim() : null;
+                    const homicidesStr = d.Homicides ? String(d.Homicides).trim() : null;
+                    const populationStr = d.Population ? String(d.Population).trim() : null;
+
+                    const homicides = homicidesStr ? parseInt(homicidesStr) : null;
+                    const population = populationStr ? parseInt(populationStr) : null;
+                    
+                    let exclusionReason = "";
+                    if (!city) exclusionReason += "Missing City name. ";
+                    if (homicides === null || isNaN(homicides) || homicides < 0) exclusionReason += `Invalid Homicides value ('${homicidesStr}'). `;
+                    if (population === null || isNaN(population) || population <= 0) exclusionReason += `Invalid Population value ('${populationStr}'). `;
+
+                    const isValidCity = city && !isNaN(homicides) && homicides >= 0 && !isNaN(population) && population > 0;
+                    
+                    if (!isValidCity) {
+                        excludedCitiesLogDetailed.push({ city: city || "Unnamed City", reason: exclusionReason.trim(), originalData: d });
+                    }
+                    return { City: city, Homicides: homicides, Population: population, _isValid: isValidCity };
+                }).filter(d => d._isValid);
+
+                if (excludedCitiesLogDetailed.length > 0) {
+                    console.warn(`Total city comparison records excluded: ${excludedCitiesLogDetailed.length}.`);
+                }
+                return processedCityData;
+            }
+        }
+        
+        function logProcessedDataSummary(data, dataType = "Data") {
+            if (!data || data.length === 0) {
+                console.log(`No ${dataType} to summarize.`);
+                return;
+            }
+            if (dataType === "Homicide Data") {
+                const countsByYear = {};
+                data.forEach(d => {
+                    if (d.Year) { 
+                        countsByYear[d.Year] = (countsByYear[d.Year] || 0) + 1;
+                    }
+                });
+                console.log("Counts per year from Homicide Data after processing:", countsByYear);
+            } else if (dataType === "City Comparison Data") {
+                 console.log(`Total cities for comparison loaded (and valid): ${data.length}`);
+            }
+        }
+
+        function csvToJSON(csv) { // This is still used for City Comparison CSV
+            const lines = csv.split(/\r\n|\n/);
+            const result = [];
+            if (lines.length < 1) return result;
+            const headers = lines[0].split(',').map(header => header.trim().replace(/^"|"$/g, '').replace(/(\r\n|\n|\r)/gm,""));
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue; 
+                const obj = {};
+                let inQuotes = false;
+                let currentValue = '';
+                let fieldIndex = 0;
+                for (let char of lines[i]) {
+                    if (char === '"' && lines[i][lines[i].indexOf(char) + 1] !== '"') { 
+                        inQuotes = !inQuotes;
+                        continue; 
+                    }
+                    if (char === ',' && !inQuotes) {
+                        if (headers[fieldIndex]) {
+                            obj[headers[fieldIndex]] = currentValue.trim();
+                        }
+                        currentValue = '';
+                        fieldIndex++;
+                    } else {
+                        currentValue += char;
+                    }
+                }
+                if (headers[fieldIndex]) {
+                    obj[headers[fieldIndex]] = currentValue.trim();
+                }
+                result.push(obj);
+            }
+            return result;
+        }
+
+        function getPlaceholderData() { 
+            return [
+                { Victim: 'John Doe', Age: 30, Race: 'Black', Sex: 'Male', Circumstance: 'Argument', Date: `${CURRENT_YEAR}-01-15`, Year: CURRENT_YEAR, OriginalYear: String(CURRENT_YEAR), OriginalMonth: '1', OriginalDay: '15', Address: '123 Main St, Jackson, MS', 'Officer-Involved Death?': 'No', 'Investigating Agency': 'JPD', Precinct: '1', Latitude: 32.3010, Longitude: -90.1850, Location: 'Near Capitol Building' },
+                { Victim: 'Jane Smith', Age: 25, Race: 'White', Sex: 'Female', Circumstance: 'Robbery', Date: `${CURRENT_YEAR}-02-20`, Year: CURRENT_YEAR, OriginalYear: String(CURRENT_YEAR), OriginalMonth: '2', OriginalDay: '20', Address: '456 Oak Ave, Jackson, MS', 'Officer-Involved Death?': 'No', 'Investigating Agency': 'Capitol Police', Precinct: '2', Latitude: 32.2950, Longitude: -90.1900, Location: 'Downtown Area' },
+            ];
+        }
+        function getPlaceholderCityData() { // Placeholder for city comparison data
+            return [
+                { City: 'City A', Homicides: 50, Population: 500000 },
+                { City: 'City B', Homicides: 120, Population: 1000000 },
+            ];
+        }
+
+
+        function initMap() {
+            map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
+            updateMapTiles(); 
+            markersLayer.addTo(map); 
+            loadBoundaryLayers();
+        }
+
+        function updateLayerControl(overlayMaps) {
+            if (overlayLayersControl) {
+                map.removeControl(overlayLayersControl);
+            }
+            overlayLayersControl = L.control.layers(null, overlayMaps).addTo(map);
+        }
+
+
+        function loadBoundaryLayers() {
+            const overlayMaps = {}; 
+            let cityLimitsAttempted = false; 
+            let ccidAttempted = false;       
+            
+            const tryBuildLayerControl = () => {
+                if (cityLimitsAttempted && ccidAttempted) {
+                    updateBoundaryLayerStyles(); 
+                    if (Object.keys(overlayMaps).length > 0) { 
+                        updateLayerControl(overlayMaps);
+                    } else {
+                         if (overlayLayersControl) map.removeControl(overlayLayersControl); 
+                    }
+                }
+            };
+
+            if (JACKSON_CITY_LIMITS_GEOJSON_URL && JACKSON_CITY_LIMITS_GEOJSON_URL !== 'YOUR_JACKSON_CITY_LIMITS_GEOJSON_URL_HERE') {
+                fetch(JACKSON_CITY_LIMITS_GEOJSON_URL)
+                    .then(response => {
+                        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status} for Jackson GeoJSON`); }
+                        return response.json();
+                    })
+                    .then(geojson => {
+                        cityLimitsLayer = L.geoJSON(geojson); 
+                        overlayMaps["Jackson City Limits"] = cityLimitsLayer;
+                        cityLimitsLayer.addTo(map); 
+                    })
+                    .catch(error => {
+                        console.error('Error loading Jackson city limits GeoJSON. URL attempted:', JACKSON_CITY_LIMITS_GEOJSON_URL);
+                        console.error('Fetch Error Name:', error.name);
+                        console.error('Fetch Error Message:', error.message);
+                        if(error.stack) console.error('Fetch Error Stack:', error.stack);
+                    })
+                    .finally(() => {
+                        cityLimitsAttempted = true;
+                        tryBuildLayerControl();
+                    });
+            } else {
+                console.warn("Jackson City Limits GeoJSON URL is a placeholder or not provided. Boundary not loaded.");
+                cityLimitsAttempted = true; 
+                tryBuildLayerControl();
+            }
+            
+            if (CCID_GEOJSON_URL && CCID_GEOJSON_URL !== 'YOUR_CCID_GEOJSON_URL_HERE') {
+                fetch(CCID_GEOJSON_URL)
+                    .then(response => {
+                        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status} for CCID GeoJSON`); }
+                        return response.json();
+                    })
+                    .then(geojson => {
+                        ccidLayer = L.geoJSON(geojson); 
+                        overlayMaps["CCID Boundary"] = ccidLayer;
+                        ccidLayer.addTo(map); 
+                    })
+                    .catch(error => {
+                        console.error('Error loading CCID GeoJSON. URL attempted:', CCID_GEOJSON_URL);
+                        console.error('Fetch Error Name:', error.name);
+                        console.error('Fetch Error Message:', error.message);
+                        if(error.stack) console.error('Fetch Error Stack:', error.stack);
+                    })
+                    .finally(() => {
+                        ccidAttempted = true;
+                        tryBuildLayerControl();
+                    });
+            } else {
+                 console.warn("CCID GeoJSON URL is a placeholder or not provided. Boundary not loaded.");
+                 ccidAttempted = true; 
+                 tryBuildLayerControl();
+            }
+        }
+
+
+        function populateFiltersForMap() { 
+            const allYearsFromData = [...new Set(allHomicideData.map(d => d.Year).filter(y => y !== null))].sort((a, b) => b - a);
+            const yearsForFilter = allYearsFromData.filter(y => y >= START_YEAR_DATA && y <= CURRENT_YEAR);
+            
+            const previouslySelectedYears = getSelectedFilterValuesForMap('yearFilter');
+            const defaultYearsToSelect = previouslySelectedYears.length > 0 ? previouslySelectedYears : [CURRENT_YEAR];
+
+            let dataForDependentFilters = allHomicideData;
+            if (defaultYearsToSelect.length > 0) {
+                dataForDependentFilters = allHomicideData.filter(d => defaultYearsToSelect.includes(d.Year));
+            }
+            
+            const agenciesToShow = [...new Set(dataForDependentFilters.map(d => d['Investigating Agency']).filter(a => a))].sort();
+            const circumstancesToShow = [...new Set(dataForDependentFilters.map(d => d.Circumstance).filter(c => c))].sort();
+
+            populateCheckboxFilter('yearFilter', yearsForFilter, defaultYearsToSelect, handleYearFilterChange);
+            populateCheckboxFilter('agencyFilter', agenciesToShow, agenciesToShow, updateMapAndDependentUI);     
+            
+            const circumstanceSelect = document.getElementById('circumstanceFilter');
+            const previouslySelectedCircumstance = circumstanceSelect.value; 
+            circumstanceSelect.innerHTML = '<option value="">All Circumstances</option>';
+            circumstancesToShow.forEach(c => {
+                 const option = new Option(c, c);
+                 if (c === previouslySelectedCircumstance) {
+                     option.selected = true;
+                 }
+                 circumstanceSelect.add(option);
+            });
+            circumstanceSelect.removeEventListener('change', updateMapAndDependentUI); 
+            circumstanceSelect.addEventListener('change', updateMapAndDependentUI);
+        }
+        
+        function handleYearFilterChange() {
+            populateFiltersForMap(); 
+            updateMapAndDependentUI(); 
+        }
+
+        function populateCheckboxFilter(elementId, values, defaultSelected = [], changeCallback) {
+            const container = document.getElementById(elementId);
+            container.innerHTML = ''; 
+            values.forEach(val => {
+                const div = document.createElement('div');
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `${elementId}_${val.toString().replace(/\s+/g, '_')}`;
+                checkbox.value = val;
+                
+                const numVal = Number(val);
+                const isChecked = (elementId === 'yearFilter') ? defaultSelected.includes(numVal) : defaultSelected.includes(String(val));
+                checkbox.checked = isChecked;
+                
+                checkbox.removeEventListener('change', changeCallback); 
+                checkbox.addEventListener('change', changeCallback);
+
+                const label = document.createElement('label');
+                label.htmlFor = checkbox.id;
+                label.textContent = val;
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                container.appendChild(div);
+            });
+        }
+
+        function getSelectedFilterValuesForMap(elementId) { 
+            const selected = [];
+            document.querySelectorAll(`#${elementId} input[type="checkbox"]:checked`).forEach(cb => {
+                selected.push(cb.value);
+            });
+            if (elementId === 'yearFilter') return selected.map(y => parseInt(y));
+            return selected;
+        }
+
+        function applyFiltersToMapData() { 
+            const selectedYears = getSelectedFilterValuesForMap('yearFilter');
+            const selectedAgencies = getSelectedFilterValuesForMap('agencyFilter');
+            const selectedCircumstance = document.getElementById('circumstanceFilter').value;
+
+            filteredHomicideDataForMap = allHomicideData.filter((d, index) => {
+                const dataYear = d.Year; 
+                const dataAgency = String(d['Investigating Agency']).trim();
+                const dataCircumstance = String(d.Circumstance).trim();
+
+                const yearMatch = selectedYears.length === 0 || selectedYears.includes(dataYear);
+                const agencyMatch = selectedAgencies.length === 0 || selectedAgencies.includes(dataAgency);
+                const circumstanceMatch = !selectedCircumstance || dataCircumstance === selectedCircumstance;
+                
+                return yearMatch && agencyMatch && circumstanceMatch; 
+            });
+        }
+
+        function updateCurrentYearHomicideCount() {
+            const currentYearHomicides = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
+            document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: ${currentYearHomicides}`;
+        }
+        
+        function updateRankingBanner() {
+            const rankingBanner = document.getElementById('rankingBanner');
+            if (!rankingBanner) return;
+
+            const jacksonHomicidesThisYear = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
+            if (JACKSON_POPULATION <= 0) {
+                rankingBanner.innerText = "Jackson population not set for rate calculation.";
+                rankingBanner.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--rank-banner-error-bg').trim();
+                return;
+            }
+            const jacksonRate = (jacksonHomicidesThisYear / JACKSON_POPULATION) * 100000;
+
+            if (!cityComparisonData || cityComparisonData.length === 0) {
+                if (CITY_COMPARISON_CSV_URL !== 'YOUR_CITY_COMPARISON_CSV_URL_HERE' && CITY_COMPARISON_CSV_URL.trim() !== '') {
+                    rankingBanner.innerText = "City comparison data not available.";
+                } else {
+                    rankingBanner.innerText = "City Ranking: Data source not configured.";
+                }
+                rankingBanner.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--rank-banner-error-bg').trim();
+                return;
+            }
+
+            const otherCitiesData = cityComparisonData.filter(city => city.City && city.City.toLowerCase() !== 'jackson, ms');
+
+            const citiesWithRates = otherCitiesData.map(city => {
+                const rate = (city.Homicides / city.Population) * 100000;
+                return { name: city.City, rate: isNaN(rate) ? -1 : rate }; 
+            });
+
+            citiesWithRates.push({ name: 'Jackson, MS', rate: isNaN(jacksonRate) ? -1 : jacksonRate });
+            citiesWithRates.sort((a, b) => b.rate - a.rate); 
+
+            let jacksonRank = -1;
+            for (let i = 0; i < citiesWithRates.length; i++) {
+                if (citiesWithRates[i].name === 'Jackson, MS') {
+                    jacksonRank = i + 1; 
+                    break;
+                }
+            }
+            
+            const totalCitiesInRank = citiesWithRates.filter(c => c.rate !== -1).length; 
+            let bannerText = `Jackson Homicide Rate Rank: #${jacksonRank} of ${totalCitiesInRank} cities`;
+            if (jacksonRank === -1) bannerText = "Jackson rank not determined.";
+            
+            let bannerColorVar = '--rank-banner-error-bg'; 
+
+            if (jacksonRank === 1) {
+                bannerColorVar = '--rank-banner-rank1-bg';
+            } else if (jacksonRank >= 2 && jacksonRank <= 5) {
+                bannerColorVar = '--rank-banner-rank2to5-bg';
+            } else if (jacksonRank > 5) {
+                bannerColorVar = '--rank-banner-ranklow-bg';
+            }
+            
+            rankingBanner.innerText = bannerText;
+            rankingBanner.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue(bannerColorVar).trim();
+        }
+
+        function updatePercentageChangeDisplay() {
+            const percentageChangeDiv = document.getElementById('percentageChangeText');
+            if (!percentageChangeDiv || !allHomicideData || allHomicideData.length === 0) {
+                percentageChangeDiv.innerText = 'Data N/A';
+                percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-neutral-color');
+                return;
+            }
+
+            const today = new Date(); 
+            const currentMonth = today.getMonth(); 
+            const currentDayOfMonth = today.getDate();
+
+            const currentYearCountToDate = allHomicideData.filter(d => {
+                if (d.Year !== CURRENT_YEAR || !d.Date) return false;
+                const itemDate = new Date(d.Date); 
+                return itemDate.getMonth() < currentMonth || (itemDate.getMonth() === currentMonth && itemDate.getDate() <= currentDayOfMonth);
+            }).length;
+
+            const previousYearCountToDate = allHomicideData.filter(d => {
+                if (d.Year !== PREVIOUS_YEAR || !d.Date) return false;
+                const itemDate = new Date(d.Date);
+                return itemDate.getMonth() < currentMonth || (itemDate.getMonth() === currentMonth && itemDate.getDate() <= currentDayOfMonth);
+            }).length;
+            
+            let percentageChangeText = "N/A";
+            let textColorVar = '--percentage-neutral-color';
+
+            if (previousYearCountToDate > 0) {
+                const change = ((currentYearCountToDate - previousYearCountToDate) / previousYearCountToDate) * 100;
+                if (change > 0) {
+                    percentageChangeText = `+${change.toFixed(0)}%`;
+                    textColorVar = '--percentage-increase-color';
+                } else if (change < 0) {
+                    percentageChangeText = `${change.toFixed(0)}%`;
+                    textColorVar = '--percentage-decrease-color';
+                } else {
+                    percentageChangeText = "0%";
+                }
+            } else if (currentYearCountToDate > 0) {
+                percentageChangeText = `+${currentYearCountToDate} (from 0)`; 
+                textColorVar = '--percentage-increase-color';
+            } else { 
+                 percentageChangeText = "0 (YTD)";
+            }
+            percentageChangeDiv.innerText = percentageChangeText;
+            percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue(textColorVar).trim();
+        }
+
+
+        function updateMapDisplay() { 
+            markersLayer.clearLayers();
+            if (!map) return;
+             map.invalidateSize(); 
+            const visibleMarkers = []; 
+            filteredHomicideDataForMap.forEach(d => { 
+                if (!isNaN(d.Latitude) && !isNaN(d.Longitude) && d.Address && d.Address.toLowerCase() !== 'unknown') {
+                    const marker = L.circleMarker([d.Latitude, d.Longitude], {
+                        radius: 6, 
+                        fillColor: "#d9534f", 
+                        color: "#c82333",     
+                        weight: 1, opacity: 1, fillOpacity: 0.8
+                    });
+                    let displayDate = d.DisplayDate; // Use DisplayDate for tooltip
+                    if (!displayDate) {
+                        displayDate = 'N/A';
+                    }
+                    const tooltipContent = `
+                        <p><b>Victim:</b> ${d.Victim}</p>
+                        <p><b>Age:</b> ${d.Age !== null ? d.Age : 'N/A'}</p>
+                        <p><b>Race:</b> ${d.Race}</p>
+                        <p><b>Sex:</b> ${d.Sex}</p>
+                        <p><b>Date:</b> ${displayDate}</p> 
+                        <p><b>Address:</b> ${d.Address}</p>
+                        <p><b>Circumstance:</b> ${d.Circumstance}</p>
+                        <p><b>Agency:</b> ${d['Investigating Agency']}</p>
+                        <p><b>Precinct:</b> ${d.Precinct}</p>
+                        <p><b>Officer-Involved:</b> ${d['Officer-Involved Death?']}</p>
+                        ${d.Location ? `<p><b>Location Details:</b> ${d.Location}</p>` : ''}
+                    `;
+                    marker.bindTooltip(tooltipContent, { sticky: true });
+                    markersLayer.addLayer(marker);
+                    visibleMarkers.push(marker); 
+                }
+            });
+            if (visibleMarkers.length > 0) {
+                const group = new L.featureGroup(visibleMarkers);
+                map.fitBounds(group.getBounds().pad(0.1)); 
+            } else {
+                map.setView(MAP_CENTER, MAP_ZOOM);
+            }
+        }
+        
+        function getChartOptions() { 
+            const textColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-axis-text').trim();
+            const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid-color').trim();
+            const titleColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-title-text').trim();
+            const legendColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-legend-text').trim();
+
+            return {
+                responsive: true, maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        stacked: true, 
+                        title: { display: true, text: 'Year', color: titleColor },
+                        ticks: { color: textColor },
+                        grid: { color: gridColor }
+                    },
+                    y: {
+                        stacked: true, 
+                        beginAtZero: true,
+                        title: { display: true, text: 'Number of Homicides', color: titleColor },
+                        ticks: { color: textColor },
+                        grid: { color: gridColor }
+                    }
+                },
+                plugins: {
+                    legend: { position: 'top', labels: { color: legendColor, boxWidth: 20 } },
+                    tooltip: { mode: 'index', intersect: false }
+                }
+            };
+        }
+        
+        function getTrendChartOptions() { 
+             const textColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-axis-text').trim();
+            const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid-color').trim();
+            const titleColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-title-text').trim();
+            const legendColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-legend-text').trim();
+
+            return {
+                 responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            title: {display: true, text: 'Cumulative Homicides', color: titleColor},
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        },
+                        x: {
+                            type: 'time',
+                            time: { unit: 'month', parser: 'yyyy-MM-dd', tooltipFormat: 'MMM dd', displayFormats: { month: 'MMM' } },
+                            title: {display: true, text: 'Month (Displayed on a Common Year for Comparison)', color: titleColor},
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        }
+                    },
+                    plugins: { 
+                        legend: { 
+                            position: 'top', 
+                            labels: {
+                                usePointStyle: false, 
+                                boxWidth: 12, 
+                                padding: 10,  
+                                generateLabels: function(chart) { 
+                                    const datasets = chart.data.datasets;
+                                    const currentLegendColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-legend-text').trim(); 
+                                    return datasets.map((dataset, i) => {
+                                        return {
+                                            text: dataset.label,
+                                            fillStyle: dataset.borderColor, 
+                                            strokeStyle: dataset.borderColor,
+                                            lineWidth: 1,
+                                            hidden: !chart.isDatasetVisible(i),
+                                            index: i,
+                                            fontColor: currentLegendColor 
+                                        };
+                                    });
+                                }
+                            } 
+                        }, 
+                        tooltip: { mode: 'index', intersect: false } 
+                    }
+            };
+        }
+
+
+        function updateHomicidesByYearChart() { 
+            const chartOptions = getChartOptions(); 
+            chartOptions.scales.x.title.text = 'Year'; 
+            chartOptions.scales.y.title.text = 'Number of Homicides';
+
+            const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
+            const yearsToDisplay = [];
+            for (let y = START_YEAR_DATA; y <= CURRENT_YEAR; y++) {
+                yearsToDisplay.push(y);
+            }
+            const dataByAgencyCategory = {
+                [AGENCY_CATEGORIES.JPD]: new Array(yearsToDisplay.length).fill(0),
+                [AGENCY_CATEGORIES.CAPITOL_POLICE]: new Array(yearsToDisplay.length).fill(0),
+                [AGENCY_CATEGORIES.OTHER]: new Array(yearsToDisplay.length).fill(0),
+            };
+            allHomicideData.forEach(d => { 
+                const yearIndex = yearsToDisplay.indexOf(d.Year); 
+                if (yearIndex !== -1) { 
+                    const agency = String(d['Investigating Agency']).trim();
+                    if (agency === AGENCY_CATEGORIES.JPD) {
+                        dataByAgencyCategory[AGENCY_CATEGORIES.JPD][yearIndex]++;
+                    } else if (agency === AGENCY_CATEGORIES.CAPITOL_POLICE) {
+                        dataByAgencyCategory[AGENCY_CATEGORIES.CAPITOL_POLICE][yearIndex]++;
+                    } else { 
+                        dataByAgencyCategory[AGENCY_CATEGORIES.OTHER][yearIndex]++;
+                    }
+                }
+            });
+            const datasets = Object.keys(AGENCY_CATEGORIES).map(key => {
+                const category = AGENCY_CATEGORIES[key];
+                return {
+                    label: category,
+                    data: dataByAgencyCategory[category],
+                    backgroundColor: agencyColors[category] || 'rgba(108, 117, 125, 0.7)', 
+                    borderColor: (agencyColors[category] || 'rgba(108, 117, 125, 1)').replace('0.7', '1'), 
+                    borderWidth: 1
+                };
+            });
+            if (homicidesByYearChartInstance) {
+                homicidesByYearChartInstance.destroy();
+            }
+            homicidesByYearChartInstance = new Chart(ctx, {
+                type: 'bar', 
+                data: { labels: yearsToDisplay, datasets: datasets },
+                options: chartOptions 
+            });
+        }
+
+        function updateHomicideTrendsChart() {
+            const chartOptions = getTrendChartOptions(); 
+
+            const getRunningTotalData = (yearToFilter, dataSet) => {
+                const yearData = dataSet.filter(d => d.Year === yearToFilter && d.Date) 
+                    .sort((a, b) => { 
+                        if (a.Date < b.Date) return -1;
+                        if (a.Date > b.Date) return 1;
+                        return 0;
+                    });
+                const chartDataPoints = [];
+                const commonAxisYear = 2000; 
+                let cumulativeCount = 0;
+                let homicideDataIndex = 0;
+                let loopEndDate = (yearToFilter === CURRENT_YEAR) ? new Date() : new Date(yearToFilter, 11, 31); 
+                
+                for (let dLoop = new Date(yearToFilter, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
+                    const currentLoopDayFormatted = `${dLoop.getFullYear()}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`;
+                    while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
+                        cumulativeCount++;
+                        homicideDataIndex++;
+                    }
+                    chartDataPoints.push({
+                        x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
+                        y: cumulativeCount 
+                    });
+                }
+                if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
+                    chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
+                } else if (chartDataPoints[0].x === `${commonAxisYear}-01-01` && chartDataPoints[0].y > 0 && !yearData.some(h => h.Date === `${yearToFilter}-01-01`)) {
+                    chartDataPoints[0].y = 0;
+                }
+                return chartDataPoints.filter((p, i, self) => i === self.findIndex(t => t.x === p.x)).sort((a,b) => new Date(a.x) - new Date(b.x));
+            };
+
+            const dataForCurrentYear = getRunningTotalData(CURRENT_YEAR, allHomicideData);
+            const dataForPreviousYear = getRunningTotalData(PREVIOUS_YEAR, allHomicideData);
+
+            const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
+            if (homicideTrendsChartInstance) {
+                homicideTrendsChartInstance.destroy();
+            }
+            homicideTrendsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        { label: String(CURRENT_YEAR), data: dataForCurrentYear, borderColor: '#dc3545', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 },
+                        { label: String(PREVIOUS_YEAR), data: dataForPreviousYear, borderColor: '#007bff', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 }
+                    ]
+                },
+                options: chartOptions 
+            });
+        }
+
+         function displayErrorInCharts(errorMessage) {
+            const chartIds = ['homicidesByYearChart', 'homicideTrendsChart'];
+            chartIds.forEach(id => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    if (homicidesByYearChartInstance && id === 'homicidesByYearChart') homicidesByYearChartInstance.destroy();
+                    if (homicideTrendsChartInstance && id === 'homicideTrendsChart') homicideTrendsChartInstance.destroy();
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = "16px Arial";
+                    ctx.fillStyle = "red";
+                    ctx.textAlign = "center";
+                    ctx.fillText(errorMessage, canvas.width / 2, canvas.height / 2);
+                }
+            });
+        }
+        
+        function updateMapAndDependentUI() {
+            applyFiltersToMapData(); 
+            updateMapDisplay();      
+            updatePercentageChangeDisplay(); 
+        }
+
+        function updateDashboard() {
+            applyFiltersToMapData(); 
+            updateMapDisplay();
+            updateHomicidesByYearChart(); 
+            updateHomicideTrendsChart();  
+            updateRankingBanner(); 
+            updatePercentageChangeDisplay(); 
+        }
+    </script>
+</body>
+</html>
