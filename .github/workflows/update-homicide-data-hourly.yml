@@ -34,7 +34,7 @@ jobs:
           git config user.name "GitHub Action Bot"
           git config user.email "bot@example.com"
           git add public/data/homicide.json
-          git commit -m "🔄 Hourly homicide data update" || echo "No changes to commit"
+          git commit -m "Hourly homicide data update" || echo "No changes to commit"
           git push
 
   notify-on-failure:
@@ -49,7 +49,7 @@ jobs:
           server_port: 587
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
-          subject: ❌ GitHub Action Failed: Homicide Data Update
+          subject: "GitHub Action Failed - Homicide Data Update"
           to: ${{ secrets.ALERT_EMAIL }}
           from: "GitHub Bot <${{ secrets.EMAIL_USERNAME }}>"
           body: |
