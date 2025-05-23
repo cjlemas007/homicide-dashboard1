@@ -1,0 +1,38 @@
+
+name: Update Homicide Data Hourly
+
+on:
+  schedule:
+    - cron: '0 * * * *'  # Every hour, on the hour
+  workflow_dispatch:
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+
+      - name: Set up Node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install Dependencies
+        run: npm install node-fetch@2
+
+      - name: Run Update Script
+        run: |
+          echo "Running update-homicide-data.mjs"
+          node --experimental-modules update-homicide-data.mjs
+        env:
+          NODE_TLS_REJECT_UNAUTHORIZED: 0
+
+      - name: Commit Updated JSON
+        run: |
+          git config user.name "GitHub Action Bot"
+          git config user.email "bot@example.com"
+          git add public/data/homicide.json
+          git commit -m "🔄 Hourly homicide data update" || echo "No changes to commit"
+          git push
