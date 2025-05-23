@@ -51,7 +51,7 @@ jobs:
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: ❌ GitHub Action Failed: Homicide Data Update
           to: ${{ secrets.ALERT_EMAIL }}
-          from: GitHub Bot <${{ secrets.EMAIL_USERNAME }}>
+          from: "GitHub Bot <${{ secrets.EMAIL_USERNAME }}>"
           body: |
             The GitHub Action to update homicide data failed.
             Please check your Actions tab for details.
