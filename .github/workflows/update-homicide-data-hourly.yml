@@ -1,9 +1,9 @@
 
-name: Update Homicide Data Hourly
+name: Update Homicide Data Hourly with Gmail Alerts
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Every hour, on the hour
+    - cron: '0 * * * *'  # Every hour
   workflow_dispatch:
 
 jobs:
@@ -36,3 +36,18 @@ jobs:
           git add public/data/homicide.json
           git commit -m "🔄 Hourly homicide data update" || echo "No changes to commit"
           git push
+
+      - name: Send Gmail Alert if Job Fails
+        if: failure()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 587
+          username: ${{ secrets.EMAIL_USERNAME }}
+          password: ${{ secrets.EMAIL_PASSWORD }}
+          subject: ❌ GitHub Action Failed: Homicide Data Update
+          to: ${{ secrets.ALERT_EMAIL }}
+          from: GitHub Bot <${{ secrets.EMAIL_USERNAME }}>
+          body: |
+            The GitHub Action to update homicide data failed.
+            Please check your Actions tab for details.
