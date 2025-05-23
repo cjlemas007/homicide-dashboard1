@@ -9,6 +9,8 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout Repo
@@ -29,13 +31,13 @@ jobs:
         env:
           NODE_TLS_REJECT_UNAUTHORIZED: 0
 
-      - name: Commit Updated JSON
+      - name: Commit and Push Updated JSON
         run: |
           git config user.name "GitHub Action Bot"
           git config user.email "bot@example.com"
           git add public/data/homicide.json
           git commit -m "Hourly homicide data update" || echo "No changes to commit"
-          git push
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }}
 
   notify-on-failure:
     if: failure()
