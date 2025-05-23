@@ -114,7 +114,7 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between; 
-            /* flex-grow: 1; /* Let this take space, button will be at bottom */
+            flex-grow: 1; 
             margin-bottom: 10px; 
         }
 
@@ -132,7 +132,6 @@
         }
         .filter-group.percentage-change-display {
             margin-top: 15px; 
-            /* flex-grow: 1; /* Allow this to push button down */
         }
 
 
@@ -191,9 +190,10 @@
             background-color: var(--tooltip-bg); 
             color: var(--tooltip-text);
             border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
-            border-radius: 4px; padding: 8px 12px; font-size: 0.85em; 
+            border-radius: 4px; padding: 10px 15px; 
+            font-size: 1em; 
         }
-        .leaflet-tooltip p { margin: 4px 0; }
+        .leaflet-tooltip p { margin: 5px 0; } 
         .leaflet-tooltip b { color: var(--tooltip-text); font-weight: bold; } 
 
         .leaflet-control-layers { background: var(--content-bg); border: 1px solid var(--legend-border); }
@@ -317,7 +317,8 @@
 
     <script>
         // --- Configuration ---
-        const GOOGLE_SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTD0xEu_8_iLgdPFXiJps_TeJnx1hnHCVHVmYX6czNVaLFA-5gYOXtgVQnY8CIPlT5Rq9qXkEUGptLE/pub?gid=107720920&single=true&output=csv';
+        // MODIFIED: URL for main homicide data is now the static JSON file with relative path
+        const HOMICIDE_DATA_API_URL = './data/homicide.json'; 
         const CITY_COMPARISON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiORmxzjhdAokYzM0NhcTjAk1e3hJp81B5OCG03XcPnUaSVrCRiwIXmah2iPSHFaaWbSoKKwFA1Uc/pub?gid=0&single=true&output=csv'; 
         const JACKSON_POPULATION = 143709; 
 
@@ -373,7 +374,7 @@
 
             try {
                 const [homicideDataResult, cityDataResult] = await Promise.all([
-                    fetchDataAndProcess(GOOGLE_SHEET_CSV_URL, true), 
+                    fetchDataAndProcess(HOMICIDE_DATA_API_URL, true), 
                     fetchDataAndProcess(CITY_COMPARISON_CSV_URL, false) 
                 ]);
 
@@ -387,11 +388,12 @@
                      console.warn("City comparison data is empty or failed to load properly.");
                 }
 
-                populateFiltersForMap(); // Initial population of all filters
+
+                populateFiltersForMap(); 
                 updateCurrentYearHomicideCount();
                 updateRankingBanner(); 
                 updatePercentageChangeDisplay(); 
-                updateDashboard(); // This will apply initial filters and update map
+                updateDashboard(); 
                 if (map) { 
                     map.invalidateSize();
                 }
@@ -434,65 +436,141 @@
 
         async function fetchDataAndProcess(url, isMainHomicideData = false) { 
             let rawData;
-            if ((isMainHomicideData && (url === 'YOUR_PUBLISHED_GOOGLE_SHEET_CSV_URL_HERE' || !url)) ||
-                (!isMainHomicideData && (url === 'YOUR_CITY_COMPARISON_CSV_URL_HERE' || !url))) { 
-                console.warn(`URL for ${isMainHomicideData ? 'main data' : 'city comparison'} is placeholder or not provided. Using local placeholder data if applicable.`);
+            const dataType = isMainHomicideData ? 'main homicide data' : 'city comparison data';
+            const placeholderUrlCity = 'YOUR_CITY_COMPARISON_CSV_URL_HERE';
+
+            let usePlaceholder = false;
+            // For main homicide data, we are now using HOMICIDE_DATA_API_URL.
+            // It's not a placeholder if it's the defined relative path.
+            if (isMainHomicideData && !url.startsWith('./data/')) { // A simple check if it's not the expected relative path
+                 console.warn(`Main homicide data URL might be incorrect: ${url}. Using placeholder.`);
+                 usePlaceholder = true;
+            } else if (!isMainHomicideData && (url === placeholderUrlCity || !url)) {
+                usePlaceholder = true;
+            }
+
+
+            if (usePlaceholder) {
+                console.warn(`URL for ${dataType} is placeholder or not provided. Using local placeholder data.`);
                 rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
             } else {
+                console.log(`Attempting to fetch ${dataType} from:`, url);
                 try {
                     const response = await fetch(url);
+                    console.log(`Fetch response status for ${dataType}: ${response.status}`); 
+                    
                     if (!response.ok) {
-                        const errorText = await response.text().catch(() => "Could not read error response text.");
-                        console.error(`Network response was not ok for ${isMainHomicideData ? 'main data' : 'city comparison'}: ${response.status} ${response.statusText}. URL: ${url}. Response text: ${errorText}`);
-                        throw new Error(`Network response was not ok for ${isMainHomicideData ? 'main data' : 'city comparison'}: ${response.status} ${response.statusText}`);
+                        const errorText = await response.text().catch(() => `Could not read error response text. Status: ${response.status}`);
+                        console.error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}. URL: ${url}. Response text snippet: ${errorText.substring(0, 200)}`);
+                        throw new Error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}.`);
                     }
-                    const csvText = await response.text();
-                    rawData = csvToJSON(csvText);
+
+                    if (isMainHomicideData) { // Main data is now JSON from API/file
+                        const contentType = response.headers.get("content-type");
+                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                            rawData = await response.json(); 
+                            console.log(`Successfully fetched JSON for ${dataType}.`);
+                        } else {
+                            const responseText = await response.text();
+                            console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text:`, responseText.substring(0, 500));
+                            throw new Error(`Invalid content type for ${dataType}. Expected JSON, got ${contentType}`);
+                        }
+                    } else { // City comparison data is still CSV
+                        const csvText = await response.text(); 
+                        rawData = csvToJSON(csvText);
+                    }
                 } catch (error) {
-                    console.error(`Failed to fetch or parse CSV for ${isMainHomicideData ? 'main data' : 'city comparison'}. URL: ${url}`, error);
-                    console.warn(`Falling back to placeholder data for ${isMainHomicideData ? 'main data' : 'city comparison'} due to fetch error.`);
+                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${url}`, error);
+                    console.warn(`Falling back to placeholder data for ${dataType} due to fetch error.`);
                     rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
                 }
             }
             
             if (isMainHomicideData) {
-                if (!rawData || rawData.length === 0) {
-                    console.warn(`No ${isMainHomicideData ? 'main data' : 'city comparison'} loaded.`);
+                if (!rawData || !rawData.headers || !rawData.entries || rawData.entries.length === 0) {
+                    console.warn(`No valid ${dataType} loaded or data structure is incorrect. Raw data received:`, rawData);
                     return [];
                 }
                 let excludedRecordsLog = [];
-                const mappedData = rawData.map((d, index) => {
-                    const inputYearStr = d.Year ? String(d.Year).trim() : null;
-                    const inputMonthStr = d.Month ? String(d.Month).trim() : null;
-                    const inputDayStr = d.Day ? String(d.Day).trim() : null;
+                const headers = rawData.headers.map(h => String(h).trim()); 
+                const headerMap = {};
+                headers.forEach((header, index) => {
+                    headerMap[header.toLowerCase()] = index; 
+                });
+                
+                const getHeaderIndex = (possibleNames) => {
+                    for (let name of possibleNames) {
+                        if (typeof headerMap[name.toLowerCase()] !== 'undefined') return headerMap[name.toLowerCase()];
+                    }
+                    console.warn(`Header not found for any of: ${possibleNames.join(', ')}`);
+                    return -1;
+                };
+
+                const victimIdx = getHeaderIndex(['Victim']);
+                const ageIdx = getHeaderIndex(['Age']);
+                const raceIdx = getHeaderIndex(['Race']);
+                const sexIdx = getHeaderIndex(['Sex']);
+                const circumstanceIdx = getHeaderIndex(['Circumstance']);
+                const dateIdx = getHeaderIndex(['Date']); 
+                const yearIdx = getHeaderIndex(['Year']);   
+                const monthIdx = getHeaderIndex(['Month']);
+                const dayIdx = getHeaderIndex(['Day']);
+                const addressIdx = getHeaderIndex(['Address', 'Location']); 
+                const officerInvolvedIdx = getHeaderIndex(['Officer-Involved Death?', 'Officer Involved', 'Officer_Involved']);
+                const agencyIdx = getHeaderIndex(['Investigating Agency', 'Agency']);
+                const precinctIdx = getHeaderIndex(['Precinct']);
+                const latitudeIdx = getHeaderIndex(['Latitude', 'Lat']);
+                const longitudeIdx = getHeaderIndex(['Longitude', 'Lon', 'Long']);
+                const locationNotesIdx = getHeaderIndex(['Location Notes', 'Notes']); 
+
+                const mappedData = rawData.entries.map((entry, index) => {
                     let parsedYear = null;
                     let formattedDate = null; 
+                    let originalDateStrForDisplay = 'N/A';
 
-                    if (inputYearStr && inputMonthStr && inputDayStr) {
-                        const y = parseInt(inputYearStr);
-                        const m = parseInt(inputMonthStr); 
-                        const day = parseInt(inputDayStr);  
+                    if (dateIdx !== -1 && entry[dateIdx]) { 
+                        const dateStr = String(entry[dateIdx]).trim();
+                        originalDateStrForDisplay = dateStr;
+                        const dateObj = new Date(dateStr.replace(/\//g, '-')); 
+                        if (dateObj && !isNaN(dateObj.getTime())) {
+                            parsedYear = dateObj.getFullYear();
+                            formattedDate = `${parsedYear}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
+                        }
+                    } else if (yearIdx !== -1 && monthIdx !== -1 && dayIdx !== -1) { 
+                        const y = parseInt(entry[yearIdx]);
+                        const m = parseInt(entry[monthIdx]); 
+                        const day = parseInt(entry[dayIdx]);  
                         if (!isNaN(y) && !isNaN(m) && !isNaN(day) && y >= 1900 && y <= CURRENT_YEAR + 10 && m >= 1 && m <= 12 && day >= 1 && day <= 31) {
                             const dateObj = new Date(y, m - 1, day); 
                             if (dateObj && dateObj.getFullYear() === y && dateObj.getMonth() === (m - 1) && dateObj.getDate() === day) {
                                 parsedYear = y;
                                 formattedDate = `${y}-${m.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                originalDateStrForDisplay = `${m.toString().padStart(2, '0')}/${day.toString().padStart(2, '0')}/${y}`;
                             }
                         }
                     }
                     
-                    const lat = parseFloat(d.Latitude);
-                    const lon = parseFloat(d.Longitude);
+                    const lat = latitudeIdx !== -1 ? parseFloat(entry[latitudeIdx]) : NaN;
+                    const lon = longitudeIdx !== -1 ? parseFloat(entry[longitudeIdx]) : NaN;
                     const isValidLat = !isNaN(lat) && lat >= -90 && lat <= 90;
                     const isValidLon = !isNaN(lon) && lon >= -180 && lon <= 180;
 
                     return {
-                        Victim: d.Victim || 'N/A', Age: d.Age ? parseInt(d.Age) : null, Race: d.Race || 'N/A', Sex: d.Sex || 'N/A',
-                        Circumstance: d.Circumstance || 'N/A', Date: formattedDate, 
-                        OriginalYear: inputYearStr, OriginalMonth: inputMonthStr, OriginalDay: inputDayStr,
-                        Address: d.Address || 'N/A', 'Officer-Involved Death?': d['Officer-Involved Death?'] || 'N/A',
-                        'Investigating Agency': d['Investigating Agency'] || 'N/A', Precinct: d.Precinct ? d.Precinct.toString().trim() : 'N/A',
-                        Latitude: lat, Longitude: lon, Location: d.Location || '', Year: parsedYear, 
+                        Victim: victimIdx !== -1 ? entry[victimIdx] : 'N/A', 
+                        Age: ageIdx !== -1 && entry[ageIdx] ? parseInt(entry[ageIdx]) : null, 
+                        Race: raceIdx !== -1 ? entry[raceIdx] : 'N/A', 
+                        Sex: sexIdx !== -1 ? entry[sexIdx] : 'N/A',
+                        Circumstance: circumstanceIdx !== -1 ? entry[circumstanceIdx] : 'N/A', 
+                        Date: formattedDate, 
+                        DisplayDate: originalDateStrForDisplay, 
+                        Address: addressIdx !== -1 ? entry[addressIdx] : 'N/A', 
+                        'Officer-Involved Death?': officerInvolvedIdx !== -1 ? entry[officerInvolvedIdx] : 'N/A',
+                        'Investigating Agency': agencyIdx !== -1 ? entry[agencyIdx] : 'N/A', 
+                        Precinct: precinctIdx !== -1 && entry[precinctIdx] ? String(entry[precinctIdx]).trim() : 'N/A',
+                        Latitude: lat, 
+                        Longitude: lon, 
+                        Location: locationNotesIdx !== -1 ? entry[locationNotesIdx] : '', 
+                        Year: parsedYear, 
                         _isValidForProcessing: parsedYear !== null && isValidLat && isValidLon
                     };
                 });
@@ -509,14 +587,13 @@
                     console.warn(`Total homicide records excluded: ${mappedData.length - finalData.length}.`);
                 }
                 return finalData;
-            } else { // City comparison data
+            } else { // City comparison data (still CSV)
                 if (!rawData || rawData.length === 0) {
-                    console.warn(`No ${isMainHomicideData ? 'main data' : 'city comparison'} loaded.`);
+                    console.warn(`No ${dataType} loaded.`);
                     return [];
                 }
-                console.log(`Processing ${isMainHomicideData ? 'main data' : 'city comparison'}. Total raw records:`, rawData.length);
                 let excludedCitiesLogDetailed = [];
-                const processedCityData = rawData.map(d => {
+                const processedCityData = rawData.map(d => { 
                     const city = d.City ? String(d.City).trim() : null;
                     const homicidesStr = d.Homicides ? String(d.Homicides).trim() : null;
                     const populationStr = d.Population ? String(d.Population).trim() : null;
@@ -538,27 +615,8 @@
                 }).filter(d => d._isValid);
 
                 if (excludedCitiesLogDetailed.length > 0) {
-                    console.warn(`Total city comparison records excluded: ${excludedCitiesLogDetailed.length}. Reasons for exclusion:`);
-                    if (excludedCitiesLogDetailed.length <= 20) { 
-                        excludedCitiesLogDetailed.forEach(excluded => {
-                            console.warn(`  - City: '${excluded.city}', Reason: ${excluded.reason}, Original:`, excluded.originalData);
-                        });
-                    } else { 
-                        console.warn(`  (Showing first 20 exclusion details due to large number)`);
-                        excludedCitiesLogDetailed.slice(0, 20).forEach(excluded => {
-                             console.warn(`  - City: '${excluded.city}', Reason: ${excluded.reason}, Original:`, excluded.originalData);
-                        });
-                        const reasonCounts = {};
-                        excludedCitiesLogDetailed.forEach(ex => {
-                            const reasons = ex.reason.split('. ');
-                            reasons.forEach(r => {
-                                if (r) reasonCounts[r] = (reasonCounts[r] || 0) + 1;
-                            });
-                        });
-                        console.warn("Summary of exclusion reasons for all excluded cities:", reasonCounts);
-                    }
+                    console.warn(`Total city comparison records excluded: ${excludedCitiesLogDetailed.length}.`);
                 }
-                console.log(`Total cities after filtering for ${isMainHomicideData ? 'main data' : 'city comparison'} (valid for ranking):`, processedCityData.length);
                 return processedCityData;
             }
         }
@@ -581,7 +639,7 @@
             }
         }
 
-        function csvToJSON(csv) {
+        function csvToJSON(csv) { // This is still used for City Comparison CSV
             const lines = csv.split(/\r\n|\n/);
             const result = [];
             if (lines.length < 1) return result;
@@ -616,12 +674,16 @@
         }
 
         function getPlaceholderData() { 
-            return [
-                { Victim: 'John Doe', Age: 30, Race: 'Black', Sex: 'Male', Circumstance: 'Argument', Year: CURRENT_YEAR, Month: 1, Day: 15, Address: '123 Main St, Jackson, MS', 'Officer-Involved Death?': 'No', 'Investigating Agency': 'JPD', Precinct: '1', Latitude: 32.3010, Longitude: -90.1850, Location: 'Near Capitol Building' },
-                { Victim: 'Jane Smith', Age: 25, Race: 'White', Sex: 'Female', Circumstance: 'Robbery', Year: CURRENT_YEAR, Month: 2, Day: 20, Address: '456 Oak Ave, Jackson, MS', 'Officer-Involved Death?': 'No', 'Investigating Agency': 'Capitol Police', Precinct: '2', Latitude: 32.2950, Longitude: -90.1900, Location: 'Downtown Area' },
-            ];
+            // Placeholder for main homicide data, structure matches expected output of API processing
+            return {
+                headers: ["Date", "Location", "Victim", "Agency", "Precinct", "Age", "Sex", "Race", "Circumstance", "Officer-Involved Death?", "Latitude", "Longitude", "Notes"],
+                entries: [
+                    [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", "1", 30, "Male", "Black", "Argument", "No", 32.3010, -90.1850, "Near Capitol Building"],
+                    [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", "2", 25, "Female", "White", "Robbery", "No", 32.2950, -90.1900, "Downtown Area"]
+                ]
+            };
         }
-        function getPlaceholderCityData() {
+        function getPlaceholderCityData() { // Placeholder for city comparison data
             return [
                 { City: 'City A', Homicides: 50, Population: 500000 },
                 { City: 'City B', Homicides: 120, Population: 1000000 },
@@ -720,47 +782,42 @@
             const allYearsFromData = [...new Set(allHomicideData.map(d => d.Year).filter(y => y !== null))].sort((a, b) => b - a);
             const yearsForFilter = allYearsFromData.filter(y => y >= START_YEAR_DATA && y <= CURRENT_YEAR);
             
-            // Get currently selected values before re-populating (to try and preserve them)
             const previouslySelectedYears = getSelectedFilterValuesForMap('yearFilter');
-            const previouslySelectedAgencies = getSelectedFilterValuesForMap('agencyFilter');
-            const previouslySelectedCircumstance = document.getElementById('circumstanceFilter').value;
+            const defaultYearsToSelect = previouslySelectedYears.length > 0 ? previouslySelectedYears : [CURRENT_YEAR];
 
-            // Determine data subset based on selected years for dependent filters
             let dataForDependentFilters = allHomicideData;
-            if (previouslySelectedYears.length > 0) { // If years are already selected, use them
-                dataForDependentFilters = allHomicideData.filter(d => previouslySelectedYears.includes(d.Year));
-            } else { // Otherwise, default to current year for dependent filters
-                 dataForDependentFilters = allHomicideData.filter(d => d.Year === CURRENT_YEAR);
+            if (defaultYearsToSelect.length > 0) {
+                dataForDependentFilters = allHomicideData.filter(d => defaultYearsToSelect.includes(d.Year));
             }
             
             const agenciesToShow = [...new Set(dataForDependentFilters.map(d => d['Investigating Agency']).filter(a => a))].sort();
             const circumstancesToShow = [...new Set(dataForDependentFilters.map(d => d.Circumstance).filter(c => c))].sort();
 
-            populateCheckboxFilter('yearFilter', yearsForFilter, previouslySelectedYears.length > 0 ? previouslySelectedYears : [CURRENT_YEAR], handleYearFilterChange);
-            populateCheckboxFilter('agencyFilter', agenciesToShow, previouslySelectedAgencies.length > 0 ? previouslySelectedAgencies : agenciesToShow, updateMapAndDependentUI);     
+            populateCheckboxFilter('yearFilter', yearsForFilter, defaultYearsToSelect, handleYearFilterChange);
+            populateCheckboxFilter('agencyFilter', agenciesToShow, agenciesToShow, updateMapAndDependentUI);     
             
             const circumstanceSelect = document.getElementById('circumstanceFilter');
+            const previouslySelectedCircumstance = circumstanceSelect.value; 
             circumstanceSelect.innerHTML = '<option value="">All Circumstances</option>';
             circumstancesToShow.forEach(c => {
-                const option = new Option(c, c);
-                if (c === previouslySelectedCircumstance) {
-                    option.selected = true;
-                }
-                circumstanceSelect.add(option);
+                 const option = new Option(c, c);
+                 if (c === previouslySelectedCircumstance) {
+                     option.selected = true;
+                 }
+                 circumstanceSelect.add(option);
             });
-            // Remove old listener before adding new one to prevent multiple triggers
-            circumstanceSelect.removeEventListener('change', updateMapAndDependentUI);
+            circumstanceSelect.removeEventListener('change', updateMapAndDependentUI); 
             circumstanceSelect.addEventListener('change', updateMapAndDependentUI);
         }
         
         function handleYearFilterChange() {
-            populateFiltersForMap(); // This will re-populate Agency and Circumstance based on new year selection
-            updateMapAndDependentUI(); // Then update the map
+            populateFiltersForMap(); 
+            updateMapAndDependentUI(); 
         }
 
         function populateCheckboxFilter(elementId, values, defaultSelected = [], changeCallback) {
             const container = document.getElementById(elementId);
-            container.innerHTML = ''; // Clear existing options
+            container.innerHTML = ''; 
             values.forEach(val => {
                 const div = document.createElement('div');
                 const checkbox = document.createElement('input');
@@ -768,12 +825,10 @@
                 checkbox.id = `${elementId}_${val.toString().replace(/\s+/g, '_')}`;
                 checkbox.value = val;
                 
-                // Ensure defaultSelected values are treated as numbers for year comparison
                 const numVal = Number(val);
                 const isChecked = (elementId === 'yearFilter') ? defaultSelected.includes(numVal) : defaultSelected.includes(String(val));
                 checkbox.checked = isChecked;
                 
-                // Remove old listener before adding new one, though re-creating elements usually handles this
                 checkbox.removeEventListener('change', changeCallback); 
                 checkbox.addEventListener('change', changeCallback);
 
@@ -938,11 +993,9 @@
                         color: "#c82333",     
                         weight: 1, opacity: 1, fillOpacity: 0.8
                     });
-                    let displayDate = d.Date; 
-                    if (!displayDate && d.OriginalYear && d.OriginalMonth && d.OriginalDay) {
-                        displayDate = `${d.OriginalMonth}/${d.OriginalDay}/${d.OriginalYear}`;
-                    } else if (!displayDate) {
-                        displayDate = 'N/A';
+                    let displayDate = d.DisplayDate; 
+                    if (!displayDate) { 
+                        displayDate = d.Date || 'N/A';
                     }
                     const tooltipContent = `
                         <p><b>Victim:</b> ${d.Victim}</p>
@@ -1175,7 +1228,7 @@
         function updateMapAndDependentUI() {
             applyFiltersToMapData(); 
             updateMapDisplay();      
-            updatePercentageChangeDisplay(); // Update percentage when filters change
+            updatePercentageChangeDisplay(); 
         }
 
         function updateDashboard() {
