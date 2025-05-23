@@ -37,9 +37,13 @@ jobs:
           git commit -m "🔄 Hourly homicide data update" || echo "No changes to commit"
           git push
 
-      - name: Send Gmail Alert if Job Fails
+  notify-on-failure:
+    if: failure()
+    needs: update
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Gmail Alert
         uses: dawidd6/action-send-mail@v3
-        if: failure()
         with:
           server_address: smtp.gmail.com
           server_port: 587
