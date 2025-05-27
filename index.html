@@ -471,7 +471,7 @@
                 console.log(`Attempting to fetch ${dataType} from:`, fetchableUrl);
                 try {
                     const response = await fetch(fetchableUrl); 
-                    console.log(`Workspace response status for ${dataType} (${fetchableUrl}): ${response.status}`); 
+                    console.log(`Fetch response status for ${dataType} (${fetchableUrl}): ${response.status}`); 
                     
                     if (!response.ok) {
                         const errorText = await response.text().catch(() => `Could not read error response text. Status: ${response.status}`);
@@ -482,10 +482,9 @@
                     if (isMainHomicideData) { 
                         const contentType = response.headers.get("content-type");
                         if (contentType && contentType.toLowerCase().includes("application/json")) { 
-                            const responseText = await response.clone().text(); // Clone to read text first for debugging
-                            // console.log(`Raw response text for ${dataType} (first 500 chars):`, responseText.substring(0, 500));
+                            const responseText = await response.clone().text(); 
                             try {
-                                rawData = JSON.parse(responseText); // Parse the cloned text
+                                rawData = JSON.parse(responseText); 
                                 console.log(`Successfully fetched and parsed JSON for ${dataType}.`);
                             } catch (jsonError) {
                                 console.error(`Error parsing JSON for ${dataType}:`, jsonError);
@@ -529,7 +528,7 @@
                     for (let name of possibleNames) {
                         if (typeof headerMap[name.toLowerCase()] !== 'undefined') return headerMap[name.toLowerCase()];
                     }
-                    console.warn(`Header not found for any of: ${possibleNames.join(', ')}`);
+                    // console.warn(`Header not found for any of: ${possibleNames.join(', ')}`); // Less noisy now
                     return -1;
                 };
 
@@ -543,6 +542,7 @@
                 const monthIdx = getHeaderIndex(['Month']);
                 const dayIdx = getHeaderIndex(['Day']);
                 const addressIdx = getHeaderIndex(['Address', 'Location']); 
+                // MODIFICATION: Removed officerInvolvedIdx
                 const agencyIdx = getHeaderIndex(['Investigating Agency', 'Agency']);
                 const precinctIdx = getHeaderIndex(['Precinct']);
                 const latitudeIdx = getHeaderIndex(['Latitude', 'Lat']);
@@ -553,7 +553,7 @@
                     let parsedYear = null;
                     let formattedDate = null; 
                     let originalDateStrForDisplay = 'N/A';
-                    let rawDateValue = 'N/A'; // For logging
+                    let rawDateValue = 'N/A'; 
 
                     if (dateIdx !== -1 && entry[dateIdx]) { 
                         const dateStr = String(entry[dateIdx]).trim();
@@ -561,10 +561,10 @@
                         originalDateStrForDisplay = dateStr;
                         let dateObj;
                         if (dateStr.includes('-')) { 
-                            dateObj = new Date(dateStr + "T00:00:00"); // Assume YYYY-MM-DD and treat as local
+                            dateObj = new Date(dateStr + "T00:00:00"); 
                         } else if (dateStr.includes('/')) { 
                              const parts = dateStr.split('/');
-                             if (parts.length === 3) { // MM/DD/YYYY
+                             if (parts.length === 3) { 
                                 dateObj = new Date(parts[2], parseInt(parts[0]) - 1, parts[1]);
                              }
                         }
@@ -615,7 +615,7 @@
                         Date: formattedDate, 
                         DisplayDate: originalDateStrForDisplay, 
                         Address: addressIdx !== -1 ? entry[addressIdx] : 'N/A', 
-                        'Officer-Involved Death?': officerInvolvedIdx !== -1 ? entry[officerInvolvedIdx] : 'N/A',
+                        // 'Officer-Involved Death?' property removed
                         'Investigating Agency': agencyIdx !== -1 ? entry[agencyIdx] : 'N/A', 
                         Precinct: precinctIdx !== -1 && entry[precinctIdx] ? String(entry[precinctIdx]).trim() : 'N/A',
                         Latitude: lat, 
@@ -629,7 +629,7 @@
                 const finalData = mappedData.filter(d => d._isValidForProcessing);
                 
                 if (excludedRecordsLog.length > 0) {
-                    console.warn(`Total homicide records excluded: ${mappedData.length - finalData.length}. Details for first ${excludedRecordsLog.length} excluded:`, excludedRecordsLog);
+                    console.warn(`Total homicide records initially excluded: ${mappedData.length - finalData.length}. Details for first ${excludedRecordsLog.length} excluded:`, excludedRecordsLog);
                 }
                 return finalData;
             } else { // City comparison data (still CSV)
@@ -720,10 +720,10 @@
 
         function getPlaceholderData() { 
             return {
-                headers: ["Date", "Location", "Victim", "Agency", "Precinct", "Age", "Sex", "Race", "Circumstance", "Officer-Involved Death?", "Latitude", "Longitude", "Notes"],
+                headers: ["Date", "Location", "Victim", "Agency", "Precinct", "Age", "Sex", "Race", "Circumstance", "Latitude", "Longitude", "Notes"],
                 entries: [
-                    [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", "1", 30, "Male", "Black", "Argument", "No", 32.3010, -90.1850, "Near Capitol Building"],
-                    [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", "2", 25, "Female", "White", "Robbery", "No", 32.2950, -90.1900, "Downtown Area"]
+                    [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", "1", 30, "Male", "Black", "Argument", 32.3010, -90.1850, "Near Capitol Building"],
+                    [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", "2", 25, "Female", "White", "Robbery", 32.2950, -90.1900, "Downtown Area"]
                 ]
             };
         }
@@ -1051,9 +1051,9 @@
                         <p><b>Circumstance:</b> ${d.Circumstance}</p>
                         <p><b>Agency:</b> ${d['Investigating Agency']}</p>
                         <p><b>Precinct:</b> ${d.Precinct}</p>
-                        <p><b>Officer-Involved:</b> ${d['Officer-Involved Death?']}</p>
                         ${d.Location ? `<p><b>Location Details:</b> ${d.Location}</p>` : ''}
                     `;
+                    // Removed 'Officer-Involved Death?' from tooltip
                     marker.bindTooltip(tooltipContent, { sticky: true });
                     markersLayer.addLayer(marker);
                     visibleMarkers.push(marker); 
