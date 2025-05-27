@@ -100,8 +100,8 @@
 
         .main-content-area { 
             display: flex; 
-            flex: 1 1 auto; /* Allow this area to grow and shrink */
-            min-height: 300px; /* Ensure it has some minimum height */
+            flex: 1 1 auto; 
+            min-height: 300px; 
             background-color: var(--content-bg); 
         }
         
@@ -113,14 +113,14 @@
             overflow-y: auto; background-color: var(--legend-bg); 
             display: flex; 
             flex-direction: column; 
-            flex-shrink: 0; /* Prevent legend from shrinking too much */
+            flex-shrink: 0; 
         }
         
         .filter-columns-wrapper { 
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between; 
-            /* flex-grow: 1; Let content define height, then button at bottom */
+            flex-grow: 1; 
             margin-bottom: 10px; 
         }
 
@@ -173,13 +173,13 @@
             font-size: 1.8em; 
         }
 
-        .map-container { flex-grow: 1; min-height: 300px; /* Ensure map has a min height */ }
+        .map-container { flex-grow: 1; min-height: 300px;  }
         #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); } 
         
         .charts-area { 
             display: flex; 
-            flex: 1 1 auto; /* Allow this area to grow and shrink */
-            min-height: 300px; /* Ensure it has some minimum height */
+            flex: 1 1 auto; 
+            min-height: 300px; 
             background-color: var(--content-bg); 
             border-top: 1px solid var(--legend-border); 
         }
@@ -215,12 +215,12 @@
 
 
         @media (max-width: 992px) { 
-            .main-content-area { flex-direction: column; flex: 0 1 auto; /* Adjust flex for stacking */ }
-            .legend-container { width: 100%; max-width: none; border-right: none; border-bottom: 1px solid var(--legend-border); max-height: 45vh; /* Max height for legend on tablet */ flex-shrink:0;} 
+            .main-content-area { flex-direction: column; flex: 0 1 auto; }
+            .legend-container { width: 100%; max-width: none; border-right: none; border-bottom: 1px solid var(--legend-border); max-height: 45vh; flex-shrink:0;} 
             .filter-group.year-filter, .filter-group.agency-filter { width: 48%; } 
             .filter-group.circumstance-filter, .filter-group.percentage-change-display { width: 100%; }
-            .map-container { height: 350px; flex-grow: 0; flex-shrink:0; } /* Fixed height for map on tablet */
-            .charts-area { flex: 0 1 auto; /* Adjust flex for stacking */ }
+            .map-container { height: 350px; flex-grow: 0; flex-shrink:0; } 
+            .charts-area { flex: 0 1 auto; }
         }
         @media (max-width: 768px) {
             .header { 
@@ -235,18 +235,18 @@
             .charts-area { flex-direction: column; }
             .chart-box { width: 100%; padding: 15px; }
             .chart-box:first-child { border-bottom: 1px solid var(--legend-border); border-right: none;}
-            .legend-container { padding: 10px; max-height: 40vh; /* Max height for legend on mobile */ } 
+            .legend-container { padding: 10px; max-height: 40vh; } 
             
             .filter-columns-wrapper {
                 flex-direction: column; 
-                flex-grow: 0; /* Don't let it grow excessively on mobile */
+                flex-grow: 0; 
             }
             .filter-group.year-filter, .filter-group.agency-filter, .filter-group.circumstance-filter, .filter-group.percentage-change-display { 
                 width: 100%; 
                 margin-bottom: 8px; 
             } 
             .checkbox-group { 
-                max-height: 100px; /* Slightly less height for checkboxes on mobile */
+                max-height: 100px; 
                 padding: 6px;
             }
             .filter-group label.group-label { font-size: 0.9em; margin-bottom: 4px;}
@@ -457,27 +457,13 @@
                 usePlaceholder = true;
             }
 
-
             if (usePlaceholder) {
                 console.warn(`URL for ${dataType} is placeholder or not provided. Using local placeholder data.`);
                 rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
             } else {
-                let fetchableUrl = url;
-                if (isMainHomicideData && !url.startsWith('http') && !url.startsWith('/')) { // Check if it's a relative path needing resolution
-                    try {
-                        fetchableUrl = new URL(url, document.baseURI).href;
-                        console.log(`Resolved relative URL for ${dataType} to: ${fetchableUrl}`);
-                    } catch (e) {
-                        console.error(`Error constructing URL for ${dataType} from relative path '${url}':`, e);
-                        rawData = getPlaceholderData(); 
-                        if (!rawData || !rawData.headers || !rawData.entries) return [];
-                        return rawData.entries.map(entry => ({ /* map to expected structure */ }));
-                    }
-                } else {
-                     console.log(`Using URL for ${dataType}:`, url); // For absolute URLs or paths starting with /
-                }
-
-
+                // MODIFICATION: Use the URL directly for fetch, browser will resolve relative paths
+                // relative to the HTML file's location when served from a server.
+                const fetchableUrl = url; 
                 console.log(`Attempting to fetch ${dataType} from:`, fetchableUrl);
                 try {
                     const response = await fetch(fetchableUrl); 
@@ -698,7 +684,6 @@
         }
 
         function getPlaceholderData() { 
-            // Placeholder for main homicide data, structure matches expected output of API processing
             return {
                 headers: ["Date", "Location", "Victim", "Agency", "Precinct", "Age", "Sex", "Race", "Circumstance", "Officer-Involved Death?", "Latitude", "Longitude", "Notes"],
                 entries: [
@@ -707,7 +692,7 @@
                 ]
             };
         }
-        function getPlaceholderCityData() { // Placeholder for city comparison data
+        function getPlaceholderCityData() { 
             return [
                 { City: 'City A', Homicides: 50, Population: 500000 },
                 { City: 'City B', Homicides: 120, Population: 1000000 },
