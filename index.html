@@ -457,23 +457,21 @@
             let rawData;
             const dataType = isMainHomicideData ? 'main homicide data' : 'city comparison data';
             const placeholderUrlCity = 'YOUR_CITY_COMPARISON_CSV_URL_HERE';
-
             let usePlaceholder = false;
+
             if (!isMainHomicideData && (url === placeholderUrlCity || !url)) { 
                 usePlaceholder = true;
             }
-            // For main data, we assume the relative path is always intended if not a placeholder.
-            // The placeholder for main data is now handled by getPlaceholderData() if fetch fails.
 
             if (usePlaceholder) {
                 console.warn(`URL for ${dataType} is placeholder or not provided. Using local placeholder data.`);
                 rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
             } else {
-                const fetchableUrl = url; // Use the URL directly
+                const fetchableUrl = url; 
                 console.log(`Attempting to fetch ${dataType} from:`, fetchableUrl);
                 try {
                     const response = await fetch(fetchableUrl); 
-                    console.log(`Fetch response status for ${dataType} (${url}): ${response.status}`); 
+                    console.log(`Workspace response status for ${dataType} (${fetchableUrl}): ${response.status}`); 
                     
                     if (!response.ok) {
                         const errorText = await response.text().catch(() => `Could not read error response text. Status: ${response.status}`);
@@ -483,7 +481,7 @@
 
                     if (isMainHomicideData) { 
                         const contentType = response.headers.get("content-type");
-                        if (contentType && contentType.indexOf("application/json") !== -1) {
+                        if (contentType && contentType.toLowerCase().includes("application/json")) { // More robust content-type check
                             rawData = await response.json(); 
                             console.log(`Successfully fetched JSON for ${dataType}.`);
                         } else {
@@ -552,24 +550,20 @@
                     if (dateIdx !== -1 && entry[dateIdx]) { 
                         const dateStr = String(entry[dateIdx]).trim();
                         originalDateStrForDisplay = dateStr;
-                        const dateParts = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/); // MM/DD/YYYY or MM-DD-YYYY
-                        if (dateParts) {
-                            const year = parseInt(dateParts[3]);
-                            const month = parseInt(dateParts[1]); // Assuming MM/DD
-                            const day = parseInt(dateParts[2]);
-                             if (!isNaN(year) && !isNaN(month) && !isNaN(day) && year >= 1900 && year <= CURRENT_YEAR + 10 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-                                const dateObj = new Date(year, month - 1, day);
-                                if (dateObj && dateObj.getFullYear() === year && dateObj.getMonth() === (month - 1) && dateObj.getDate() === day) {
-                                    parsedYear = year;
-                                    formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
-                                }
-                            }
-                        } else { // Try YYYY-MM-DD
-                             const dateObj = new Date(dateStr); 
-                             if (dateObj && !isNaN(dateObj.getTime())) {
-                                parsedYear = dateObj.getFullYear();
-                                formattedDate = `${parsedYear}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
-                            }
+                        // Try to parse common date formats, e.g., YYYY-MM-DD or MM/DD/YYYY
+                        let dateObj;
+                        if (dateStr.includes('-')) { // Assume YYYY-MM-DD
+                            dateObj = new Date(dateStr);
+                        } else if (dateStr.includes('/')) { // Assume MM/DD/YYYY
+                             const parts = dateStr.split('/');
+                             if (parts.length === 3) {
+                                dateObj = new Date(parts[2], parseInt(parts[0]) - 1, parts[1]);
+                             }
+                        }
+                        
+                        if (dateObj && !isNaN(dateObj.getTime())) {
+                            parsedYear = dateObj.getFullYear();
+                            formattedDate = `${parsedYear}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
                         }
                     } else if (yearIdx !== -1 && monthIdx !== -1 && dayIdx !== -1) { 
                         const y = parseInt(entry[yearIdx]);
@@ -1155,124 +1149,4 @@
                 [AGENCY_CATEGORIES.CAPITOL_POLICE]: new Array(yearsToDisplay.length).fill(0),
                 [AGENCY_CATEGORIES.OTHER]: new Array(yearsToDisplay.length).fill(0),
             };
-            allHomicideData.forEach(d => { 
-                const yearIndex = yearsToDisplay.indexOf(d.Year); 
-                if (yearIndex !== -1) { 
-                    const agency = String(d['Investigating Agency']).trim();
-                    if (agency === AGENCY_CATEGORIES.JPD) {
-                        dataByAgencyCategory[AGENCY_CATEGORIES.JPD][yearIndex]++;
-                    } else if (agency === AGENCY_CATEGORIES.CAPITOL_POLICE) {
-                        dataByAgencyCategory[AGENCY_CATEGORIES.CAPITOL_POLICE][yearIndex]++;
-                    } else { 
-                        dataByAgencyCategory[AGENCY_CATEGORIES.OTHER][yearIndex]++;
-                    }
-                }
-            });
-            const datasets = Object.keys(AGENCY_CATEGORIES).map(key => {
-                const category = AGENCY_CATEGORIES[key];
-                return {
-                    label: category,
-                    data: dataByAgencyCategory[category],
-                    backgroundColor: agencyColors[category] || 'rgba(108, 117, 125, 0.7)', 
-                    borderColor: (agencyColors[category] || 'rgba(108, 117, 125, 1)').replace('0.7', '1'), 
-                    borderWidth: 1
-                };
-            });
-            if (homicidesByYearChartInstance) {
-                homicidesByYearChartInstance.destroy();
-            }
-            homicidesByYearChartInstance = new Chart(ctx, {
-                type: 'bar', 
-                data: { labels: yearsToDisplay, datasets: datasets },
-                options: chartOptions 
-            });
-        }
-
-        function updateHomicideTrendsChart() {
-            const chartOptions = getTrendChartOptions(); 
-
-            const getRunningTotalData = (yearToFilter, dataSet) => {
-                const yearData = dataSet.filter(d => d.Year === yearToFilter && d.Date) 
-                    .sort((a, b) => { 
-                        if (a.Date < b.Date) return -1;
-                        if (a.Date > b.Date) return 1;
-                        return 0;
-                    });
-                const chartDataPoints = [];
-                const commonAxisYear = 2000; 
-                let cumulativeCount = 0;
-                let homicideDataIndex = 0;
-                let loopEndDate = (yearToFilter === CURRENT_YEAR) ? new Date() : new Date(yearToFilter, 11, 31); 
-                
-                for (let dLoop = new Date(yearToFilter, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
-                    const currentLoopDayFormatted = `${dLoop.getFullYear()}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`;
-                    while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
-                        cumulativeCount++;
-                        homicideDataIndex++;
-                    }
-                    chartDataPoints.push({
-                        x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
-                        y: cumulativeCount 
-                    });
-                }
-                if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
-                    chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
-                } else if (chartDataPoints[0].x === `${commonAxisYear}-01-01` && chartDataPoints[0].y > 0 && !yearData.some(h => h.Date === `${yearToFilter}-01-01`)) {
-                    chartDataPoints[0].y = 0;
-                }
-                return chartDataPoints.filter((p, i, self) => i === self.findIndex(t => t.x === p.x)).sort((a,b) => new Date(a.x) - new Date(b.x));
-            };
-
-            const dataForCurrentYear = getRunningTotalData(CURRENT_YEAR, allHomicideData);
-            const dataForPreviousYear = getRunningTotalData(PREVIOUS_YEAR, allHomicideData);
-
-            const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
-            if (homicideTrendsChartInstance) {
-                homicideTrendsChartInstance.destroy();
-            }
-            homicideTrendsChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    datasets: [
-                        { label: String(CURRENT_YEAR), data: dataForCurrentYear, borderColor: '#dc3545', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 },
-                        { label: String(PREVIOUS_YEAR), data: dataForPreviousYear, borderColor: '#007bff', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 }
-                    ]
-                },
-                options: chartOptions 
-            });
-        }
-
-         function displayErrorInCharts(errorMessage) {
-            const chartIds = ['homicidesByYearChart', 'homicideTrendsChart'];
-            chartIds.forEach(id => {
-                const canvas = document.getElementById(id);
-                if (canvas) {
-                    const ctx = canvas.getContext('2d');
-                    if (homicidesByYearChartInstance && id === 'homicidesByYearChart') homicidesByYearChartInstance.destroy();
-                    if (homicideTrendsChartInstance && id === 'homicideTrendsChart') homicideTrendsChartInstance.destroy();
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    ctx.font = "16px Arial";
-                    ctx.fillStyle = "red";
-                    ctx.textAlign = "center";
-                    ctx.fillText(errorMessage, canvas.width / 2, canvas.height / 2);
-                }
-            });
-        }
-        
-        function updateMapAndDependentUI() {
-            applyFiltersToMapData(); 
-            updateMapDisplay();      
-            updatePercentageChangeDisplay(); 
-        }
-
-        function updateDashboard() {
-            applyFiltersToMapData(); 
-            updateMapDisplay();
-            updateHomicidesByYearChart(); 
-            updateHomicideTrendsChart();  
-            updateRankingBanner(); 
-            updatePercentageChangeDisplay(); 
-        }
-    </script>
-</body>
-</html>
+            allHomicideDa
