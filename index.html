@@ -264,10 +264,16 @@
 
     <div class="header">
         <div class="header-logo-main">
-            <img id="trackingLogoImg" src="https://www.dropbox.com/scl/fi/w6dquhfz2yacmbd9ayl76/TRACKING-LOGO.png?rlkey=zmj5l9icsyjh5wfs3lafphaqz&st=w3gmp7s0&dl=1" alt="Tracking Jackson's Homicides">
+            <img id="trackingLogoImg" 
+                 src="https://www.dropbox.com/scl/fi/w6dquhfz2yacmbd9ayl76/TRACKING-LOGO.png?rlkey=zmj5l9icsyjh5wfs3lafphaqz&st=w3gmp7s0&dl=1" 
+                 alt="Tracking Jackson's Homicides"
+                 onerror="console.error('Error loading Tracking Logo from Dropbox.')">
         </div>
         <div class="header-logo-secondary">
-            <img id="wlbtLogoImg" src="https://www.dropbox.com/scl/fi/y17zye5wu9wg23kzsxeco/WLBT-Logo-Investigates-black-text.png?rlkey=r11v3u4z5kpg7f3vevp7kbhvu&st=9nkgy4kh&dl=1" alt="WLBT Investigates">
+            <img id="wlbtLogoImg" 
+                 src="https://www.dropbox.com/scl/fi/y17zye5wu9wg23kzsxeco/WLBT-Logo-Investigates-black-text.png?rlkey=r11v3u4z5kpg7f3vevp7kbhvu&st=9nkgy4kh&dl=1" 
+                 alt="WLBT Investigates"
+                 onerror="console.error('Error loading WLBT Logo from Dropbox.')">
         </div>
     </div>
 
@@ -456,22 +462,22 @@
             if (!isMainHomicideData && (url === placeholderUrlCity || !url)) { 
                 usePlaceholder = true;
             }
+            // For main data, we assume the relative path is always intended if not a placeholder.
+            // The placeholder for main data is now handled by getPlaceholderData() if fetch fails.
 
             if (usePlaceholder) {
                 console.warn(`URL for ${dataType} is placeholder or not provided. Using local placeholder data.`);
                 rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
             } else {
-                // MODIFICATION: Use the URL directly for fetch, browser will resolve relative paths
-                // relative to the HTML file's location when served from a server.
-                const fetchableUrl = url; 
+                const fetchableUrl = url; // Use the URL directly
                 console.log(`Attempting to fetch ${dataType} from:`, fetchableUrl);
                 try {
                     const response = await fetch(fetchableUrl); 
-                    console.log(`Fetch response status for ${dataType}: ${response.status}`); 
+                    console.log(`Fetch response status for ${dataType} (${url}): ${response.status}`); 
                     
                     if (!response.ok) {
                         const errorText = await response.text().catch(() => `Could not read error response text. Status: ${response.status}`);
-                        console.error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}. URL: ${fetchableUrl}. Response text snippet: ${errorText.substring(0, 200)}`);
+                        console.error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}. URL: ${fetchableUrl}. Response text snippet: ${errorText.substring(0, 500)}`);
                         throw new Error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}.`);
                     }
 
@@ -482,7 +488,7 @@
                             console.log(`Successfully fetched JSON for ${dataType}.`);
                         } else {
                             const responseText = await response.text();
-                            console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text:`, responseText.substring(0, 500));
+                            console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text (first 500 chars):`, responseText.substring(0, 500));
                             throw new Error(`Invalid content type for ${dataType}. Expected JSON, got ${contentType}`);
                         }
                     } else { 
@@ -490,7 +496,12 @@
                         rawData = csvToJSON(csvText);
                     }
                 } catch (error) {
-                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${fetchableUrl}`, error);
+                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${fetchableUrl}`);
+                    console.error("Error Name:", error.name);
+                    console.error("Error Message:", error.message);
+                    if (error.stack) console.error("Error Stack (first 300 chars):", error.stack ? error.stack.substring(0,300)+"..." : "N/A"); 
+                    if (typeof error.cause !== 'undefined') console.error("Error Cause:", error.cause);
+                    console.error("Full error object (if helpful):", JSON.stringify(error, Object.getOwnPropertyNames(error)));
                     console.warn(`Falling back to placeholder data for ${dataType} due to fetch error.`);
                     rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
                 }
@@ -541,10 +552,24 @@
                     if (dateIdx !== -1 && entry[dateIdx]) { 
                         const dateStr = String(entry[dateIdx]).trim();
                         originalDateStrForDisplay = dateStr;
-                        const dateObj = new Date(dateStr.replace(/\//g, '-')); 
-                        if (dateObj && !isNaN(dateObj.getTime())) {
-                            parsedYear = dateObj.getFullYear();
-                            formattedDate = `${parsedYear}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
+                        const dateParts = dateStr.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/); // MM/DD/YYYY or MM-DD-YYYY
+                        if (dateParts) {
+                            const year = parseInt(dateParts[3]);
+                            const month = parseInt(dateParts[1]); // Assuming MM/DD
+                            const day = parseInt(dateParts[2]);
+                             if (!isNaN(year) && !isNaN(month) && !isNaN(day) && year >= 1900 && year <= CURRENT_YEAR + 10 && month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                                const dateObj = new Date(year, month - 1, day);
+                                if (dateObj && dateObj.getFullYear() === year && dateObj.getMonth() === (month - 1) && dateObj.getDate() === day) {
+                                    parsedYear = year;
+                                    formattedDate = `${year}-${month.toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+                                }
+                            }
+                        } else { // Try YYYY-MM-DD
+                             const dateObj = new Date(dateStr); 
+                             if (dateObj && !isNaN(dateObj.getTime())) {
+                                parsedYear = dateObj.getFullYear();
+                                formattedDate = `${parsedYear}-${(dateObj.getMonth() + 1).toString().padStart(2, '0')}-${dateObj.getDate().toString().padStart(2, '0')}`;
+                            }
                         }
                     } else if (yearIdx !== -1 && monthIdx !== -1 && dayIdx !== -1) { 
                         const y = parseInt(entry[yearIdx]);
