@@ -98,7 +98,12 @@
         }
 
 
-        .main-content-area { display: flex; flex: 1 1 55%; min-height: 450px; background-color: var(--content-bg); }
+        .main-content-area { 
+            display: flex; 
+            flex: 1 1 auto; /* Allow this area to grow and shrink */
+            min-height: 300px; /* Ensure it has some minimum height */
+            background-color: var(--content-bg); 
+        }
         
         .legend-container {
             width: 30%; 
@@ -108,13 +113,14 @@
             overflow-y: auto; background-color: var(--legend-bg); 
             display: flex; 
             flex-direction: column; 
+            flex-shrink: 0; /* Prevent legend from shrinking too much */
         }
         
         .filter-columns-wrapper { 
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between; 
-            flex-grow: 1; 
+            /* flex-grow: 1; Let content define height, then button at bottom */
             margin-bottom: 10px; 
         }
 
@@ -167,10 +173,16 @@
             font-size: 1.8em; 
         }
 
-        .map-container { flex-grow: 1; }
+        .map-container { flex-grow: 1; min-height: 300px; /* Ensure map has a min height */ }
         #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); } 
         
-        .charts-area { display: flex; flex: 1 1 45%; min-height: 400px; background-color: var(--content-bg); border-top: 1px solid var(--legend-border); }
+        .charts-area { 
+            display: flex; 
+            flex: 1 1 auto; /* Allow this area to grow and shrink */
+            min-height: 300px; /* Ensure it has some minimum height */
+            background-color: var(--content-bg); 
+            border-top: 1px solid var(--legend-border); 
+        }
         .chart-box { width: 50%; padding: 20px; position: relative; display: flex; flex-direction: column; }
         .chart-box:first-child { border-right: 1px solid var(--legend-border); } 
         .chart-box h4 { text-align: center; margin-top: 0; margin-bottom: 15px; font-size: 1.1em; color: var(--chart-title-text); }
@@ -203,11 +215,12 @@
 
 
         @media (max-width: 992px) { 
-            .main-content-area { flex-direction: column; }
-            .legend-container { width: 100%; max-width: none; border-right: none; border-bottom: 1px solid var(--legend-border); max-height: none; } 
+            .main-content-area { flex-direction: column; flex: 0 1 auto; /* Adjust flex for stacking */ }
+            .legend-container { width: 100%; max-width: none; border-right: none; border-bottom: 1px solid var(--legend-border); max-height: 45vh; /* Max height for legend on tablet */ flex-shrink:0;} 
             .filter-group.year-filter, .filter-group.agency-filter { width: 48%; } 
             .filter-group.circumstance-filter, .filter-group.percentage-change-display { width: 100%; }
-            .map-container { height: 350px; } 
+            .map-container { height: 350px; flex-grow: 0; flex-shrink:0; } /* Fixed height for map on tablet */
+            .charts-area { flex: 0 1 auto; /* Adjust flex for stacking */ }
         }
         @media (max-width: 768px) {
             .header { 
@@ -221,18 +234,19 @@
             .ranking-banner { font-size: 1.0em; padding: 5px 10px;}
             .charts-area { flex-direction: column; }
             .chart-box { width: 100%; padding: 15px; }
-            .chart-box:first-child { border-bottom: 1px solid var(--legend-border); }
-            .legend-container { padding: 10px; } 
+            .chart-box:first-child { border-bottom: 1px solid var(--legend-border); border-right: none;}
+            .legend-container { padding: 10px; max-height: 40vh; /* Max height for legend on mobile */ } 
             
             .filter-columns-wrapper {
                 flex-direction: column; 
+                flex-grow: 0; /* Don't let it grow excessively on mobile */
             }
             .filter-group.year-filter, .filter-group.agency-filter, .filter-group.circumstance-filter, .filter-group.percentage-change-display { 
                 width: 100%; 
                 margin-bottom: 8px; 
             } 
             .checkbox-group { 
-                max-height: 120px; 
+                max-height: 100px; /* Slightly less height for checkboxes on mobile */
                 padding: 6px;
             }
             .filter-group label.group-label { font-size: 0.9em; margin-bottom: 4px;}
@@ -317,7 +331,6 @@
 
     <script>
         // --- Configuration ---
-        // MODIFIED: URL for main homicide data is now the static JSON file with relative path
         const HOMICIDE_DATA_API_URL = './data/homicide.json'; 
         const CITY_COMPARISON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiORmxzjhdAokYzM0NhcTjAk1e3hJp81B5OCG03XcPnUaSVrCRiwIXmah2iPSHFaaWbSoKKwFA1Uc/pub?gid=0&single=true&output=csv'; 
         const JACKSON_POPULATION = 143709; 
@@ -440,12 +453,7 @@
             const placeholderUrlCity = 'YOUR_CITY_COMPARISON_CSV_URL_HERE';
 
             let usePlaceholder = false;
-            // For main homicide data, we are now using HOMICIDE_DATA_API_URL.
-            // It's not a placeholder if it's the defined relative path.
-            if (isMainHomicideData && !url.startsWith('./data/')) { // A simple check if it's not the expected relative path
-                 console.warn(`Main homicide data URL might be incorrect: ${url}. Using placeholder.`);
-                 usePlaceholder = true;
-            } else if (!isMainHomicideData && (url === placeholderUrlCity || !url)) {
+            if (!isMainHomicideData && (url === placeholderUrlCity || !url)) { 
                 usePlaceholder = true;
             }
 
@@ -454,18 +462,34 @@
                 console.warn(`URL for ${dataType} is placeholder or not provided. Using local placeholder data.`);
                 rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
             } else {
-                console.log(`Attempting to fetch ${dataType} from:`, url);
+                let fetchableUrl = url;
+                if (isMainHomicideData && !url.startsWith('http') && !url.startsWith('/')) { // Check if it's a relative path needing resolution
+                    try {
+                        fetchableUrl = new URL(url, document.baseURI).href;
+                        console.log(`Resolved relative URL for ${dataType} to: ${fetchableUrl}`);
+                    } catch (e) {
+                        console.error(`Error constructing URL for ${dataType} from relative path '${url}':`, e);
+                        rawData = getPlaceholderData(); 
+                        if (!rawData || !rawData.headers || !rawData.entries) return [];
+                        return rawData.entries.map(entry => ({ /* map to expected structure */ }));
+                    }
+                } else {
+                     console.log(`Using URL for ${dataType}:`, url); // For absolute URLs or paths starting with /
+                }
+
+
+                console.log(`Attempting to fetch ${dataType} from:`, fetchableUrl);
                 try {
-                    const response = await fetch(url);
+                    const response = await fetch(fetchableUrl); 
                     console.log(`Fetch response status for ${dataType}: ${response.status}`); 
                     
                     if (!response.ok) {
                         const errorText = await response.text().catch(() => `Could not read error response text. Status: ${response.status}`);
-                        console.error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}. URL: ${url}. Response text snippet: ${errorText.substring(0, 200)}`);
+                        console.error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}. URL: ${fetchableUrl}. Response text snippet: ${errorText.substring(0, 200)}`);
                         throw new Error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}.`);
                     }
 
-                    if (isMainHomicideData) { // Main data is now JSON from API/file
+                    if (isMainHomicideData) { 
                         const contentType = response.headers.get("content-type");
                         if (contentType && contentType.indexOf("application/json") !== -1) {
                             rawData = await response.json(); 
@@ -475,12 +499,12 @@
                             console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text:`, responseText.substring(0, 500));
                             throw new Error(`Invalid content type for ${dataType}. Expected JSON, got ${contentType}`);
                         }
-                    } else { // City comparison data is still CSV
+                    } else { 
                         const csvText = await response.text(); 
                         rawData = csvToJSON(csvText);
                     }
                 } catch (error) {
-                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${url}`, error);
+                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${fetchableUrl}`, error);
                     console.warn(`Falling back to placeholder data for ${dataType} due to fetch error.`);
                     rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
                 }
