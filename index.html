@@ -462,7 +462,7 @@
             if (!isMainHomicideData && (url === placeholderUrlCity || !url)) { 
                 usePlaceholder = true;
             }
-
+            
             if (usePlaceholder) {
                 console.warn(`URL for ${dataType} is placeholder or not provided. Using local placeholder data.`);
                 rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
@@ -475,18 +475,26 @@
                     
                     if (!response.ok) {
                         const errorText = await response.text().catch(() => `Could not read error response text. Status: ${response.status}`);
-                        console.error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}. URL: ${fetchableUrl}. Response text snippet: ${errorText.substring(0, 500)}`);
+                        console.error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}. URL: ${fetchableUrl}. Response text snippet: ${errorText.substring(0, 200)}`);
                         throw new Error(`Network response was not ok for ${dataType}: ${response.status} ${response.statusText}.`);
                     }
 
                     if (isMainHomicideData) { 
                         const contentType = response.headers.get("content-type");
-                        if (contentType && contentType.toLowerCase().includes("application/json")) { // More robust content-type check
-                            rawData = await response.json(); 
-                            console.log(`Successfully fetched JSON for ${dataType}.`);
+                        if (contentType && contentType.toLowerCase().includes("application/json")) { 
+                            const responseText = await response.clone().text(); // Clone to read text first for debugging
+                            // console.log(`Raw response text for ${dataType} (first 500 chars):`, responseText.substring(0, 500));
+                            try {
+                                rawData = JSON.parse(responseText); // Parse the cloned text
+                                console.log(`Successfully fetched and parsed JSON for ${dataType}.`);
+                            } catch (jsonError) {
+                                console.error(`Error parsing JSON for ${dataType}:`, jsonError);
+                                console.error(`Raw text that failed to parse as JSON (first 500 chars):`, responseText.substring(0,500));
+                                throw jsonError; 
+                            }
                         } else {
                             const responseText = await response.text();
-                            console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text (first 500 chars):`, responseText.substring(0, 500));
+                            console.error(`Expected JSON response for ${dataType}, but received content type: ${contentType}. Response text:`, responseText.substring(0, 500));
                             throw new Error(`Invalid content type for ${dataType}. Expected JSON, got ${contentType}`);
                         }
                     } else { 
@@ -546,17 +554,18 @@
                     let parsedYear = null;
                     let formattedDate = null; 
                     let originalDateStrForDisplay = 'N/A';
+                    let rawDateValue = 'N/A'; // For logging
 
                     if (dateIdx !== -1 && entry[dateIdx]) { 
                         const dateStr = String(entry[dateIdx]).trim();
+                        rawDateValue = dateStr;
                         originalDateStrForDisplay = dateStr;
-                        // Try to parse common date formats, e.g., YYYY-MM-DD or MM/DD/YYYY
                         let dateObj;
-                        if (dateStr.includes('-')) { // Assume YYYY-MM-DD
-                            dateObj = new Date(dateStr);
-                        } else if (dateStr.includes('/')) { // Assume MM/DD/YYYY
+                        if (dateStr.includes('-')) { 
+                            dateObj = new Date(dateStr + "T00:00:00"); // Assume YYYY-MM-DD and treat as local
+                        } else if (dateStr.includes('/')) { 
                              const parts = dateStr.split('/');
-                             if (parts.length === 3) {
+                             if (parts.length === 3) { // MM/DD/YYYY
                                 dateObj = new Date(parts[2], parseInt(parts[0]) - 1, parts[1]);
                              }
                         }
@@ -569,6 +578,7 @@
                         const y = parseInt(entry[yearIdx]);
                         const m = parseInt(entry[monthIdx]); 
                         const day = parseInt(entry[dayIdx]);  
+                        rawDateValue = `Y:${y}, M:${m}, D:${day}`;
                         if (!isNaN(y) && !isNaN(m) && !isNaN(day) && y >= 1900 && y <= CURRENT_YEAR + 10 && m >= 1 && m <= 12 && day >= 1 && day <= 31) {
                             const dateObj = new Date(y, m - 1, day); 
                             if (dateObj && dateObj.getFullYear() === y && dateObj.getMonth() === (m - 1) && dateObj.getDate() === day) {
@@ -579,10 +589,23 @@
                         }
                     }
                     
-                    const lat = latitudeIdx !== -1 ? parseFloat(entry[latitudeIdx]) : NaN;
-                    const lon = longitudeIdx !== -1 ? parseFloat(entry[longitudeIdx]) : NaN;
+                    const latStr = latitudeIdx !== -1 ? entry[latitudeIdx] : null;
+                    const lonStr = longitudeIdx !== -1 ? entry[longitudeIdx] : null;
+                    const lat = latStr !== null ? parseFloat(latStr) : NaN;
+                    const lon = lonStr !== null ? parseFloat(lonStr) : NaN;
+
                     const isValidLat = !isNaN(lat) && lat >= -90 && lat <= 90;
                     const isValidLon = !isNaN(lon) && lon >= -180 && lon <= 180;
+                    const isValidForProcessing = parsedYear !== null && isValidLat && isValidLon;
+
+                    if (!isValidForProcessing && excludedRecordsLog.length < 20) {
+                        excludedRecordsLog.push({
+                            entryIndex: index,
+                            reason: `Parsed Year: ${parsedYear}, Lat Valid: ${isValidLat} (val: ${latStr}), Lon Valid: ${isValidLon} (val: ${lonStr})`,
+                            originalEntry: entry
+                        });
+                    }
+
 
                     return {
                         Victim: victimIdx !== -1 ? entry[victimIdx] : 'N/A', 
@@ -600,20 +623,14 @@
                         Longitude: lon, 
                         Location: locationNotesIdx !== -1 ? entry[locationNotesIdx] : '', 
                         Year: parsedYear, 
-                        _isValidForProcessing: parsedYear !== null && isValidLat && isValidLon
+                        _isValidForProcessing: isValidForProcessing
                     };
                 });
-                const finalData = mappedData.filter(d => {
-                    if (!d._isValidForProcessing) {
-                        if (excludedRecordsLog.length < 10) { 
-                             excludedRecordsLog.push({reason: `Year: ${d.Year}, Date: ${d.Date}, Lat: ${d.Latitude}, Lon: ${d.Longitude}`, data: d});
-                        }
-                        return false;
-                    }
-                    return true;
-                });
-                if(excludedRecordsLog.length > 0 || mappedData.length !== finalData.length){ 
-                    console.warn(`Total homicide records excluded: ${mappedData.length - finalData.length}.`);
+
+                const finalData = mappedData.filter(d => d._isValidForProcessing);
+                
+                if (excludedRecordsLog.length > 0) {
+                    console.warn(`Total homicide records excluded: ${mappedData.length - finalData.length}. Details for first ${excludedRecordsLog.length} excluded:`, excludedRecordsLog);
                 }
                 return finalData;
             } else { // City comparison data (still CSV)
@@ -1149,4 +1166,124 @@
                 [AGENCY_CATEGORIES.CAPITOL_POLICE]: new Array(yearsToDisplay.length).fill(0),
                 [AGENCY_CATEGORIES.OTHER]: new Array(yearsToDisplay.length).fill(0),
             };
-            allHomicideDa
+            allHomicideData.forEach(d => { 
+                const yearIndex = yearsToDisplay.indexOf(d.Year); 
+                if (yearIndex !== -1) { 
+                    const agency = String(d['Investigating Agency']).trim();
+                    if (agency === AGENCY_CATEGORIES.JPD) {
+                        dataByAgencyCategory[AGENCY_CATEGORIES.JPD][yearIndex]++;
+                    } else if (agency === AGENCY_CATEGORIES.CAPITOL_POLICE) {
+                        dataByAgencyCategory[AGENCY_CATEGORIES.CAPITOL_POLICE][yearIndex]++;
+                    } else { 
+                        dataByAgencyCategory[AGENCY_CATEGORIES.OTHER][yearIndex]++;
+                    }
+                }
+            });
+            const datasets = Object.keys(AGENCY_CATEGORIES).map(key => {
+                const category = AGENCY_CATEGORIES[key];
+                return {
+                    label: category,
+                    data: dataByAgencyCategory[category],
+                    backgroundColor: agencyColors[category] || 'rgba(108, 117, 125, 0.7)', 
+                    borderColor: (agencyColors[category] || 'rgba(108, 117, 125, 1)').replace('0.7', '1'), 
+                    borderWidth: 1
+                };
+            });
+            if (homicidesByYearChartInstance) {
+                homicidesByYearChartInstance.destroy();
+            }
+            homicidesByYearChartInstance = new Chart(ctx, {
+                type: 'bar', 
+                data: { labels: yearsToDisplay, datasets: datasets },
+                options: chartOptions 
+            });
+        }
+
+        function updateHomicideTrendsChart() {
+            const chartOptions = getTrendChartOptions(); 
+
+            const getRunningTotalData = (yearToFilter, dataSet) => {
+                const yearData = dataSet.filter(d => d.Year === yearToFilter && d.Date) 
+                    .sort((a, b) => { 
+                        if (a.Date < b.Date) return -1;
+                        if (a.Date > b.Date) return 1;
+                        return 0;
+                    });
+                const chartDataPoints = [];
+                const commonAxisYear = 2000; 
+                let cumulativeCount = 0;
+                let homicideDataIndex = 0;
+                let loopEndDate = (yearToFilter === CURRENT_YEAR) ? new Date() : new Date(yearToFilter, 11, 31); 
+                
+                for (let dLoop = new Date(yearToFilter, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
+                    const currentLoopDayFormatted = `${dLoop.getFullYear()}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`;
+                    while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
+                        cumulativeCount++;
+                        homicideDataIndex++;
+                    }
+                    chartDataPoints.push({
+                        x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
+                        y: cumulativeCount 
+                    });
+                }
+                if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
+                    chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
+                } else if (chartDataPoints[0].x === `${commonAxisYear}-01-01` && chartDataPoints[0].y > 0 && !yearData.some(h => h.Date === `${yearToFilter}-01-01`)) {
+                    chartDataPoints[0].y = 0;
+                }
+                return chartDataPoints.filter((p, i, self) => i === self.findIndex(t => t.x === p.x)).sort((a,b) => new Date(a.x) - new Date(b.x));
+            };
+
+            const dataForCurrentYear = getRunningTotalData(CURRENT_YEAR, allHomicideData);
+            const dataForPreviousYear = getRunningTotalData(PREVIOUS_YEAR, allHomicideData);
+
+            const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
+            if (homicideTrendsChartInstance) {
+                homicideTrendsChartInstance.destroy();
+            }
+            homicideTrendsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        { label: String(CURRENT_YEAR), data: dataForCurrentYear, borderColor: '#dc3545', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 },
+                        { label: String(PREVIOUS_YEAR), data: dataForPreviousYear, borderColor: '#007bff', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 }
+                    ]
+                },
+                options: chartOptions 
+            });
+        }
+
+         function displayErrorInCharts(errorMessage) {
+            const chartIds = ['homicidesByYearChart', 'homicideTrendsChart'];
+            chartIds.forEach(id => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    if (homicidesByYearChartInstance && id === 'homicidesByYearChart') homicidesByYearChartInstance.destroy();
+                    if (homicideTrendsChartInstance && id === 'homicideTrendsChart') homicideTrendsChartInstance.destroy();
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = "16px Arial";
+                    ctx.fillStyle = "red";
+                    ctx.textAlign = "center";
+                    ctx.fillText(errorMessage, canvas.width / 2, canvas.height / 2);
+                }
+            });
+        }
+        
+        function updateMapAndDependentUI() {
+            applyFiltersToMapData(); 
+            updateMapDisplay();      
+            updatePercentageChangeDisplay(); 
+        }
+
+        function updateDashboard() {
+            applyFiltersToMapData(); 
+            updateMapDisplay();
+            updateHomicidesByYearChart(); 
+            updateHomicideTrendsChart();  
+            updateRankingBanner(); 
+            updatePercentageChangeDisplay(); 
+        }
+    </script>
+</body>
+</html>
