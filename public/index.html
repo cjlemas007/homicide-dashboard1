@@ -121,7 +121,7 @@
             display: flex;
             flex-wrap: wrap;
             justify-content: space-between; 
-            /* flex-grow: 1; removed to allow natural height */
+            flex-grow: 1; 
             margin-bottom: 10px; 
         }
 
@@ -139,7 +139,6 @@
         }
         .filter-group.percentage-change-display {
             margin-top: 15px; 
-            flex-grow: 1; 
         }
 
 
@@ -209,7 +208,7 @@
             background-color: var(--footer-bg);
             border-top: 1px solid var(--header-border); flex-shrink: 0;
         }
-        .footer p { margin-bottom: 5px; } 
+        .footer p { margin: 5px 0; } 
         .footer a { color: var(--footer-link); text-decoration: none; } 
         .footer a:hover { text-decoration: underline; }
 
@@ -227,6 +226,54 @@
         .leaflet-control-layers-selector { color: var(--text-color); }
         .leaflet-control-layers label { color: var(--text-color); }
         .leaflet-control-layers label span { color: var(--text-color); }
+
+        /* NEW: Modal Styles */
+        .modal-overlay {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* Semi-transparent black background */
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 20px;
+            border: 1px solid #888;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 600px;
+            position: relative;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+        }
+        .modal-close {
+            color: #aaa;
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .modal-close:hover,
+        .modal-close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        .modal-content h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .modal-content p {
+            line-height: 1.6;
+            color: #555;
+        }
 
 
         @media (max-width: 992px) { 
@@ -364,8 +411,22 @@
 
 
     <div class="footer">
+        <p><a href="#" id="openAboutModal">About the Data</a></p>
         <p>Data Sources: JPD, DPS, Hinds County, JSUPD | Design/Layout: C.J. LeMaster</p>
-        <p><a href="https://www.wlbt.com/2025/01/10/methodology-heres-how-we-track-homicides-mississippis-largest-city/">How do we track killings? See our methodology</a></p> 
+    </div>
+
+    <!-- NEW: Modal HTML -->
+    <div id="aboutDataModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" id="closeAboutModal">&times;</span>
+            <h2>About the Data</h2>
+            <p>Homicides differ from murders because murder implies intent to kill, whereas a homicide is simply the death of one person by another. The two terms are not interchangeable. Because some homicides are considered justifiable, for example, the number of murders in a given year will always be lower than homicides.</p>
+            <p>WLBT tracks homicides with the same methodology the Jackson Police Department and many other law enforcement agencies use. Justifiable homicides, including officer-involved deaths, are counted in the numbers. Vehicular homicides, which historically have only been counted by JPD in rare occasions, are not counted unless the agency does so.</p>
+            <p>3 On Your Side obtains this information through official releases from JPD and confirmation of killings from departmental sources and the county coroner to reporters. Additionally, when other agencies work as the lead investigating agency on killings, those are also counted in WLBT’s numbers if the killings happen in Jackson.</p>
+            <p>For example, in 2024, Capitol Police worked seven homicides. The year before that, Jackson State’s police department handled one. Because we count all killings that happen in the city, our numbers will differ from individual agencies because they only count cases they actually work.</p>
+            <p>Some numbers may also fluctuate over time as we learn of additional cases that were not previously reported to us through releases or official confirmation. In October 2023, WLBT uncovered evidence that JPD had failed to disclose cases associated with 24 homicide victims to the public. After that discovery, 3 On Your Side updated its numbers to reflect the department’s count. Following that revelation, WLBT regularly asks JPD for updates on cases to help ensure the department doesn’t let future victims fall through the cracks. </p>
+            <p>Finally, you may notice information missing in some of these cases: ages, race, gender or an exact location. That lack of information reflects what the individual law enforcement agency fails to provide to us. Despite those gaps, we do our best to make sure we have as much information as possible to help police solve these cases.</p>
+        </div>
     </div>
 
     <script>
@@ -415,6 +476,8 @@
         // --- Initial Load ---
         document.addEventListener('DOMContentLoaded', async () => {
             initMap(); 
+            setupModal(); // NEW: Setup modal event listeners
+
             document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: Loading...`;
             document.getElementById('rankingBanner').innerText = 'City Ranking: Loading...';
             document.getElementById('percentageChangeText').innerText = 'Calculating...';
@@ -451,6 +514,33 @@
                  displayErrorInCharts("Failed to load data.");
             }
         });
+
+        // --- NEW: Modal Functionality ---
+        function setupModal() {
+            const modal = document.getElementById("aboutDataModal");
+            const openBtn = document.getElementById("openAboutModal");
+            const closeBtn = document.getElementById("closeAboutModal");
+
+            openBtn.onclick = function(e) {
+                e.preventDefault(); // Prevent link from navigating
+                modal.style.display = "flex";
+            }
+
+            closeBtn.onclick = function() {
+                modal.style.display = "none";
+            }
+
+            window.onclick = function(event) {
+                if (event.target == modal) {
+                    modal.style.display = "none";
+                }
+            }
+             window.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape') {
+                    modal.style.display = 'none'
+                }
+            })
+        }
         
         function updateMapTiles() { 
             if (!map) return;
@@ -528,12 +618,7 @@
                         rawData = csvToJSON(csvText);
                     }
                 } catch (error) {
-                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${fetchableUrl}`);
-                    console.error("Error Name:", error.name);
-                    console.error("Error Message:", error.message);
-                    if (error.stack) console.error("Error Stack (first 300 chars):", error.stack ? error.stack.substring(0,300)+"..." : "N/A"); 
-                    if (typeof error.cause !== 'undefined') console.error("Error Cause:", error.cause);
-                    console.error("Full error object (if helpful):", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+                    console.error(`Failed to fetch or parse data for ${dataType}. URL: ${fetchableUrl}`, error);
                     console.warn(`Falling back to placeholder data for ${dataType} due to fetch error.`);
                     rawData = isMainHomicideData ? getPlaceholderData() : getPlaceholderCityData();
                 }
@@ -555,7 +640,6 @@
                     for (let name of possibleNames) {
                         if (typeof headerMap[name.toLowerCase()] !== 'undefined') return headerMap[name.toLowerCase()];
                     }
-                    // This warning is removed from the previous version as it was too noisy
                     return -1;
                 };
 
@@ -579,11 +663,9 @@
                     let parsedYear = null;
                     let formattedDate = null; 
                     let originalDateStrForDisplay = 'N/A';
-                    let rawDateValue = 'N/A'; 
 
                     if (dateIdx !== -1 && entry[dateIdx]) { 
                         const dateStr = String(entry[dateIdx]).trim();
-                        rawDateValue = dateStr;
                         originalDateStrForDisplay = dateStr;
                         let dateObj;
                         if (dateStr.includes('-')) { 
@@ -603,7 +685,6 @@
                         const y = parseInt(entry[yearIdx]);
                         const m = parseInt(entry[monthIdx]); 
                         const day = parseInt(entry[dayIdx]);  
-                        rawDateValue = `Y:${y}, M:${m}, D:${day}`;
                         if (!isNaN(y) && !isNaN(m) && !isNaN(day) && y >= 1900 && y <= CURRENT_YEAR + 10 && m >= 1 && m <= 12 && day >= 1 && day <= 31) {
                             const dateObj = new Date(y, m - 1, day); 
                             if (dateObj && dateObj.getFullYear() === y && dateObj.getMonth() === (m - 1) && dateObj.getDate() === day) {
@@ -641,7 +722,6 @@
                         Date: formattedDate, 
                         DisplayDate: originalDateStrForDisplay, 
                         Address: addressIdx !== -1 ? entry[addressIdx] : 'N/A', 
-                        // 'Officer-Involved Death?' removed
                         'Investigating Agency': agencyIdx !== -1 ? entry[agencyIdx] : 'N/A', 
                         Precinct: precinctIdx !== -1 && entry[precinctIdx] ? String(entry[precinctIdx]).trim() : 'N/A',
                         Latitude: lat, 
@@ -658,7 +738,7 @@
                     console.warn(`Total homicide records initially excluded: ${mappedData.length - finalData.length}. Details for first ${excludedRecordsLog.length} excluded:`, excludedRecordsLog);
                 }
                 return finalData;
-            } else { // City comparison data (still CSV)
+            } else { 
                 if (!rawData || rawData.length === 0) {
                     console.warn(`No ${dataType} loaded.`);
                     return [];
@@ -710,7 +790,7 @@
             }
         }
 
-        function csvToJSON(csv) { // This is still used for City Comparison CSV
+        function csvToJSON(csv) { 
             const lines = csv.split(/\r\n|\n/);
             const result = [];
             if (lines.length < 1) return result;
@@ -1272,7 +1352,6 @@
         }
 
         function updateDemographicCharts() {
-            // Victims by Race (Pie Chart)
             const raceData = filteredHomicideDataForMap.reduce((acc, d) => {
                 const race = d.Race || 'Unknown';
                 acc[race] = (acc[race] || 0) + 1;
@@ -1297,7 +1376,6 @@
                 options: { responsive: true, maintainAspectRatio: false }
             });
 
-            // Victims by Age Group (Bar Chart)
             const ageGroups = { '0-17': 0, '18-29': 0, '30-49': 0, '50+': 0, 'Unknown': 0 };
             filteredHomicideDataForMap.forEach(d => {
                 const age = d.Age;
@@ -1345,7 +1423,6 @@
                 const canvas = document.getElementById(id);
                 if (canvas) {
                     const ctx = canvas.getContext('2d');
-                    // Destroy any existing chart instance on that canvas
                     if (window[id + 'Instance']) { window[id + 'Instance'].destroy(); }
                     ctx.clearRect(0, 0, canvas.width, canvas.height);
                     ctx.font = "16px Arial";
