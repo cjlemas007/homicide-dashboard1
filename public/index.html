@@ -523,9 +523,6 @@
                 }
 
                 populateFiltersForMap(); 
-                updateCurrentYearHomicideCount();
-                updateRankingBanner(); 
-                updatePercentageChangeDisplay(); 
                 updateDashboard(); 
                 if (map) { 
                     map.invalidateSize();
@@ -802,7 +799,6 @@
             else if (jacksonRank > 5) bannerColorVar = '--rank-banner-ranklow-bg';
             banner.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue(bannerColorVar).trim();
 
-            // MODIFICATION: Build the ticker content array
             const tickerItems = ["Top 5 Major U.S. Cities by Homicide Rate"];
             
             const top5 = citiesWithRates.slice(0, 5);
@@ -817,10 +813,8 @@
             
             const tickerText = tickerItems.join(' &nbsp; | &nbsp; ');
             
-            // Duplicate content for seamless scrolling
             tickerWrap.innerHTML = `<div class="ticker-item">${tickerText}</div><div class="ticker-item">${tickerText}</div>`;
         }
-
 
         function updateMapDisplay() { 
             const selectedYears = Array.from(document.querySelectorAll('#yearFilter input:checked')).map(cb => parseInt(cb.value));
@@ -876,6 +870,37 @@
                 }
             };
         }
+
+        // FIX: Restoring this function
+        function getTrendChartOptions() { 
+             const textColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-axis-text').trim();
+            const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid-color').trim();
+            const titleColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-title-text').trim();
+            const legendColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-legend-text').trim();
+
+            return {
+                 responsive: true, maintainAspectRatio: false,
+                    scales: {
+                        y: { 
+                            beginAtZero: true, 
+                            title: {display: true, text: 'Cumulative Homicides', color: titleColor},
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        },
+                        x: {
+                            type: 'time',
+                            time: { unit: 'month', parser: 'yyyy-MM-dd', tooltipFormat: 'MMM dd', displayFormats: { month: 'MMM' } },
+                            title: {display: true, text: 'Month (Displayed on a Common Year for Comparison)', color: titleColor},
+                            ticks: { color: textColor },
+                            grid: { color: gridColor }
+                        }
+                    },
+                    plugins: { 
+                        legend: { position: 'top' }, 
+                        tooltip: { mode: 'index', intersect: false } 
+                    }
+            };
+        }
         
         function updateHomicidesByYearChart() { 
             const tooltipCallback = (context) => {
@@ -917,6 +942,62 @@
             homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: yearsToDisplay, datasets }, options: chartOptions });
         }
 
+        // FIX: Restoring this function
+        function updateHomicideTrendsChart() {
+            const chartOptions = getTrendChartOptions(); 
+
+            const getRunningTotalData = (yearToFilter, dataSet) => {
+                const yearData = dataSet.filter(d => d.Year === yearToFilter && d.Date)
+                    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
+
+                const chartDataPoints = [];
+                const commonAxisYear = 2000; 
+                let cumulativeCount = 0;
+                let homicideDataIndex = 0;
+                
+                let loopEndDate = (yearToFilter === CURRENT_YEAR) ? new Date() : new Date(yearToFilter, 11, 31);
+                
+                for (let dLoop = new Date(yearToFilter, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
+                    const currentLoopDayFormatted = dLoop.toISOString().split('T')[0];
+                    
+                    while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
+                        cumulativeCount++;
+                        homicideDataIndex++;
+                    }
+                    
+                    chartDataPoints.push({
+                        x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
+                        y: cumulativeCount 
+                    });
+                }
+                
+                if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
+                    chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
+                }
+
+                return chartDataPoints;
+            };
+
+            const dataForCurrentYear = getRunningTotalData(CURRENT_YEAR, allHomicideData);
+            const dataForPreviousYear = getRunningTotalData(PREVIOUS_YEAR, allHomicideData);
+
+            const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
+            if (homicideTrendsChartInstance) {
+                homicideTrendsChartInstance.destroy();
+            }
+            homicideTrendsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        { label: String(CURRENT_YEAR), data: dataForCurrentYear, borderColor: '#dc3545', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 },
+                        { label: String(PREVIOUS_YEAR), data: dataForPreviousYear, borderColor: '#007bff', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 }
+                    ]
+                },
+                options: chartOptions 
+            });
+        }
+
+
         function updateDemographicCharts() {
             const tooltipCallback = (context) => {
                 let label = context.label || '';
@@ -954,18 +1035,67 @@
             });
         }
         
+        // FIX: Restoring this function
+        function updatePercentageChangeDisplay() {
+            const percentageChangeDiv = document.getElementById('percentageChangeText');
+            if (!percentageChangeDiv || !allHomicideData || allHomicideData.length === 0) {
+                percentageChangeDiv.innerText = 'Data N/A';
+                percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-neutral-color');
+                return;
+            }
+
+            const today = new Date();
+            const dayOfYear = (Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 0)) / 24 / 60 / 60 / 1000;
+
+            const getCountUpToDay = (year, day) => {
+                return allHomicideData.filter(d => {
+                    if (d.Year !== year || !d.Date) return false;
+                    const itemDate = new Date(d.Date + 'T00:00:00'); // Ensure consistent time
+                    const itemDayOfYear = (Date.UTC(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()) - Date.UTC(itemDate.getFullYear(), 0, 0)) / 24 / 60 / 60 / 1000;
+                    return itemDayOfYear <= day;
+                }).length;
+            };
+
+            const currentYearCountToDate = getCountUpToDay(CURRENT_YEAR, dayOfYear);
+            const previousYearCountToDate = getCountUpToDay(PREVIOUS_YEAR, dayOfYear);
+            
+            let percentageChangeText = "N/A";
+            let textColorVar = '--percentage-neutral-color';
+
+            if (previousYearCountToDate > 0) {
+                const change = ((currentYearCountToDate - previousYearCountToDate) / previousYearCountToDate) * 100;
+                if (change > 0) {
+                    percentageChangeText = `+${change.toFixed(0)}%`;
+                    textColorVar = '--percentage-increase-color';
+                } else if (change < 0) {
+                    percentageChangeText = `${change.toFixed(0)}%`;
+                    textColorVar = '--percentage-decrease-color';
+                } else {
+                    percentageChangeText = "0%";
+                }
+            } else if (currentYearCountToDate > 0) {
+                percentageChangeText = `+${currentYearCountToDate} (from 0)`; 
+                textColorVar = '--percentage-increase-color';
+            } else { 
+                 percentageChangeText = "0% (YTD)";
+            }
+            percentageChangeDiv.innerText = percentageChangeText;
+            percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue(textColorVar).trim();
+        }
+
+        // FIX: Updating this function to call the restored ones
         function updateDashboard() {
             updateCurrentYearHomicideCount();
             updateRankingBanner();
+            updatePercentageChangeDisplay();
             updateMapDisplay();
             updateHomicidesByYearChart(); 
+            updateHomicideTrendsChart();
             updateDemographicCharts(); 
         }
 
         // --- Dummy/Placeholder Functions ---
         function loadBoundaryLayers(){ /* Placeholder */ };
-        function updatePercentageChangeDisplay(){ /* Placeholder */ };
-        function updateHomicideTrendsChart(){ /* Placeholder */ };
         function displayErrorInCharts(errorMessage) {
             const chartIds = ['homicidesByYearChart', 'homicideTrendsChart', 'victimsByAgeChart'];
             chartIds.forEach(id => {
