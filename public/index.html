@@ -838,7 +838,19 @@
                 const marker = L.circleMarker(latLng, {
                     radius: 6, fillColor: "#d9534f", color: "#c82333", weight: 1, opacity: 1, fillOpacity: 0.8
                 });
-                marker.bindTooltip(`<p><b>Victim:</b> ${d.Victim}</p><p><b>Date:</b> ${d.DisplayDate}</p><p><b>Address:</b> ${d.Address}</p>`, { sticky: true });
+                
+                // MODIFICATION: Build the new styled tooltip
+                let tooltipContent = `<p style="margin: 0 0 5px 0; font-weight: bold; font-size: 1.1em;">${d.Victim || 'Unknown Victim'}</p><hr style="border: 0; border-top: 1px solid #666; margin: 5px 0;">`;
+                if (d.Age && d.Age !== 'N/A') tooltipContent += `<p style="margin: 5px 0;"><b>Age:</b> ${d.Age}</p>`;
+                if (d.Race && d.Race !== 'N/A') tooltipContent += `<p style="margin: 5px 0;"><b>Race:</b> ${d.Race}</p>`;
+                if (d.Sex && d.Sex !== 'N/A') tooltipContent += `<p style="margin: 5px 0;"><b>Sex:</b> ${d.Sex}</p>`;
+                if (d.DisplayDate && d.DisplayDate !== 'N/A') tooltipContent += `<p style="margin: 5px 0;"><b>Date:</b> ${d.DisplayDate}</p>`;
+                if (d.Address && d.Address !== 'N/A') tooltipContent += `<p style="margin: 5px 0;"><b>Address:</b> ${d.Address}</p>`;
+                if (d.Circumstance && d.Circumstance !== 'N/A') tooltipContent += `<p style="margin: 5px 0;"><b>Circumstance:</b> ${d.Circumstance}</p>`;
+                if (d['Investigating Agency'] && d['Investigating Agency'] !== 'N/A') tooltipContent += `<p style="margin: 5px 0;"><b>Agency:</b> ${d['Investigating Agency']}</p>`;
+                if (d.Precinct && d.Precinct !== 'N/A') tooltipContent += `<p style="margin: 5px 0;"><b>Precinct:</b> ${d.Precinct}</p>`;
+
+                marker.bindTooltip(tooltipContent, { sticky: true });
                 markersLayer.addLayer(marker);
                 visibleMarkers.push(marker); 
             });
@@ -1008,7 +1020,6 @@
             const ageGroups = { '0-17': 0, '18-29': 0, '30-49': 0, '50+': 0, 'Unknown': 0 };
             filteredHomicideDataForMap.forEach(d => {
                 const age = d.Age;
-                // BUG FIX: Added isNaN(age) check to correctly categorize unknown ages.
                 if (age === null || isNaN(age)) {
                     ageGroups['Unknown']++;
                 } else if (age <= 17) {
