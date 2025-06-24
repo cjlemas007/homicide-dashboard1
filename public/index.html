@@ -871,12 +871,10 @@
             };
         }
 
-        // FIX: Restoring this function
         function getTrendChartOptions() { 
              const textColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-axis-text').trim();
             const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid-color').trim();
             const titleColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-title-text').trim();
-            const legendColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-legend-text').trim();
 
             return {
                  responsive: true, maintainAspectRatio: false,
@@ -942,7 +940,6 @@
             homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: yearsToDisplay, datasets }, options: chartOptions });
         }
 
-        // FIX: Restoring this function
         function updateHomicideTrendsChart() {
             const chartOptions = getTrendChartOptions(); 
 
@@ -997,7 +994,6 @@
             });
         }
 
-
         function updateDemographicCharts() {
             const tooltipCallback = (context) => {
                 let label = context.label || '';
@@ -1012,11 +1008,18 @@
             const ageGroups = { '0-17': 0, '18-29': 0, '30-49': 0, '50+': 0, 'Unknown': 0 };
             filteredHomicideDataForMap.forEach(d => {
                 const age = d.Age;
-                if (age === null) ageGroups['Unknown']++;
-                else if (age <= 17) ageGroups['0-17']++;
-                else if (age <= 29) ageGroups['18-29']++;
-                else if (age <= 49) ageGroups['30-49']++;
-                else ageGroups['50+']++;
+                // BUG FIX: Added isNaN(age) check to correctly categorize unknown ages.
+                if (age === null || isNaN(age)) {
+                    ageGroups['Unknown']++;
+                } else if (age <= 17) {
+                    ageGroups['0-17']++;
+                } else if (age <= 29) {
+                    ageGroups['18-29']++;
+                } else if (age <= 49) {
+                    ageGroups['30-49']++;
+                } else {
+                    ageGroups['50+']++;
+                }
             });
 
             const ageCtx = document.getElementById('victimsByAgeChart').getContext('2d');
@@ -1035,7 +1038,6 @@
             });
         }
         
-        // FIX: Restoring this function
         function updatePercentageChangeDisplay() {
             const percentageChangeDiv = document.getElementById('percentageChangeText');
             if (!percentageChangeDiv || !allHomicideData || allHomicideData.length === 0) {
@@ -1083,7 +1085,6 @@
             percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue(textColorVar).trim();
         }
 
-        // FIX: Updating this function to call the restored ones
         function updateDashboard() {
             updateCurrentYearHomicideCount();
             updateRankingBanner();
