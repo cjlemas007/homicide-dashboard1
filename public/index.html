@@ -514,7 +514,8 @@
                      console.warn("City comparison data is empty or failed to load properly.");
                 }
 
-                populateFiltersForMap(); 
+                // FIX: Pass true for initial load to populate all filters
+                populateFiltersForMap(true); 
                 updateDashboard(); 
                 if (map) { 
                     map.invalidateSize();
@@ -722,19 +723,45 @@
         }
         
         // --- UI & Filter Logic ---
-        function populateFiltersForMap() { 
-            const allYearsFromData = [...new Set(allHomicideData.map(d => d.Year))].sort((a, b) => b - a);
-            const yearsForFilter = allYearsFromData.filter(y => y >= START_YEAR_DATA && y <= CURRENT_YEAR);
-            const agenciesToShow = [...new Set(allHomicideData.map(d => d['Investigating Agency']))].filter(Boolean).sort();
-            const circumstancesToShow = [...new Set(allHomicideData.map(d => d.Circumstance))].filter(Boolean).sort();
-
-            populateCheckboxFilter('yearFilter', yearsForFilter, [CURRENT_YEAR], updateDashboard);
-            populateCheckboxFilter('agencyFilter', agenciesToShow, agenciesToShow, updateDashboard);     
+        // FIX: Reworked this function for dynamic filter updates
+        function populateFiltersForMap(isInitialLoad = false) {
+            const yearContainer = document.getElementById('yearFilter');
             
+            if (isInitialLoad) {
+                const allYearsFromData = [...new Set(allHomicideData.map(d => d.Year))].sort((a, b) => b - a);
+                const yearsForFilter = allYearsFromData.filter(y => y >= START_YEAR_DATA && y <= CURRENT_YEAR);
+                populateCheckboxFilter('yearFilter', yearsForFilter, [CURRENT_YEAR], handleYearFilterChange);
+            }
+
+            const selectedYears = Array.from(yearContainer.querySelectorAll('input:checked')).map(cb => parseInt(cb.value));
+            const dataForDependentFilters = allHomicideData.filter(d => selectedYears.includes(d.Year));
+
+            const agencyContainer = document.getElementById('agencyFilter');
             const circumstanceSelect = document.getElementById('circumstanceFilter');
+            const previouslySelectedAgencies = Array.from(agencyContainer.querySelectorAll('input:checked')).map(cb => cb.value);
+            const previouslySelectedCircumstance = circumstanceSelect.value;
+            
+            const agenciesToShow = [...new Set(dataForDependentFilters.map(d => d['Investigating Agency']))].filter(Boolean).sort();
+            const agenciesToSelect = previouslySelectedAgencies.filter(agency => agenciesToShow.includes(agency));
+            populateCheckboxFilter('agencyFilter', agenciesToShow, agenciesToSelect.length > 0 ? agenciesToSelect : agenciesToShow, updateDashboard);
+
+            const circumstancesToShow = [...new Set(dataForDependentFilters.map(d => d.Circumstance))].filter(Boolean).sort();
             circumstanceSelect.innerHTML = '<option value="">All Circumstances</option>';
-            circumstancesToShow.forEach(c => circumstanceSelect.add(new Option(c, c)));
+            circumstancesToShow.forEach(c => {
+                const option = new Option(c, c);
+                if (c === previouslySelectedCircumstance && circumstancesToShow.includes(c)) {
+                    option.selected = true;
+                }
+                circumstanceSelect.add(option);
+            });
+            circumstanceSelect.removeEventListener('change', updateDashboard);
             circumstanceSelect.addEventListener('change', updateDashboard);
+        }
+        
+        // FIX: Added a dedicated handler for year filter changes
+        function handleYearFilterChange() {
+            populateFiltersForMap(false);
+            updateDashboard();
         }
         
         function populateCheckboxFilter(elementId, values, defaultSelected = [], changeCallback) {
@@ -848,8 +875,11 @@
 
             heatLayer.setLatLngs(heatPoints);
 
+            // FIX: Added else block to recenter map when no data is present
             if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
                 map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1)); 
+            } else {
+                map.setView(MAP_CENTER, MAP_ZOOM);
             }
         }
         
