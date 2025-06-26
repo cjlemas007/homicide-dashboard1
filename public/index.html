@@ -122,10 +122,11 @@
             100% { transform: translateX(-50%); }
         }
         
+        /* MODIFICATION: Changed flex property to prevent unwanted growing */
         .main-content-area { 
             display: flex; 
             flex: 1 1 auto; 
-            min-height: 300px; 
+            min-height: 0; /* Changed from 300px to allow shrinking */
             background-color: var(--content-bg); 
         }
         
@@ -269,11 +270,24 @@
         
         /* --- RESPONSIVE STYLES --- */
         @media (max-width: 992px) { 
-            .main-content-area { flex-direction: column; flex: 1 1 auto; }
-            .legend-container { width: 100%; max-width: none; border-right: none; border-bottom: 2px solid var(--legend-border); max-height: 45vh; flex-shrink:0;} 
+            /* MODIFICATION: Changed flex property to prevent it from growing and pushing charts down */
+            .main-content-area { 
+                flex-direction: column; 
+                flex: 0 1 auto; 
+            }
+            /* MODIFICATION: Changed max-height from vh to a fixed px value for stability */
+            .legend-container { 
+                width: 100%; 
+                max-width: none; 
+                border-right: none; 
+                border-bottom: 2px solid var(--legend-border); 
+                max-height: 260px; /* More predictable than vh unit */
+                flex-shrink:0;
+            } 
+            /* MODIFICATION: Set a fixed, responsive height for the map */
             .map-container { 
-                height: 50vh; 
-                flex-grow: 1; 
+                height: 450px; 
+                flex-grow: 0; 
                 flex-shrink: 0; 
             } 
             .chart-box { 
@@ -305,7 +319,7 @@
                 border-bottom: none;
             }
             
-            .legend-container { padding: 10px; max-height: 40vh; } 
+            .legend-container { padding: 10px; max-height: 220px; } /* Adjusted height for smaller screens */
             .filter-columns-wrapper { flex-direction: column; flex-grow: 0; }
             .filter-group.year-filter, .filter-group.agency-filter, .filter-group.circumstance-filter, .filter-group.percentage-change-display { 
                 width: 100%; 
@@ -514,7 +528,6 @@
                      console.warn("City comparison data is empty or failed to load properly.");
                 }
 
-                // FIX: Pass true for initial load to populate all filters
                 populateFiltersForMap(true); 
                 updateDashboard(); 
                 if (map) { 
@@ -723,7 +736,6 @@
         }
         
         // --- UI & Filter Logic ---
-        // FIX: Reworked this function for dynamic filter updates
         function populateFiltersForMap(isInitialLoad = false) {
             const yearContainer = document.getElementById('yearFilter');
             
@@ -758,7 +770,6 @@
             circumstanceSelect.addEventListener('change', updateDashboard);
         }
         
-        // FIX: Added a dedicated handler for year filter changes
         function handleYearFilterChange() {
             populateFiltersForMap(false);
             updateDashboard();
