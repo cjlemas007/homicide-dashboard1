@@ -60,13 +60,12 @@
         }
 
         /* --- LAYOUT & COMPONENT STYLES --- */
-        /* MODIFICATION: Center logos in header */
         .header {
             display: flex;
             justify-content: center;
             align-items: center;
-            flex-wrap: wrap; /* Allow logos to wrap on small screens */
-            gap: 20px; /* Add space between logos */
+            flex-wrap: wrap; 
+            gap: 20px; 
             padding: 10px 15px; 
             background-color: var(--header-bg);
             border-bottom: 2px solid var(--header-border);
@@ -1088,6 +1087,94 @@
             percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue(textColorVar).trim();
         }
 
+        // --- Restored Functions for Boundary Layers ---
+        function updateLayerControl(baseLayers, overlayMaps) {
+            if (overlayLayersControl) {
+                map.removeControl(overlayLayersControl);
+            }
+            overlayLayersControl = L.control.layers(baseLayers, overlayMaps).addTo(map);
+        }
+
+        function updateBoundaryLayerStyles() { 
+            const cityColor = getComputedStyle(document.documentElement).getPropertyValue('--boundary-city-color').trim();
+            const ccidColor = getComputedStyle(document.documentElement).getPropertyValue('--boundary-ccid-color').trim();
+
+            const cityStyle = { color: cityColor, weight: 3, opacity: 0.85, fillOpacity: 0.0 }; 
+            const ccidStyle = { color: ccidColor, weight: 4, opacity: 0.9, fillOpacity: 0.25 }; 
+
+            if (cityLimitsLayer && map.hasLayer(cityLimitsLayer)) {
+                cityLimitsLayer.setStyle(cityStyle);
+            }
+            if (ccidLayer && map.hasLayer(ccidLayer)) {
+                ccidLayer.setStyle(ccidStyle);
+            }
+        }
+
+        function loadBoundaryLayers(){
+            const baseLayers = { 
+                "Markers": markersLayer,
+                "Heatmap": heatLayer
+            };
+            const overlayMaps = {}; 
+            let cityLimitsAttempted = false; 
+            let ccidAttempted = false;       
+            
+            const tryBuildLayerControl = () => {
+                if (cityLimitsAttempted && ccidAttempted) {
+                    updateBoundaryLayerStyles(); 
+                    updateLayerControl(baseLayers, overlayMaps);
+                }
+            };
+
+            if (JACKSON_CITY_LIMITS_GEOJSON_URL && JACKSON_CITY_LIMITS_GEOJSON_URL !== 'YOUR_JACKSON_CITY_LIMITS_GEOJSON_URL_HERE') {
+                fetch(JACKSON_CITY_LIMITS_GEOJSON_URL)
+                    .then(response => {
+                        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status} for Jackson GeoJSON`); }
+                        return response.json();
+                    })
+                    .then(geojson => {
+                        cityLimitsLayer = L.geoJSON(geojson); 
+                        overlayMaps["Jackson City Limits"] = cityLimitsLayer;
+                        cityLimitsLayer.addTo(map); 
+                    })
+                    .catch(error => {
+                        console.error('Error loading Jackson city limits GeoJSON. URL attempted:', JACKSON_CITY_LIMITS_GEOJSON_URL, error);
+                    })
+                    .finally(() => {
+                        cityLimitsAttempted = true;
+                        tryBuildLayerControl();
+                    });
+            } else {
+                console.warn("Jackson City Limits GeoJSON URL is a placeholder or not provided. Boundary not loaded.");
+                cityLimitsAttempted = true; 
+                tryBuildLayerControl();
+            }
+            
+            if (CCID_GEOJSON_URL && CCID_GEOJSON_URL !== 'YOUR_CCID_GEOJSON_URL_HERE') {
+                fetch(CCID_GEOJSON_URL)
+                    .then(response => {
+                        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status} for CCID GeoJSON`); }
+                        return response.json();
+                    })
+                    .then(geojson => {
+                        ccidLayer = L.geoJSON(geojson); 
+                        overlayMaps["CCID Boundary"] = ccidLayer;
+                        ccidLayer.addTo(map); 
+                    })
+                    .catch(error => {
+                        console.error('Error loading CCID GeoJSON. URL attempted:', CCID_GEOJSON_URL, error);
+                    })
+                    .finally(() => {
+                        ccidAttempted = true;
+                        tryBuildLayerControl();
+                    });
+            } else {
+                 console.warn("CCID GeoJSON URL is a placeholder or not provided. Boundary not loaded.");
+                 ccidAttempted = true; 
+                 tryBuildLayerControl();
+            }
+        }
+        
         function updateDashboard() {
             updateCurrentYearHomicideCount();
             updateRankingBanner();
@@ -1098,8 +1185,6 @@
             updateDemographicCharts(); 
         }
 
-        // --- Dummy/Placeholder Functions ---
-        function loadBoundaryLayers(){ /* Placeholder */ };
         function displayErrorInCharts(errorMessage) {
             const chartIds = ['homicidesByYearChart', 'homicideTrendsChart', 'victimsByAgeChart'];
             chartIds.forEach(id => {
