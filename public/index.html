@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- saved from url=(0039)https://homicide-dashboard.netlify.app/ -->
+<!-- fix 3  from url=(0039)https://homicide-dashboard.netlify.app/ -->
 <html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -65,14 +65,12 @@
             text-size-adjust: 100%;
         }
         
-        /* MODIFICATION: Container optimized for embedding */
         .dashboard-container {
-            width: 100%; /* Fill the iframe width */
+            width: 100%; 
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             background-color: var(--content-bg);
-            /* Removed fixed max-width and shadow for better embedding */
         }
 
         /* --- LAYOUT & COMPONENT STYLES --- */
@@ -137,12 +135,12 @@
             100% { transform: translateX(-50%); }
         }
         
+        /* MODIFICATION: Restored flex-grow for two-column layout */
         .main-content-area { 
             display: flex; 
-            flex: 1 0 auto;
+            flex-direction: row;
+            flex: 1 1 auto;
             background-color: var(--content-bg); 
-            /* MODIFICATION: Set a height to fit within iframe on desktop */
-            height: 350px; 
         }
         
         .legend-container {
@@ -156,12 +154,11 @@
             flex-shrink: 0; 
         }
         
+        /* MODIFICATION: Use Grid for robust filter layout */
         .filter-columns-wrapper { 
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between; 
-            flex-grow: 1; 
-            margin-bottom: 10px; 
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
         }
 
         .filter-group { 
@@ -169,13 +166,12 @@
             box-sizing: border-box;
         } 
         
-        .filter-group.year-filter, .filter-group.agency-filter {
-            width: 48%; 
-        }
+        /* MODIFICATION: Span full width in the grid */
         .filter-group.circumstance-filter, .filter-group.percentage-change-display { 
-            width: 100%;
+            grid-column: 1 / -1; /* Span across both columns */
             margin-top: 10px; 
         }
+
         .filter-group.percentage-change-display {
             margin-top: 15px; 
         }
@@ -187,32 +183,32 @@
             color: var(--legend-label-text); 
         }
         .filter-group select, .filter-group .checkbox-group {
-            width: 100%; padding: 6px; 
+            width: 100%; padding: 10px; 
             border: 1px solid var(--input-border);
-            border-radius: 4px; font-size: 0.9em; 
+            border-radius: 4px; font-size: 1em; 
             box-sizing: border-box; background-color: var(--input-bg); color: var(--text-color);
+            min-height: 44px;
         }
         .checkbox-group { 
-            max-height: 150px; 
+            max-height: 120px; 
             overflow-y: auto; 
-            background-color: var(--input-bg); 
             padding: 8px; 
         }
         .checkbox-group div { margin-bottom: 3px; display: flex; align-items: center;}
         .checkbox-group input[type="checkbox"] { margin-right: 5px; }
-        .checkbox-group label { font-weight: normal; font-size: 0.85em; color: var(--legend-label-text);}
+        .checkbox-group label { font-weight: normal; font-size: 0.9em; color: var(--legend-label-text);}
         
         #percentageChangeText { 
             text-align: center; 
             font-weight: bold; 
-            padding: 10px; 
+            padding: 12px; 
             background-color: var(--input-bg); 
             border: 1px solid var(--input-border); 
             border-radius: 4px;
-            font-size: 1.8em; 
+            font-size: 1.4em; 
         }
 
-        .map-container { flex-grow: 1;  }
+        .map-container { flex-grow: 1; min-height: 500px; }
         #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); } 
         
         .charts-area { 
@@ -235,7 +231,6 @@
         }
 
         .chart-box h4 { text-align: center; margin-top: 0; margin-bottom: 15px; font-size: 1.1em; color: var(--chart-title-text); }
-        /* MODIFICATION: Adjusted min-height to fit within 800px iframe */
         .chart-canvas-container { flex-grow: 1; position: relative; min-height: 220px; } 
 
         .footer {
@@ -285,10 +280,10 @@
         .modal-content p { line-height: 1.6; color: #555; }
         
         /* --- RESPONSIVE STYLES --- */
-        @media (max-width: 992px) { 
+        /* MODIFICATION: Lowered breakpoint to 768px for main layout change */
+        @media (max-width: 768px) {
             .main-content-area { 
                 flex-direction: column; 
-                height: auto; /* Allow height to be determined by content */
             }
             .legend-container { 
                 width: 100%; 
@@ -303,17 +298,12 @@
                 flex-grow: 0; 
                 flex-shrink: 0; 
             } 
-            .chart-box { 
-                width: 50%;
-                border-bottom: 1px solid var(--legend-border);
+
+            .filter-columns-wrapper {
+                /* On smaller screens, go back to a single column for filters */
+                grid-template-columns: 1fr;
             }
-            .chart-box:nth-child(even) { border-right: none; }
-            .chart-box:nth-child(3){
-                border-right: none;
-            }
-        }
-        
-        @media (max-width: 768px) {
+
             .header-logo-main img, .header-logo-secondary img { max-height: 35px; } 
 
             .count-banner { font-size: 1.3em; padding: 6px 10px;} 
@@ -321,7 +311,7 @@
 
             .charts-area { flex-direction: column; } 
             .chart-box { 
-                width: 100%; 
+                width: 100% !important; /* Override the 33% width */
                 padding: 15px; 
                 border-right: none !important; 
             }
@@ -333,60 +323,14 @@
             }
             
             .legend-container { padding: 10px; max-height: 220px; }
-            .filter-columns-wrapper { flex-direction: column; flex-grow: 0; }
-            .filter-group.year-filter, .filter-group.agency-filter, .filter-group.circumstance-filter, .filter-group.percentage-change-display { 
-                width: 100%; 
-                margin-bottom: 8px; 
-            } 
-
-            .filter-group select, .checkbox-group div {
-                padding: 10px;
-                min-height: 44px;
-            }
-            .filter-group select { font-size: 1em; }
-            .checkbox-group { 
-                max-height: 120px;
-                padding: 6px;
-            }
-            .checkbox-group label { font-size: 0.9em; }
-            #percentageChangeText { 
-                font-size: 1.4em;
-                padding: 12px;
-            }
-
             .chart-box h4 { font-size: 1em; }
             .chart-canvas-container { min-height: 280px;} 
-
             .footer { font-size: 0.75em; padding: 8px 10px;}
             
             .modal-content {
                 width: 95%;
                 max-height: 90vh; 
                 overflow-y: auto;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .count-banner {
-                font-size: 1.1em;
-            }
-            .ranking-banner {
-                font-size: 0.8em;
-            }
-            .header-logo-main img, .header-logo-secondary img {
-                max-height: 28px;
-            }
-            .chart-box h4 {
-                font-size: 0.95em;
-            }
-            .chart-canvas-container {
-                min-height: 250px; 
-            }
-            .footer {
-                font-size: 0.7em;
-            }
-            #percentageChangeText {
-                font-size: 1.2em;
             }
         }
     </style>
