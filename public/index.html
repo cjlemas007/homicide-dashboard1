@@ -340,7 +340,7 @@
                     <select id="circumstanceFilter"></select>
                 </div>
                  <div class="filter-group percentage-change-display">
-                    <label class="group-label">YTD Comparison:</label>
+                    <label class="group-label">Trend vs. Last Year:</label>
                     <div id="percentageChangeText"></div>
                 </div>
             </div> 
@@ -352,7 +352,7 @@
 
     <div class="charts-area" id="charts-row-1">
         <div class="chart-box">
-            <h4>Homicide Trends Comparison</h4>
+            <h4>Running Total of Homicides</h4>
             <div class="chart-canvas-container">
                 <canvas id="homicideTrendsChart"></canvas>
             </div>
@@ -860,7 +860,7 @@
                         x: {
                             type: 'time',
                             time: { unit: 'month', parser: 'yyyy-MM-dd', tooltipFormat: 'MMM dd', displayFormats: { month: 'MMM' } },
-                            title: {display: true, text: 'Month (Displayed on a Common Year for Comparison)', color: titleColor},
+                            title: {display: true, text: 'Month', color: titleColor},
                             ticks: { color: textColor },
                             grid: { color: gridColor }
                         }
