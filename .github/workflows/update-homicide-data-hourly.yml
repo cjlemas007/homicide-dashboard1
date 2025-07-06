@@ -3,7 +3,7 @@ name: Update Homicide Data Hourly with Gmail Alerts
 
 on:
   schedule:
-    - cron: '0 * * * *'  # Every hour
+    - cron: '*/30 * * * *'  # Every 30 minutes
   workflow_dispatch:
 
 jobs:
