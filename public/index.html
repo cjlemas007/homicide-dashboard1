@@ -456,8 +456,7 @@
 <p><strong>Our data may be updated</strong> as new cases surface. In 2023, we discovered JPD had not disclosed 24 homicide cases, prompting a correction in our reporting. Since then, <strong>we regularly request updates</strong> to prevent similar omissions.</p>
 
 <p>Some details—like <strong>age, race, or exact location</strong>—may be missing due to gaps in law enforcement reporting. Still, <strong>we work to verify and include as much information as possible</strong> to help the public and investigators.</p>
-     
-        </div>
+            </div>
     </div>
 </div>
     <script>
@@ -572,7 +571,7 @@
                     precinct: getHeaderIndex(['Precinct']), lat: getHeaderIndex(['Latitude', 'Lat']), lon: getHeaderIndex(['Longitude', 'Lon', 'Long'])
                 };
 
-                return rawData.entries.map(entry => {
+                return rawData.entries.map((entry, i) => {
                     const dateStr = entry[indices.date] ? String(entry[indices.date]).trim() : '';
                     let dateObj;
                     if (dateStr.includes('-')) { dateObj = new Date(dateStr + "T00:00:00"); }
@@ -584,7 +583,10 @@
                     const lat = parseFloat(entry[indices.lat]);
                     const lon = parseFloat(entry[indices.lon]);
 
-                    if (!dateObj || isNaN(dateObj.getTime()) || isNaN(lat) || isNaN(lon)) return null;
+                    if (!dateObj || isNaN(dateObj.getTime()) || isNaN(lat) || isNaN(lon)) {
+                        console.warn(`Discarding record ${i+1} due to invalid data:`, {date: dateStr, lat: entry[indices.lat], lon: entry[indices.lon]});
+                        return null;
+                    }
 
                     return {
                         Victim: entry[indices.victim] || 'N/A', Age: entry[indices.age] ? parseInt(entry[indices.age]) : null, 
