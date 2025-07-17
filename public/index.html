@@ -402,7 +402,10 @@
                 </div>
             </div>
             <div class="chart-box">
-                <h4>Homicides by Year</h4>
+                <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px;">
+                    <h4 style="margin: 0;">Homicides by Year</h4>
+                    <button id="toggleYearRangeBtn" style="padding: 3px 10px; font-size: 0.8em; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background-color: #f0f0f0;">Show All Years</button>
+                </div>
                 <div class="chart-canvas-container">
                     <canvas id="homicidesByYearChart"></canvas>
                 </div>
@@ -474,16 +477,29 @@
         const CCID_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1'; 
         
         const AGENCY_CATEGORIES = {
-            CAPITOL_POLICE: 'Capitol Police',
             JPD: 'JPD',
+            CAPITOL_POLICE: 'Capitol Police',
             OTHER: 'Other Agencies' 
         };
         
         const agencyColors = {
             [AGENCY_CATEGORIES.JPD]: 'rgba(0, 123, 255, 0.7)',
             [AGENCY_CATEGORIES.CAPITOL_POLICE]: 'rgba(255, 193, 7, 0.7)',
-            [AGENCY_CATEGORIES.OTHER]: 'rgba(40, 167, 69, 0.7)'
+            [AGENCY_CATEGORIES.OTHER]: 'rgba(40, 167, 69, 0.7)',
+            'Historical': 'rgba(108, 117, 125, 0.7)'
         };
+
+        // --- Historical Data (1976-2015) ---
+        const historicalHomicideData = [
+            { year: 1976, total: 40 }, { year: 1977, total: 47 }, { year: 1978, total: 33 }, { year: 1979, total: 55 }, { year: 1980, total: 42 },
+            { year: 1981, total: 49 }, { year: 1982, total: 57 }, { year: 1983, total: 42 }, { year: 1984, total: 34 }, { year: 1985, total: 43 },
+            { year: 1986, total: 35 }, { year: 1987, total: 54 }, { year: 1988, total: 51 }, { year: 1989, total: 49 }, { year: 1990, total: 47 },
+            { year: 1991, total: 80 }, { year: 1992, total: 64 }, { year: 1993, total: 84 }, { year: 1994, total: 91 }, { year: 1995, total: 92 },
+            { year: 1996, total: 61 }, { year: 1997, total: 64 }, { year: 1998, total: 60 }, { year: 1999, total: 45 }, { year: 2000, total: 39 },
+            { year: 2001, total: 50 }, { year: 2002, total: 49 }, { year: 2003, total: 45 }, { year: 2004, total: 53 }, { year: 2005, total: 38 },
+            { year: 2006, total: 40 }, { year: 2007, total: 46 }, { year: 2008, total: 63 }, { year: 2009, total: 37 }, { year: 2010, total: 41 },
+            { year: 2011, total: 52 }, { year: 2012, total: 63 }, { year: 2013, total: 50 }, { year: 2014, total: 61 }, { year: 2015, total: 54 }
+        ];
 
         // --- Global State ---
         let allHomicideData = [];
@@ -496,6 +512,7 @@
         let ccidLayer;       
         let overlayLayersControl; 
         let currentMapTileLayer; 
+        let showAllYears = false; // State for the year chart toggle
 
         let homicidesByYearChartInstance, homicideTrendsChartInstance, victimsByAgeChartInstance,
             victimsByRaceChartInstance, homicidesByCircumstanceChartInstance, homicidesByAgencyChartInstance;
@@ -521,6 +538,17 @@
                     openTab(event, tabName);
                 }
             });
+        }
+        
+        function setupChartToggles() {
+            const toggleBtn = document.getElementById('toggleYearRangeBtn');
+            if (toggleBtn) {
+                toggleBtn.addEventListener('click', () => {
+                    showAllYears = !showAllYears;
+                    toggleBtn.textContent = showAllYears ? 'Show Recent Years' : 'Show All Years';
+                    updateHomicidesByYearChart();
+                });
+            }
         }
 
         function openTab(evt, tabName) {
@@ -885,45 +913,96 @@
             };
         }
         
-        function updateHomicidesByYearChart() { 
-            const tooltipCallback = (context) => {
-                const label = context.dataset.label || '';
-                const value = context.raw;
-                const total = context.chart.data.datasets.reduce((sum, ds) => sum + ds.data[context.dataIndex], 0);
-                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-                return `${label}: ${value} (${percentage}%)`;
-            };
-            const chartOptions = getChartOptions(tooltipCallback); 
-            
-            const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
-            const yearsToDisplay = [...new Set(allHomicideData.map(d => d.Year))].filter(y => y >= START_YEAR_DATA).sort();
-            
-            const dataByAgencyCategory = yearsToDisplay.reduce((acc, year) => {
-                acc[year] = { [AGENCY_CATEGORIES.JPD]: 0, [AGENCY_CATEGORIES.CAPITOL_POLICE]: 0, [AGENCY_CATEGORIES.OTHER]: 0 };
-                return acc;
-            }, {});
+        function updateHomicidesByYearChart() {
+            const chartOptions = getChartOptions(() => {}); // Base options, callbacks will be customized per view
 
-            allHomicideData.forEach(d => {
-                if (dataByAgencyCategory[d.Year]) {
-                    const agency = d['Investigating Agency'];
-                    if (agency === AGENCY_CATEGORIES.JPD) dataByAgencyCategory[d.Year][AGENCY_CATEGORIES.JPD]++;
-                    else if (agency === AGENCY_CATEGORIES.CAPITOL_POLICE) dataByAgencyCategory[d.Year][AGENCY_CATEGORIES.CAPITOL_POLICE]++;
-                    else dataByAgencyCategory[d.Year][AGENCY_CATEGORIES.OTHER]++;
+            if (showAllYears) {
+                // --- VIEW 1: Show All Years (1976-Present) as a simple total bar chart ---
+                const yearlyTotals = {};
+                // Combine historical and modern data to get a single total per year
+                historicalHomicideData.forEach(d => {
+                    yearlyTotals[d.year] = d.total;
+                });
+                allHomicideData.forEach(d => {
+                    yearlyTotals[d.Year] = (yearlyTotals[d.Year] || 0) + 1;
+                });
+
+                const allSortedYears = Object.keys(yearlyTotals).map(Number).sort((a, b) => a - b);
+                const yearsToDisplay = allSortedYears.filter(y => y <= CURRENT_YEAR);
+                const totalsData = yearsToDisplay.map(year => yearlyTotals[year] || 0);
+
+                const datasets = [{
+                    label: 'Total Homicides',
+                    data: totalsData,
+                    backgroundColor: agencyColors['Historical'],
+                }];
+
+                // Configure for a simple, non-stacked bar chart
+                chartOptions.scales.x.stacked = false;
+                chartOptions.scales.y.stacked = false;
+                chartOptions.plugins.legend.display = false; // Only one dataset, so no legend needed
+                chartOptions.plugins.tooltip.callbacks.label = (context) => `Total: ${context.parsed.y}`;
+
+                const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
+                if (homicidesByYearChartInstance) homicidesByYearChartInstance.destroy();
+                homicidesByYearChartInstance = new Chart(ctx, {
+                    type: 'bar',
+                    data: { labels: yearsToDisplay, datasets },
+                    options: chartOptions
+                });
+
+            } else {
+                // --- VIEW 2: Show Recent Years (2016-Present) with agency breakdown ---
+                const yearlyTotals = {};
+                const yearsToDisplay = [];
+                // Initialize years from START_YEAR_DATA to current year
+                for (let y = START_YEAR_DATA; y <= CURRENT_YEAR; y++) {
+                    yearsToDisplay.push(y);
+                    yearlyTotals[y] = {
+                        [AGENCY_CATEGORIES.JPD]: 0,
+                        [AGENCY_CATEGORIES.CAPITOL_POLICE]: 0,
+                        [AGENCY_CATEGORIES.OTHER]: 0
+                    };
                 }
-            });
 
-            const datasets = Object.keys(AGENCY_CATEGORIES).map(key => {
-                const category = AGENCY_CATEGORIES[key];
-                return {
-                    label: category,
-                    data: yearsToDisplay.map(year => dataByAgencyCategory[year][category]),
-                    backgroundColor: agencyColors[category],
+                // Populate with data from modern records
+                allHomicideData.forEach(d => {
+                    if (d.Year >= START_YEAR_DATA) {
+                        const agency = d['Investigating Agency'];
+                        if (agency === AGENCY_CATEGORIES.JPD) yearlyTotals[d.Year][AGENCY_CATEGORIES.JPD]++;
+                        else if (agency === AGENCY_CATEGORIES.CAPITOL_POLICE) yearlyTotals[d.Year][AGENCY_CATEGORIES.CAPITOL_POLICE]++;
+                        else yearlyTotals[d.Year][AGENCY_CATEGORIES.OTHER]++;
+                    }
+                });
+
+                const datasets = Object.keys(AGENCY_CATEGORIES).map(key => {
+                    const category = AGENCY_CATEGORIES[key];
+                    return {
+                        label: category,
+                        data: yearsToDisplay.map(year => yearlyTotals[year][category]),
+                        backgroundColor: agencyColors[category],
+                    };
+                });
+                
+                // Configure for a stacked bar chart
+                chartOptions.scales.x.stacked = true;
+                chartOptions.scales.y.stacked = true;
+                chartOptions.plugins.legend.display = true;
+                chartOptions.plugins.tooltip.callbacks.label = (context) => {
+                    const label = context.dataset.label || '';
+                    const value = context.raw;
+                    let total = 0;
+                    context.chart.data.datasets.forEach(ds => { total += ds.data[context.dataIndex]; });
+                    const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                    return `${label}: ${value} (${percentage}%)`;
                 };
-            });
-
-            if (homicidesByYearChartInstance) homicidesByYearChartInstance.destroy();
-            homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: yearsToDisplay, datasets }, options: chartOptions });
+                
+                const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
+                if (homicidesByYearChartInstance) homicidesByYearChartInstance.destroy();
+                homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: yearsToDisplay, datasets }, options: chartOptions });
+            }
         }
+
 
         function updateHomicideTrendsChart() {
             const chartOptions = getTrendChartOptions(); 
@@ -1231,6 +1310,7 @@
             initMap(); 
             setupModal();
             setupTabs();
+            setupChartToggles();
 
             document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: Loading...`;
             document.querySelector('.ranking-banner .ticker-wrap').innerHTML = '<div class="ticker-item">City Ranking: Loading...</div>';
