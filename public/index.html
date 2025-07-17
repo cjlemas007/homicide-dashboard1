@@ -402,10 +402,7 @@
                 </div>
             </div>
             <div class="chart-box">
-                <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px;">
-                    <h4 style="margin: 0;">Homicides by Year</h4>
-                    <button id="toggleYearRangeBtn" style="padding: 3px 10px; font-size: 0.8em; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background-color: #f0f0f0;">Show All Years</button>
-                </div>
+                <h4>Homicides by Year</h4>
                 <div class="chart-canvas-container">
                     <canvas id="homicidesByYearChart"></canvas>
                 </div>
@@ -477,29 +474,16 @@
         const CCID_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1'; 
         
         const AGENCY_CATEGORIES = {
-            JPD: 'JPD',
             CAPITOL_POLICE: 'Capitol Police',
+            JPD: 'JPD',
             OTHER: 'Other Agencies' 
         };
         
         const agencyColors = {
             [AGENCY_CATEGORIES.JPD]: 'rgba(0, 123, 255, 0.7)',
             [AGENCY_CATEGORIES.CAPITOL_POLICE]: 'rgba(255, 193, 7, 0.7)',
-            [AGENCY_CATEGORIES.OTHER]: 'rgba(40, 167, 69, 0.7)',
-            'Historical': 'rgba(108, 117, 125, 0.7)'
+            [AGENCY_CATEGORIES.OTHER]: 'rgba(40, 167, 69, 0.7)'
         };
-
-        // --- Historical Data (1976-2015) ---
-        const historicalHomicideData = [
-            { year: 1976, total: 40 }, { year: 1977, total: 47 }, { year: 1978, total: 33 }, { year: 1979, total: 55 }, { year: 1980, total: 42 },
-            { year: 1981, total: 49 }, { year: 1982, total: 57 }, { year: 1983, total: 42 }, { year: 1984, total: 34 }, { year: 1985, total: 43 },
-            { year: 1986, total: 35 }, { year: 1987, total: 54 }, { year: 1988, total: 51 }, { year: 1989, total: 49 }, { year: 1990, total: 47 },
-            { year: 1991, total: 80 }, { year: 1992, total: 64 }, { year: 1993, total: 84 }, { year: 1994, total: 91 }, { year: 1995, total: 92 },
-            { year: 1996, total: 61 }, { year: 1997, total: 64 }, { year: 1998, total: 60 }, { year: 1999, total: 45 }, { year: 2000, total: 39 },
-            { year: 2001, total: 50 }, { year: 2002, total: 49 }, { year: 2003, total: 45 }, { year: 2004, total: 53 }, { year: 2005, total: 38 },
-            { year: 2006, total: 40 }, { year: 2007, total: 46 }, { year: 2008, total: 63 }, { year: 2009, total: 37 }, { year: 2010, total: 41 },
-            { year: 2011, total: 52 }, { year: 2012, total: 63 }, { year: 2013, total: 50 }, { year: 2014, total: 61 }, { year: 2015, total: 54 }
-        ];
 
         // --- Global State ---
         let allHomicideData = [];
@@ -512,7 +496,6 @@
         let ccidLayer;       
         let overlayLayersControl; 
         let currentMapTileLayer; 
-        let showAllYears = false; // State for the year chart toggle
 
         let homicidesByYearChartInstance, homicideTrendsChartInstance, victimsByAgeChartInstance,
             victimsByRaceChartInstance, homicidesByCircumstanceChartInstance, homicidesByAgencyChartInstance;
@@ -538,17 +521,6 @@
                     openTab(event, tabName);
                 }
             });
-        }
-        
-        function setupChartToggles() {
-            const toggleBtn = document.getElementById('toggleYearRangeBtn');
-            if (toggleBtn) {
-                toggleBtn.addEventListener('click', () => {
-                    showAllYears = !showAllYears;
-                    toggleBtn.textContent = showAllYears ? 'Show Recent Years' : 'Show All Years';
-                    updateHomicidesByYearChart();
-                });
-            }
         }
 
         function openTab(evt, tabName) {
@@ -908,4 +880,389 @@
                     },
                     plugins: { 
                         legend: { position: 'top' }, 
-                        tooltip: { mode: 'in
+                        tooltip: { mode: 'index', intersect: false } 
+                    }
+            };
+        }
+        
+        function updateHomicidesByYearChart() { 
+            const tooltipCallback = (context) => {
+                const label = context.dataset.label || '';
+                const value = context.raw;
+                const total = context.chart.data.datasets.reduce((sum, ds) => sum + ds.data[context.dataIndex], 0);
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return `${label}: ${value} (${percentage}%)`;
+            };
+            const chartOptions = getChartOptions(tooltipCallback); 
+            
+            const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
+            const yearsToDisplay = [...new Set(allHomicideData.map(d => d.Year))].filter(y => y >= START_YEAR_DATA).sort();
+            
+            const dataByAgencyCategory = yearsToDisplay.reduce((acc, year) => {
+                acc[year] = { [AGENCY_CATEGORIES.JPD]: 0, [AGENCY_CATEGORIES.CAPITOL_POLICE]: 0, [AGENCY_CATEGORIES.OTHER]: 0 };
+                return acc;
+            }, {});
+
+            allHomicideData.forEach(d => {
+                if (dataByAgencyCategory[d.Year]) {
+                    const agency = d['Investigating Agency'];
+                    if (agency === AGENCY_CATEGORIES.JPD) dataByAgencyCategory[d.Year][AGENCY_CATEGORIES.JPD]++;
+                    else if (agency === AGENCY_CATEGORIES.CAPITOL_POLICE) dataByAgencyCategory[d.Year][AGENCY_CATEGORIES.CAPITOL_POLICE]++;
+                    else dataByAgencyCategory[d.Year][AGENCY_CATEGORIES.OTHER]++;
+                }
+            });
+
+            const datasets = Object.keys(AGENCY_CATEGORIES).map(key => {
+                const category = AGENCY_CATEGORIES[key];
+                return {
+                    label: category,
+                    data: yearsToDisplay.map(year => dataByAgencyCategory[year][category]),
+                    backgroundColor: agencyColors[category],
+                };
+            });
+
+            if (homicidesByYearChartInstance) homicidesByYearChartInstance.destroy();
+            homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: yearsToDisplay, datasets }, options: chartOptions });
+        }
+
+        function updateHomicideTrendsChart() {
+            const chartOptions = getTrendChartOptions(); 
+
+            const getRunningTotalData = (yearToFilter, dataSet) => {
+                const yearData = dataSet.filter(d => d.Year === yearToFilter && d.Date)
+                    .sort((a, b) => new Date(a.Date) - new Date(b.Date));
+
+                const chartDataPoints = [];
+                const commonAxisYear = 2000; 
+                let cumulativeCount = 0;
+                let homicideDataIndex = 0;
+                
+                let loopEndDate = (yearToFilter === CURRENT_YEAR) ? new Date() : new Date(yearToFilter, 11, 31);
+                
+                for (let dLoop = new Date(yearToFilter, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
+                    const currentLoopDayFormatted = dLoop.toISOString().split('T')[0];
+                    
+                    while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
+                        cumulativeCount++;
+                        homicideDataIndex++;
+                    }
+                    
+                    chartDataPoints.push({
+                        x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
+                        y: cumulativeCount 
+                    });
+                }
+                
+                if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
+                    chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
+                }
+
+                return chartDataPoints;
+            };
+
+            const dataForCurrentYear = getRunningTotalData(CURRENT_YEAR, allHomicideData);
+            const dataForPreviousYear = getRunningTotalData(PREVIOUS_YEAR, allHomicideData);
+
+            const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
+            if (homicideTrendsChartInstance) {
+                homicideTrendsChartInstance.destroy();
+            }
+            homicideTrendsChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    datasets: [
+                        { label: String(CURRENT_YEAR), data: dataForCurrentYear, borderColor: '#dc3545', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 },
+                        { label: String(PREVIOUS_YEAR), data: dataForPreviousYear, borderColor: '#007bff', tension: 0.1, fill: false, pointRadius: 2, pointHoverRadius: 4 }
+                    ]
+                },
+                options: chartOptions 
+            });
+        }
+
+        function updateDemographicCharts() {
+            const tooltipCallback = (context) => {
+                let label = context.label || '';
+                let value = context.raw;
+                const total = context.chart.data.datasets[0].data.reduce((sum, val) => sum + val, 0);
+                const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+                return `${label}: ${value} (${percentage}%)`;
+            };
+            const chartOptions = getChartOptions(tooltipCallback);
+            chartOptions.plugins.legend.display = false;
+
+            const ageGroups = { '0-17': 0, '18-29': 0, '30-49': 0, '50+': 0, 'Unknown': 0 };
+            filteredHomicideDataForMap.forEach(d => {
+                const age = d.Age;
+                if (age === null || isNaN(age)) {
+                    ageGroups['Unknown']++;
+                } else if (age <= 17) {
+                    ageGroups['0-17']++;
+                } else if (age <= 29) {
+                    ageGroups['18-29']++;
+                } else if (age <= 49) {
+                    ageGroups['30-49']++;
+                } else {
+                    ageGroups['50+']++;
+                }
+            });
+
+            const ageCtx = document.getElementById('victimsByAgeChart').getContext('2d');
+            if (victimsByAgeChartInstance) victimsByAgeChartInstance.destroy();
+            victimsByAgeChartInstance = new Chart(ageCtx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(ageGroups),
+                    datasets: [{
+                        label: 'Victims by Age Group',
+                        data: Object.values(ageGroups),
+                        backgroundColor: '#5bc0de'
+                    }]
+                },
+                options: chartOptions
+            });
+        }
+        
+        function updatePercentageChangeDisplay() {
+            const percentageChangeDiv = document.getElementById('percentageChangeText');
+            if (!percentageChangeDiv || !allHomicideData || allHomicideData.length === 0) {
+                percentageChangeDiv.innerText = 'Data N/A';
+                percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-neutral-color');
+                return;
+            }
+
+            const today = new Date();
+            const dayOfYear = (Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 0)) / 24 / 60 / 60 / 1000;
+
+            const getCountUpToDay = (year, day) => {
+                return allHomicideData.filter(d => {
+                    if (d.Year !== year || !d.Date) return false;
+                    const itemDate = new Date(d.Date + 'T00:00:00'); // Ensure consistent time
+                    const itemDayOfYear = (Date.UTC(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()) - Date.UTC(itemDate.getFullYear(), 0, 0)) / 24 / 60 / 60 / 1000;
+                    return itemDayOfYear <= day;
+                }).length;
+            };
+
+            const currentYearCountToDate = getCountUpToDay(CURRENT_YEAR, dayOfYear);
+            const previousYearCountToDate = getCountUpToDay(PREVIOUS_YEAR, dayOfYear);
+            
+            let percentageChangeText = "N/A";
+            let textColorVar = '--percentage-neutral-color';
+
+            if (previousYearCountToDate > 0) {
+                const change = ((currentYearCountToDate - previousYearCountToDate) / previousYearCountToDate) * 100;
+                if (change > 0) {
+                    percentageChangeText = `+${change.toFixed(0)}%`;
+                    textColorVar = '--percentage-increase-color';
+                } else if (change < 0) {
+                    percentageChangeText = `${change.toFixed(0)}%`;
+                    textColorVar = '--percentage-decrease-color';
+                } else {
+                    percentageChangeText = "0%";
+                }
+            } else if (currentYearCountToDate > 0) {
+                percentageChangeText = `+${currentYearCountToDate} (from 0)`; 
+                textColorVar = '--percentage-increase-color';
+            } else { 
+                 percentageChangeText = "0% (YTD)";
+            }
+            percentageChangeDiv.innerText = percentageChangeText;
+            percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue(textColorVar).trim();
+        }
+        
+        function updateVictimsByRaceChart() {
+            const counts = filteredHomicideDataForMap.reduce((acc, d) => {
+                const race = d.Race || 'Unknown';
+                acc[race] = (acc[race] || 0) + 1;
+                return acc;
+            }, {});
+            if (victimsByRaceChartInstance) victimsByRaceChartInstance.destroy();
+            victimsByRaceChartInstance = new Chart(document.getElementById('victimsByRaceChart'), {
+                type: 'pie',
+                data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts) }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}}
+            });
+        }
+
+        function updateHomicidesByCircumstanceChart() {
+            const counts = filteredHomicideDataForMap.reduce((acc, d) => {
+                const circumstance = d.Circumstance || 'Unknown';
+                acc[circumstance] = (acc[circumstance] || 0) + 1;
+                return acc;
+            }, {});
+            if (homicidesByCircumstanceChartInstance) homicidesByCircumstanceChartInstance.destroy();
+            homicidesByCircumstanceChartInstance = new Chart(document.getElementById('homicidesByCircumstanceChart'), {
+                type: 'bar',
+                data: { labels: Object.keys(counts), datasets: [{ label: 'Count', data: Object.values(counts), backgroundColor: '#6f42c1' }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }}}
+            });
+        }
+
+        function updateHomicidesByAgencyChart() {
+            const counts = filteredHomicideDataForMap.reduce((acc, d) => {
+                const agency = d['Investigating Agency'] || 'Unknown';
+                acc[agency] = (acc[agency] || 0) + 1;
+                return acc;
+            }, {});
+            if (homicidesByAgencyChartInstance) homicidesByAgencyChartInstance.destroy();
+            homicidesByAgencyChartInstance = new Chart(document.getElementById('homicidesByAgencyChart'), {
+                type: 'pie',
+                data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts) }] },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}}
+            });
+        }
+        
+        function updateDashboard() {
+            updateCurrentYearHomicideCount();
+            updateRankingBanner();
+            updatePercentageChangeDisplay();
+            updateMapDisplay();
+            updateHomicidesByYearChart(); 
+            updateHomicideTrendsChart();
+            updateDemographicCharts();
+            updateVictimsByRaceChart();
+            updateHomicidesByCircumstanceChart();
+            updateHomicidesByAgencyChart();
+        }
+
+        function loadBoundaryLayers(){
+            const baseLayers = { 
+                "Markers": markersLayer,
+                "Heatmap": heatLayer
+            };
+            const overlayMaps = {}; 
+            let cityLimitsAttempted = false; 
+            let ccidAttempted = false;       
+            
+            const tryBuildLayerControl = () => {
+                if (cityLimitsAttempted && ccidAttempted) {
+                    updateBoundaryLayerStyles(); 
+                    updateLayerControl(baseLayers, overlayMaps);
+                }
+            };
+
+            if (JACKSON_CITY_LIMITS_GEOJSON_URL && JACKSON_CITY_LIMITS_GEOJSON_URL !== 'YOUR_JACKSON_CITY_LIMITS_GEOJSON_URL_HERE') {
+                fetch(JACKSON_CITY_LIMITS_GEOJSON_URL)
+                    .then(response => {
+                        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status} for Jackson GeoJSON`); }
+                        return response.json();
+                    })
+                    .then(geojson => {
+                        cityLimitsLayer = L.geoJSON(geojson); 
+                        overlayMaps["Jackson City Limits"] = cityLimitsLayer;
+                        cityLimitsLayer.addTo(map); 
+                    })
+                    .catch(error => {
+                        console.error('Error loading Jackson city limits GeoJSON. URL attempted:', JACKSON_CITY_LIMITS_GEOJSON_URL, error);
+                    })
+                    .finally(() => {
+                        cityLimitsAttempted = true;
+                        tryBuildLayerControl();
+                    });
+            } else {
+                console.warn("Jackson City Limits GeoJSON URL is a placeholder or not provided. Boundary not loaded.");
+                cityLimitsAttempted = true; 
+                tryBuildLayerControl();
+            }
+            
+            if (CCID_GEOJSON_URL && CCID_GEOJSON_URL !== 'YOUR_CCID_GEOJSON_URL_HERE') {
+                fetch(CCID_GEOJSON_URL)
+                    .then(response => {
+                        if (!response.ok) { throw new Error(`HTTP error! status: ${response.status} for CCID GeoJSON`); }
+                        return response.json();
+                    })
+                    .then(geojson => {
+                        ccidLayer = L.geoJSON(geojson); 
+                        overlayMaps["CCID Boundary"] = ccidLayer;
+                        ccidLayer.addTo(map); 
+                    })
+                    .catch(error => {
+                        console.error('Error loading CCID GeoJSON. URL attempted:', CCID_GEOJSON_URL, error);
+                    })
+                    .finally(() => {
+                        ccidAttempted = true;
+                        tryBuildLayerControl();
+                    });
+            } else {
+                 console.warn("CCID GeoJSON URL is a placeholder or not provided. Boundary not loaded.");
+                 ccidAttempted = true; 
+                 tryBuildLayerControl();
+            }
+        }
+        function updateLayerControl(baseLayers, overlayMaps) {
+            if (overlayLayersControl) {
+                map.removeControl(overlayLayersControl);
+            }
+            overlayLayersControl = L.control.layers(baseLayers, overlayMaps).addTo(map);
+        }
+
+        function updateBoundaryLayerStyles() { 
+            const cityColor = getComputedStyle(document.documentElement).getPropertyValue('--boundary-city-color').trim();
+            const ccidColor = getComputedStyle(document.documentElement).getPropertyValue('--boundary-ccid-color').trim();
+
+            const cityStyle = { color: cityColor, weight: 3, opacity: 0.85, fillOpacity: 0.0 }; 
+            const ccidStyle = { color: ccidColor, weight: 4, opacity: 0.9, fillOpacity: 0.25 }; 
+
+            if (cityLimitsLayer && map.hasLayer(cityLimitsLayer)) {
+                cityLimitsLayer.setStyle(cityStyle);
+            }
+            if (ccidLayer && map.hasLayer(ccidLayer)) {
+                ccidLayer.setStyle(ccidStyle);
+            }
+        }
+        
+        function displayErrorInCharts(errorMessage) {
+            const chartIds = ['homicidesByYearChart', 'homicideTrendsChart', 'victimsByAgeChart', 'victimsByRaceChart', 'homicidesByCircumstanceChart', 'homicidesByAgencyChart'];
+            chartIds.forEach(id => {
+                const canvas = document.getElementById(id);
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    if (window[id + 'Instance']) { window[id + 'Instance'].destroy(); }
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.font = "16px Arial";
+                    ctx.fillStyle = "red";
+                    ctx.textAlign = "center";
+                    ctx.fillText(errorMessage, canvas.width / 2, canvas.height / 2);
+                }
+            });
+        }
+
+        // --- Main Execution Block ---
+        document.addEventListener('DOMContentLoaded', async () => {
+            initMap(); 
+            setupModal();
+            setupTabs();
+
+            document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: Loading...`;
+            document.querySelector('.ranking-banner .ticker-wrap').innerHTML = '<div class="ticker-item">City Ranking: Loading...</div>';
+            document.getElementById('percentageChangeText').innerText = 'Calculating...';
+
+            try {
+                const [homicideDataResult, cityDataResult] = await Promise.all([
+                    fetchDataAndProcess(HOMICIDE_DATA_API_URL, true), 
+                    fetchDataAndProcess(CITY_COMPARISON_CSV_URL, false) 
+                ]);
+
+                allHomicideData = homicideDataResult;
+                cityComparisonData = cityDataResult;
+
+                logProcessedDataSummary(allHomicideData, "Homicide Data");
+                if (cityComparisonData && cityComparisonData.length > 0) {
+                    logProcessedDataSummary(cityComparisonData, "City Comparison Data");
+                }
+
+                populateFiltersForMap(true); 
+                updateDashboard(); 
+                if (map) { 
+                    map.invalidateSize();
+                }
+            } catch (error) {
+                console.error("Fatal Error initializing dashboard:", error);
+                document.getElementById('homicideCountBanner').innerText = 'Error loading data.';
+                document.querySelector('.ranking-banner .ticker-wrap').innerHTML = '<div class="ticker-item">City Ranking: Error</div>';
+                document.getElementById('percentageChangeText').innerText = 'Error calculating.';
+                displayErrorInCharts("Failed to load data.");
+            }
+        });
+    </script>
+</body>
+</html>
