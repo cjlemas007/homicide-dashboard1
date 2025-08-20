@@ -168,13 +168,36 @@
             box-sizing: border-box;
         } 
         
-        .filter-group.circumstance-filter, .filter-group.percentage-change-display { 
+        .filter-group.circumstance-filter, .filter-group.trends-container { 
             grid-column: 1 / -1; 
-            margin-top: 10px; 
         }
 
-        .filter-group.percentage-change-display {
-            margin-top: 15px; 
+        .trends-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .trend-box {
+            padding: 12px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .trend-box .trend-label {
+            font-weight: bold;
+            font-size: 0.9em;
+            color: var(--legend-label-text);
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .trend-box .trend-value {
+            font-size: 1.4em;
+            font-weight: bold;
         }
 
         .filter-group label.group-label { 
@@ -199,16 +222,6 @@
         .checkbox-group input[type="checkbox"] { margin-right: 5px; }
         .checkbox-group label { font-weight: normal; font-size: 0.9em; color: var(--legend-label-text);}
         
-        #percentageChangeText { 
-            text-align: center; 
-            font-weight: bold; 
-            padding: 12px; 
-            background-color: var(--input-bg); 
-            border: 1px solid var(--input-border); 
-            border-radius: 4px;
-            font-size: 1.4em; 
-        }
-
         .map-container { flex-grow: 1; min-height: 500px; }
         #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); } 
         
@@ -415,9 +428,21 @@
                     <label class="group-label" for="circumstanceFilter">Circumstance:</label>
                     <select id="circumstanceFilter"></select>
                 </div>
-                 <div class="filter-group percentage-change-display">
-                    <label class="group-label">Trend vs. Last Year:</label>
-                    <div id="percentageChangeText"></div>
+                 <div class="filter-group trends-container">
+                    <div class="trends-grid">
+                        <div class="trend-box">
+                            <span class="trend-label">Trend vs. Last Year</span>
+                            <div id="percentageChangeText" class="trend-value"></div>
+                        </div>
+                         <div class="trend-box">
+                            <span class="trend-label">This Month vs. 5-Yr Avg</span>
+                            <div id="monthlyTrendText" class="trend-value"></div>
+                        </div>
+                         <div class="trend-box">
+                            <span class="trend-label">Homicides in Last 30 Days</span>
+                            <div id="rolling30DayText" class="trend-value"></div>
+                        </div>
+                    </div>
                 </div>
             </div> 
             </div>
@@ -512,7 +537,7 @@
                 </li>
                 <li>
                     <strong>Crime Stoppers (Anonymous):</strong><br>
-                    Call <a href="tel:601-355-8477">601-355-TIPS (8477)</a> or submit a tip online through <a href="https://www.p3tips.com/TipForm.aspx?ID=116&C=&T=" target="_blank" rel="noopener noreferrer">P3 Tips</a>. You may be eligible for a cash reward.
+                    Call <a href="tel:601-355-8477">601-355-TIPS (8477)</a> or submit a tip online through <a href="https://www.p3tips.com/437" target="_blank" rel="noopener noreferrer">P3 Tips</a>. You may be eligible for a cash reward.
                 </li>
             </ul>
         </div>
@@ -1227,6 +1252,69 @@
             percentageChangeDiv.innerText = percentageChangeText;
             percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue(textColorVar).trim();
         }
+
+        function updateMonthlyTrend() {
+            const monthlyTrendDiv = document.getElementById('monthlyTrendText');
+            if (!monthlyTrendDiv || !allHomicideData || allHomicideData.length === 0) {
+                monthlyTrendDiv.innerText = 'N/A';
+                return;
+            }
+
+            const today = new Date();
+            const currentMonth = today.getMonth(); // 0-11
+            const currentYear = today.getFullYear();
+
+            // Homicides this month
+            const thisMonthCount = allHomicideData.filter(d => {
+                const date = new Date(d.Date + 'T00:00:00');
+                return date.getFullYear() === currentYear && date.getMonth() === currentMonth;
+            }).length;
+
+            // 5-Year Average for this month
+            let totalForMonthInPast5Years = 0;
+            let yearsInAverage = 0;
+            for (let i = 1; i <= 5; i++) {
+                const year = currentYear - i;
+                const monthCount = allHomicideData.filter(d => {
+                     const date = new Date(d.Date + 'T00:00:00');
+                     return date.getFullYear() === year && date.getMonth() === currentMonth;
+                }).length;
+                totalForMonthInPast5Years += monthCount;
+                yearsInAverage++;
+            }
+            
+            const fiveYearAverage = yearsInAverage > 0 ? (totalForMonthInPast5Years / yearsInAverage) : 0;
+
+            monthlyTrendDiv.innerText = `${thisMonthCount} / ${fiveYearAverage.toFixed(1)} avg`;
+            
+            if (thisMonthCount > fiveYearAverage) {
+                monthlyTrendDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-increase-color').trim();
+            } else if (thisMonthCount < fiveYearAverage) {
+                monthlyTrendDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-decrease-color').trim();
+            } else {
+                monthlyTrendDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-neutral-color').trim();
+            }
+        }
+
+        function updateRolling30DayTrend() {
+            const rolling30DayDiv = document.getElementById('rolling30DayText');
+            if (!rolling30DayDiv || !allHomicideData || allHomicideData.length === 0) {
+                rolling30DayDiv.innerText = 'N/A';
+                return;
+            }
+
+            const today = new Date();
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(today.getDate() - 30);
+
+            const count = allHomicideData.filter(d => {
+                const date = new Date(d.Date + 'T00:00:00');
+                return date >= thirtyDaysAgo && date <= today;
+            }).length;
+
+            rolling30DayDiv.innerText = count;
+            rolling30DayDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-neutral-color').trim();
+        }
         
         function updateVictimsByRaceChart() {
             const counts = filteredHomicideDataForMap.reduce((acc, d) => {
@@ -1274,6 +1362,8 @@
             updateCurrentYearHomicideCount();
             updateRankingBanner();
             updatePercentageChangeDisplay();
+            updateMonthlyTrend();
+            updateRolling30DayTrend();
             updateMapDisplay();
             updateHomicidesByYearChart(); 
             updateHomicideTrendsChart();
@@ -1426,4 +1516,3 @@
     </script>
 </body>
 </html>
-
