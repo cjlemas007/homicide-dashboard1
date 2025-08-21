@@ -531,7 +531,8 @@
             <span class="modal-close" id="closeAboutModal">×</span>
             <h2>Our Methodology</h2>
             <p><strong>Homicide</strong> refers to one person killing another, regardless of intent. Unlike <strong>murder</strong>, which implies intent, some homicides—such as <strong>justified or officer-involved deaths</strong>—are not crimes. That’s why the number of homicides is typically higher than murders.</p>
-            <p><strong>WLBT uses the same criteria as the Jackson Police Department:</strong> we count all homicides, including justified ones, but exclude most vehicular homicides unless officially classified as such. Our numbers come from <strong>JPD releases</strong>, <strong>confirmations from police and the coroner</strong>, and <strong>reports from other lead agencies</strong> when killings occur within Jackson city limits.</p>
+            <p><strong>WLBT uses the same criteria as the Jackson Police Department:</strong> we count all homicides, including justified ones, but exclude most vehicular homicides unless officially classified as such. Our numbers come from <strong>JPD releases</strong>, <strong>confirmations from police and the coroner</strong>, and 
+                <strong>reports from other lead agencies</strong> when killings occur within Jackson city limits.</p>
             <p><strong>Because we count all homicides that happen in Jackson</strong>—not just those investigated by JPD—our totals may differ from those reported by individual agencies. For example, <strong>Capitol Police and Jackson State officers</strong> have led several homicide investigations in recent years.</p>
             <p><strong>Our data may be updated</strong> as new cases surface. In 2023, we discovered JPD had not disclosed 24 homicide cases, prompting a correction in our reporting. Since then, <strong>we regularly request updates</strong> to prevent similar omissions.</p>
             <p>Some details—like <strong>age, race, or exact location</strong>—may be missing due to gaps in law enforcement reporting. Still, <strong>we work to verify and include as much information as possible</strong> to help the public and investigators.</p>
@@ -818,7 +819,7 @@
         }
         
         function initMap() {
-            map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
+            map = L.map('map', { minZoom: MAP_ZOOM }).setView(MAP_CENTER, MAP_ZOOM);
             updateMapTiles(); 
             markersLayer.addTo(map); 
             heatLayer = L.heatLayer([], { radius: 25 });
