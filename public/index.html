@@ -186,6 +186,12 @@
             border-radius: 4px;
             text-align: center;
         }
+        
+        .trend-box-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
 
         .trend-box .trend-label {
             font-weight: bold;
@@ -199,6 +205,11 @@
             font-size: 1.4em;
             font-weight: bold;
         }
+        
+        .trend-box-split .trend-value {
+             font-size: 1.3em;
+        }
+
 
         .filter-group label.group-label { 
             display: block; margin-bottom: 5px; 
@@ -429,17 +440,24 @@
                     <select id="circumstanceFilter"></select>
                 </div>
                  <div class="filter-group trends-container">
+                    <label class="group-label">Trends</label>
                     <div class="trends-grid">
                         <div class="trend-box">
-                            <span class="trend-label">Trend vs. Last Year</span>
+                            <span class="trend-label">vs. Last Year (YTD)</span>
                             <div id="percentageChangeText" class="trend-value"></div>
                         </div>
-                         <div class="trend-box">
-                            <span class="trend-label">This Month vs. 5-Yr Avg</span>
-                            <div id="monthlyTrendText" class="trend-value"></div>
+                        <div class="trend-box-split">
+                            <div class="trend-box">
+                                <span class="trend-label">This Month</span>
+                                <div id="thisMonthValue" class="trend-value"></div>
+                            </div>
+                            <div class="trend-box">
+                                <span class="trend-label">5-Yr Avg</span>
+                                <div id="fiveYearAvgValue" class="trend-value"></div>
+                            </div>
                         </div>
                          <div class="trend-box">
-                            <span class="trend-label">Homicides in Last 30 Days</span>
+                            <span class="trend-label">Last 30 Days</span>
                             <div id="rolling30DayText" class="trend-value"></div>
                         </div>
                     </div>
@@ -1247,16 +1265,19 @@
                 percentageChangeText = `+${currentYearCountToDate} (from 0)`; 
                 textColorVar = '--percentage-increase-color';
             } else { 
-                 percentageChangeText = "0% (YTD)";
+                 percentageChangeText = "0%";
             }
             percentageChangeDiv.innerText = percentageChangeText;
             percentageChangeDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue(textColorVar).trim();
         }
 
         function updateMonthlyTrend() {
-            const monthlyTrendDiv = document.getElementById('monthlyTrendText');
-            if (!monthlyTrendDiv || !allHomicideData || allHomicideData.length === 0) {
-                monthlyTrendDiv.innerText = 'N/A';
+            const thisMonthDiv = document.getElementById('thisMonthValue');
+            const fiveYearAvgDiv = document.getElementById('fiveYearAvgValue');
+
+            if (!thisMonthDiv || !fiveYearAvgDiv || !allHomicideData || allHomicideData.length === 0) {
+                if(thisMonthDiv) thisMonthDiv.innerText = 'N/A';
+                if(fiveYearAvgDiv) fiveYearAvgDiv.innerText = 'N/A';
                 return;
             }
 
@@ -1285,14 +1306,15 @@
             
             const fiveYearAverage = yearsInAverage > 0 ? (totalForMonthInPast5Years / yearsInAverage) : 0;
 
-            monthlyTrendDiv.innerText = `${thisMonthCount} / ${fiveYearAverage.toFixed(1)} avg`;
+            thisMonthDiv.innerText = thisMonthCount;
+            fiveYearAvgDiv.innerText = fiveYearAverage.toFixed(1);
             
+            thisMonthDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-neutral-color').trim();
+
             if (thisMonthCount > fiveYearAverage) {
-                monthlyTrendDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-increase-color').trim();
+                thisMonthDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-increase-color').trim();
             } else if (thisMonthCount < fiveYearAverage) {
-                monthlyTrendDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-decrease-color').trim();
-            } else {
-                monthlyTrendDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-neutral-color').trim();
+                thisMonthDiv.style.color = getComputedStyle(document.documentElement).getPropertyValue('--percentage-decrease-color').trim();
             }
         }
 
@@ -1516,4 +1538,3 @@
     </script>
 </body>
 </html>
-
