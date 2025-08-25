@@ -593,10 +593,18 @@
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
 </button>
 
-    <script>
+<script>
         // --- Configuration ---
         const HOMICIDE_DATA_API_URL = './data/homicide.json'; 
-        const CITY_COMPARISON_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiORmxzjhdAokYzM0NhcTjAk1e3hJp81B5OCG03XcPnUaSVrCRiwIXmah2iPSHFaaWbSoKKwFA1Uc/pub?gid=0&single=true&output=csv'; 
+        
+        // --- NEW: Google Sheets API Configuration ---
+        const API_KEY = 'AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI'; // Paste the key you got from Google Cloud Console
+        const SPREADSHEET_ID = '1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk'; // Paste the ID from your sheet's URL
+        const SHEET_NAME = 'Sheet1'; // Make sure this matches the name of the sheet tab with your data
+
+        // New API URL (replaces the old CITY_COMPARISON_CSV_URL)
+        const CITY_COMPARISON_API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+        
         const JACKSON_POPULATION = 143709; 
 
         const CURRENT_YEAR = new Date().getFullYear();
@@ -706,40 +714,24 @@
             document.getElementById(tabName).classList.add('active');
             evt.currentTarget.classList.add('active');
         }
-        
-async function fetchDataAndProcess(url, isMainHomicideData = false) { 
+
+        async function fetchDataAndProcess(url, isMainHomicideData = false) {
             let rawData;
             try {
                 const response = await fetch(url);
                 if (!response.ok) throw new Error(`Network response was not ok for ${url}`);
-                
-                if (isMainHomicideData) { 
-                    const text = await response.text();
-                    // Clean potential trailing commas before parsing
-                    const cleanedText = text.trim().replace(/,\s*\]\s*\}\s*$/, ']}');
-                    rawData = JSON.parse(cleanedText);
-                } else { 
-                    const csvText = await response.text(); 
-                    
-                    // --- DEBUG STEP 1: Log the raw CSV text ---
-                    console.log("Raw CSV Text Received:", csvText);
-
-                    rawData = csvToJSON(csvText);
-
-                    // --- DEBUG STEP 2: Log the parsed JSON array ---
-                    console.log("Parsed City Data (JSON):", rawData);
-                }
+                rawData = await response.json();
             } catch (error) {
                 console.error(`Failed to fetch or parse data from ${url}:`, error);
-                if(isMainHomicideData) {
+                if (isMainHomicideData) {
                     console.log("Using placeholder homicide data due to fetch error.");
                     rawData = getPlaceholderData();
                 } else {
-                     console.log("Using placeholder city data due to fetch error.");
-                    rawData = getPlaceholderCityData();
+                    console.log("Using placeholder city data due to fetch error.");
+                    return getPlaceholderCityData(); 
                 }
             }
-            
+
             if (isMainHomicideData) {
                 if (!rawData || !rawData.headers || !rawData.entries) return [];
                 const headers = rawData.headers.map(h => String(h).trim().toLowerCase());
@@ -750,7 +742,6 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
                     }
                     return -1;
                 };
-
                 const indices = {
                     victim: getHeaderIndex(['Victim']), age: getHeaderIndex(['Age']), race: getHeaderIndex(['Race']),
                     sex: getHeaderIndex(['Sex']), circumstance: getHeaderIndex(['Circumstance']), date: getHeaderIndex(['Date']),
@@ -758,41 +749,25 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
                     precinct: getHeaderIndex(['Precinct']), lat: getHeaderIndex(['Latitude', 'Lat']), lon: getHeaderIndex(['Longitude', 'Lon', 'Long']),
                     year: getHeaderIndex(['Year']), month: getHeaderIndex(['Month']), day: getHeaderIndex(['Day'])
                 };
-
                 return rawData.entries.map((entry, i) => {
                     let dateObj;
                     const dateStr = entry[indices.date] ? String(entry[indices.date]).trim() : '';
-
-                    // First attempt: Parse the 'Date' column
                     if (dateStr) {
-                        if (dateStr.includes('-')) {
-                            dateObj = new Date(dateStr + "T00:00:00");
-                        } else if (dateStr.includes('/')) {
+                        if (dateStr.includes('-')) { dateObj = new Date(dateStr + "T00:00:00"); } 
+                        else if (dateStr.includes('/')) {
                             const parts = dateStr.split('/');
-                            if (parts.length === 3) {
-                                dateObj = new Date(parts[2], parseInt(parts[0]) - 1, parts[1]);
-                            }
+                            if (parts.length === 3) { dateObj = new Date(parts[2], parseInt(parts[0]) - 1, parts[1]); }
                         }
                     }
-                    
-                    // Fallback attempt: If the first attempt failed or was incomplete, use Year, Month, Day columns
                     if (!dateObj || isNaN(dateObj.getTime())) {
-                        const year = parseInt(entry[indices.year]);
-                        const month = parseInt(entry[indices.month]);
-                        const day = parseInt(entry[indices.day]);
-                        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
-                            dateObj = new Date(year, month - 1, day);
-                        }
+                        const year = parseInt(entry[indices.year]), month = parseInt(entry[indices.month]), day = parseInt(entry[indices.day]);
+                        if (!isNaN(year) && !isNaN(month) && !isNaN(day)) { dateObj = new Date(year, month - 1, day); }
                     }
-
-                    const lat = parseFloat(entry[indices.lat]);
-                    const lon = parseFloat(entry[indices.lon]);
-
+                    const lat = parseFloat(entry[indices.lat]), lon = parseFloat(entry[indices.lon]);
                     if (!dateObj || isNaN(dateObj.getTime()) || isNaN(lat) || isNaN(lon)) {
-                        console.warn(`Discarding record ${i+1} due to invalid data:`, {date: dateStr, year: entry[indices.year], month: entry[indices.month], day: entry[indices.day], lat: entry[indices.lat], lon: entry[indices.lon]});
+                        console.warn(`Discarding record ${i+1} due to invalid data:`, {date: dateStr, lat: entry[indices.lat], lon: entry[indices.lon]});
                         return null;
                     }
-                    
                     return {
                         Victim: entry[indices.victim] || 'N/A', Age: entry[indices.age] ? parseInt(entry[indices.age]) : null, 
                         Race: entry[indices.race] || 'N/A', Sex: entry[indices.sex] || 'N/A',
@@ -802,24 +777,21 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
                         Latitude: lat, Longitude: lon, Year: dateObj.getFullYear(), 
                     };
                 }).filter(Boolean);
-            } else { 
-                if (!rawData) return [];
+
+            } else {
+                // New logic to parse the Google Sheets API response
+                if (!rawData || !rawData.values) return [];
+                const [headerRow, ...dataRows] = rawData.values;
+                const headers = headerRow.map(h => h.trim());
+                const cityIndex = headers.findIndex(h => h.toLowerCase() === 'city');
+                const homicidesIndex = headers.findIndex(h => h.toLowerCase() === 'homicides');
+                const populationIndex = headers.findIndex(h => h.toLowerCase() === 'population');
                 
-                const processedData = rawData.map(d => ({
-                    City: d.City ? String(d.City).trim() : null,
-                    Homicides: d.Homicides ? parseInt(String(d.Homicides).trim().replace(/,/g, '')) : null,
-                    Population: d.Population ? parseInt(String(d.Population).trim().replace(/,/g, '')) : null,
-                }));
-                
-                // --- DEBUG STEP 3: Log the processed data before filtering ---
-                console.log("Processed data before filtering:", processedData);
-                
-                const filteredData = processedData.filter(d => d.City && d.Homicides >= 0 && d.Population > 0);
-                
-                // --- DEBUG STEP 4: Log the final filtered data ---
-                console.log("Final filtered city data:", filteredData);
-                
-                return filteredData;
+                return dataRows.map(row => ({
+                    City: row[cityIndex] ? String(row[cityIndex]).trim() : null,
+                    Homicides: row[homicidesIndex] ? parseInt(String(row[homicidesIndex]).trim().replace(/,/g, '')) : null,
+                    Population: row[populationIndex] ? parseInt(String(row[populationIndex]).trim().replace(/,/g, '')) : null,
+                })).filter(d => d.City && d.Homicides >= 0 && d.Population > 0);
             }
         }
         
@@ -852,6 +824,7 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
             };
         }
         function getPlaceholderCityData() { 
+            // This now returns an array of objects directly, simulating a successful API call
             return [
                 { City: 'St. Louis, MO', Homicides: 190, Population: 286578 },
                 { City: 'Baltimore, MD', Homicides: 330, Population: 569931 },
@@ -1089,13 +1062,8 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
             if (showAllYears) {
                 // --- VIEW 1: Show All Years (1976-Present) as a simple total bar chart ---
                 const yearlyTotals = {};
-                // Combine historical and modern data to get a single total per year
-                historicalHomicideData.forEach(d => {
-                    yearlyTotals[d.year] = d.total;
-                });
-                allHomicideData.forEach(d => {
-                    yearlyTotals[d.Year] = (yearlyTotals[d.Year] || 0) + 1;
-                });
+                historicalHomicideData.forEach(d => { yearlyTotals[d.year] = d.total; });
+                allHomicideData.forEach(d => { yearlyTotals[d.Year] = (yearlyTotals[d.Year] || 0) + 1; });
 
                 const allSortedYears = Object.keys(yearlyTotals).map(Number).sort((a, b) => a - b);
                 const yearsToDisplay = allSortedYears.filter(y => y <= CURRENT_YEAR);
@@ -1107,10 +1075,9 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
                     backgroundColor: agencyColors['Historical'],
                 }];
 
-                // Configure for a simple, non-stacked bar chart
                 chartOptions.scales.x.stacked = false;
                 chartOptions.scales.y.stacked = false;
-                chartOptions.plugins.legend.display = false; // Only one dataset, so no legend needed
+                chartOptions.plugins.legend.display = false;
                 chartOptions.plugins.tooltip.callbacks.label = (context) => `Total: ${context.parsed.y}`;
 
                 const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
@@ -1125,7 +1092,6 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
                 // --- VIEW 2: Show Recent Years (2016-Present) with agency breakdown ---
                 const yearlyTotals = {};
                 const yearsToDisplay = [];
-                // Initialize years from START_YEAR_DATA to current year
                 for (let y = START_YEAR_DATA; y <= CURRENT_YEAR; y++) {
                     yearsToDisplay.push(y);
                     yearlyTotals[y] = {
@@ -1135,7 +1101,6 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
                     };
                 }
 
-                // Populate with data from modern records
                 allHomicideData.forEach(d => {
                     if (d.Year >= START_YEAR_DATA) {
                         const agency = d['Investigating Agency'];
@@ -1154,7 +1119,6 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
                     };
                 });
                 
-                // Configure for a stacked bar chart
                 chartOptions.scales.x.stacked = true;
                 chartOptions.scales.y.stacked = true;
                 chartOptions.plugins.legend.display = true;
@@ -1556,9 +1520,10 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
             document.getElementById('percentageChangeText').innerText = 'Calculating...';
 
             try {
+                // Now fetching from the new API URL for city data
                 const [homicideDataResult, cityDataResult] = await Promise.all([
                     fetchDataAndProcess(HOMICIDE_DATA_API_URL, true), 
-                    fetchDataAndProcess(CITY_COMPARISON_CSV_URL, false) 
+                    fetchDataAndProcess(CITY_COMPARISON_API_URL, false) 
                 ]);
 
                 allHomicideData = homicideDataResult;
@@ -1585,5 +1550,6 @@ async function fetchDataAndProcess(url, isMainHomicideData = false) {
     </script>
 </body>
 </html>
+
 
 
