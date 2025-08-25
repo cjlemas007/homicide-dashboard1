@@ -583,7 +583,8 @@
     <script>
         // --- Configuration ---
         const HOMICIDE_DATA_API_URL = './data/homicide.json'; 
-        const CITY_COMPARISON_CSV_URL = 'https://cors-anywhere.herokuapp.com/https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiORmxzjhdAokYzM0NhcTjAk1e3hJp81B5OCG03XcPnUaSVrCRiwIXmah2iPSHFaaWbSoKKwFA1Uc/pub?gid=0&single=true&output=csv'; 
+        const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQyiORmxzjhdAokYzM0NhcTjAk1e3hJp81B5OCG03XcPnUaSVrCRiwIXmah2iPSHFaaWbSoKKwFA1Uc/pub?gid=0&single=true&output=csv';
+        const CITY_COMPARISON_CSV_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(GOOGLE_SHEET_URL)}`;
         const JACKSON_POPULATION = 143709; 
 
         const CURRENT_YEAR = new Date().getFullYear();
@@ -1546,4 +1547,3 @@
     </script>
 </body>
 </html>
-
