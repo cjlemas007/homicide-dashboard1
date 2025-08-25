@@ -706,8 +706,8 @@
             document.getElementById(tabName).classList.add('active');
             evt.currentTarget.classList.add('active');
         }
-
-        async function fetchDataAndProcess(url, isMainHomicideData = false) { 
+        
+async function fetchDataAndProcess(url, isMainHomicideData = false) { 
             let rawData;
             try {
                 const response = await fetch(url);
@@ -720,7 +720,14 @@
                     rawData = JSON.parse(cleanedText);
                 } else { 
                     const csvText = await response.text(); 
+                    
+                    // --- DEBUG STEP 1: Log the raw CSV text ---
+                    console.log("Raw CSV Text Received:", csvText);
+
                     rawData = csvToJSON(csvText);
+
+                    // --- DEBUG STEP 2: Log the parsed JSON array ---
+                    console.log("Parsed City Data (JSON):", rawData);
                 }
             } catch (error) {
                 console.error(`Failed to fetch or parse data from ${url}:`, error);
@@ -797,11 +804,22 @@
                 }).filter(Boolean);
             } else { 
                 if (!rawData) return [];
-                return rawData.map(d => ({
+                
+                const processedData = rawData.map(d => ({
                     City: d.City ? String(d.City).trim() : null,
-                    Homicides: d.Homicides ? parseInt(String(d.Homicides).trim()) : null,
-                    Population: d.Population ? parseInt(String(d.Population).trim()) : null,
-                })).filter(d => d.City && d.Homicides >= 0 && d.Population > 0);
+                    Homicides: d.Homicides ? parseInt(String(d.Homicides).trim().replace(/,/g, '')) : null,
+                    Population: d.Population ? parseInt(String(d.Population).trim().replace(/,/g, '')) : null,
+                }));
+                
+                // --- DEBUG STEP 3: Log the processed data before filtering ---
+                console.log("Processed data before filtering:", processedData);
+                
+                const filteredData = processedData.filter(d => d.City && d.Homicides >= 0 && d.Population > 0);
+                
+                // --- DEBUG STEP 4: Log the final filtered data ---
+                console.log("Final filtered city data:", filteredData);
+                
+                return filteredData;
             }
         }
         
@@ -1565,52 +1583,7 @@
             }
         });
     </script>
-    async function fetchDataAndProcess(url, isMainHomicideData = false) { 
-            let rawData;
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`Network response was not ok for ${url}`);
-                
-                if (isMainHomicideData) { 
-                    const text = await response.text();
-                    const cleanedText = text.trim().replace(/,\s*\]\s*\}\s*$/, ']}');
-                    rawData = JSON.parse(cleanedText);
-                } else { 
-                    const csvText = await response.text(); 
-                    
-                    // --- DEBUG STEP 1: Log the raw CSV text ---
-                    console.log("Raw CSV Text Received:", csvText);
-
-                    rawData = csvToJSON(csvText);
-
-                    // --- DEBUG STEP 2: Log the parsed JSON array ---
-                    console.log("Parsed City Data (JSON):", rawData);
-                }
-            } catch (error) {
-                // ... (rest of the catch block)
-            }
-            
-            if (isMainHomicideData) {
-                // ... (rest of the if block)
-            } else { 
-                if (!rawData) return [];
-                const processedData = rawData.map(d => ({
-                    City: d.City ? String(d.City).trim() : null,
-                    Homicides: d.Homicides ? parseInt(String(d.Homicides).trim()) : null,
-                    Population: d.Population ? parseInt(String(d.Population).trim()) : null,
-                }));
-
-                // --- DEBUG STEP 3: Log the processed data before filtering ---
-                console.log("Processed data before filtering:", processedData);
-                
-                const filteredData = processedData.filter(d => d.City && d.Homicides >= 0 && d.Population > 0);
-
-                // --- DEBUG STEP 4: Log the final filtered data ---
-                console.log("Final filtered city data:", filteredData);
-                
-                return filteredData;
-            }
-        }
 </body>
 </html>
+
 
