@@ -14,7 +14,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
-    <style>
+<style>
         /* --- BASE STYLES & COLOR THEME --- */
         :root {
             --body-bg: #e9ecef;
@@ -53,31 +53,81 @@
             --tip-button-hover-bg: #0056b3;
         }
         
+        /* --- UPDATED LAYOUT STYLES --- */
         html, body {
-            height: 100%;
-            overflow: hidden; /* Prevent body scroll */
-        }
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-            margin: 0; 
+            margin: 0;
             padding: 0;
             font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--body-bg);
             color: var(--text-color);
         }
-        
+
         .dashboard-container {
             width: 100%; 
-            height: 100%;
+            max-width: 1140px;
+            height: 800px;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             background-color: var(--content-bg);
+            border: 1px solid var(--header-border);
+            overflow: hidden;
         }
 
-        /* --- LAYOUT & COMPONENT STYLES --- */
+        .main-content-area { 
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 1.5fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            overflow: hidden;
+            grid-template-areas:
+                "filters map charts"
+                "trends trends charts";
+        }
+        
+        .filters-panel, .trends-panel, .charts-panel {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* Panels that need to contain content should hide overflow */
+            background-color: var(--legend-bg);
+            border-radius: 4px;
+            border: 1px solid var(--legend-border);
+        }
+        
+        .map-panel {
+            grid-area: map;
+            background-color: var(--map-placeholder-bg);
+            border-radius: 4px;
+            border: 1px solid var(--legend-border);
+            /* --- THIS IS THE FIX --- */
+            /* It is intentionally separate to override the rule above */
+            overflow: visible; 
+            z-index: 10;
+        }
+
+        .filters-panel { grid-area: filters; }
+        .trends-panel { grid-area: trends; }
+        .charts-panel { grid-area: charts; background-color: var(--content-bg); }
+
+        .panel-label {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: var(--text-color);
+            padding: 10px 15px;
+            border-bottom: 1px solid var(--legend-border);
+            flex-shrink: 0;
+        }
+
+        .filters-container, .trends-container {
+            padding: 15px;
+            overflow-y: auto;
+        }
+
+        #map { height: 100%; width: 100%; } 
+
+        /* --- ORIGINAL COMPONENT STYLES (Largely Unchanged) --- */
         .header {
             display: flex;
             justify-content: center;
@@ -89,265 +139,56 @@
             border-bottom: 2px solid var(--header-border);
             flex-shrink: 0;
         }
-
-        .header-logo-main img, .header-logo-secondary img { 
-            max-height: 45px; 
-            width: auto; 
-            object-fit: contain; 
-            vertical-align: middle; 
-        } 
-        
-        .count-banner { 
-            color: var(--banner-text);
-            text-align: center; padding: 6px 15px; 
-            font-size: 1.2em; 
-            font-weight: bold;
-            flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-            background-color: var(--banner-bg);
-        }
-        
-        .ranking-banner {
-            font-size: 0.9em;
-            padding: 0;
-            background-color: var(--rank-banner-error-bg);
-            overflow: hidden;
-            white-space: nowrap;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            color: var(--banner-text);
-            font-weight: bold;
-            flex-shrink: 0;
-        }
-
-        .ticker-wrap {
-            display: inline-block;
-            padding: 6px 0;
-            animation: ticker 40s linear infinite;
-        }
-        
-        .ticker-item {
-            display: inline-block;
-            padding: 0 2rem;
-            color: var(--banner-text);
-        }
-        .ticker-item span {
-            font-weight: normal;
-            opacity: 0.9;
-        }
-
-        @keyframes ticker {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
-        
-        .main-content-area { 
-            display: grid;
-            grid-template-columns: minmax(320px, 22%) 1fr; /* Narrower left column */
-            grid-template-rows: 55fr 45fr; /* Map gets 55%, charts get 45% */
-            flex: 1 1 auto;
-            overflow: hidden;
-        }
-        
-        .left-column {
-            grid-area: 1 / 1 / 2 / 2; /* Top-left cell */
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--legend-border);
-            background-color: var(--legend-bg);
-            overflow-y: auto;
-        }
-
-        .filters-container {
-            padding: 15px;
-            flex-shrink: 0;
-        }
-
-        .filter-columns-wrapper { 
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .filter-group { 
-            margin-bottom: 10px; 
-            box-sizing: border-box;
-        } 
-        
-        .filter-group.circumstance-filter, .filter-group.trends-container { 
-            grid-column: 1 / -1; 
-        }
-
-        .trends-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 10px;
-            margin-top: 15px;
-        }
-        
-        .trend-box {
-            padding: 10px;
-            background-color: var(--input-bg);
-            border: 1px solid var(--input-border);
-            border-radius: 4px;
-            text-align: center;
-        }
-        
-        .trend-box-split {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .trend-box .trend-label {
-            font-weight: bold;
-            font-size: 0.8em;
-            color: var(--legend-label-text);
-            margin-bottom: 4px;
-            display: block;
-        }
-
-        .trend-box .trend-value {
-            font-size: 1.3em;
-            font-weight: bold;
-        }
-        
-        .trend-box-split .trend-value {
-             font-size: 1.2em;
-        }
-
-        .filter-group label.group-label { 
-            display: block; margin-bottom: 5px; 
-            font-weight: bold;
-            font-size: 0.9em; 
-            color: var(--legend-label-text); 
-        }
-        .filter-group select, .filter-group .checkbox-group {
-            width: 100%; padding: 8px; 
-            border: 1px solid var(--input-border);
-            border-radius: 4px; font-size: 0.9em; 
-            box-sizing: border-box; background-color: var(--input-bg); color: var(--text-color);
-        }
-        .checkbox-group { 
-            max-height: 100px; 
-            overflow-y: auto; 
-            padding: 8px; 
-        }
+        .header-logo-main img, .header-logo-secondary img { max-height: 45px; width: auto; object-fit: contain; vertical-align: middle; } 
+        .count-banner { color: var(--banner-text); text-align: center; padding: 6px 15px; font-size: 1.2em; font-weight: bold; flex-shrink: 0; box-shadow: 0 2px 4px rgba(0,0,0,0.1); background-color: var(--banner-bg); }
+        .ranking-banner { font-size: 0.9em; padding: 0; background-color: var(--rank-banner-error-bg); overflow: hidden; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1); color: var(--banner-text); font-weight: bold; flex-shrink: 0; }
+        .ticker-wrap { display: inline-block; padding: 6px 0; animation: ticker 40s linear infinite; }
+        .ticker-item { display: inline-block; padding: 0 2rem; color: var(--banner-text); }
+        .ticker-item span { font-weight: normal; opacity: 0.9; }
+        @keyframes ticker { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+        .filter-columns-wrapper { display: block; } 
+        .filter-group { margin-bottom: 10px; box-sizing: border-box; } 
+        .trends-grid { display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 15px; }
+        .trend-box { padding: 10px; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 4px; text-align: center; }
+        .trend-box-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .trend-box .trend-label { font-weight: bold; font-size: 0.8em; color: var(--legend-label-text); margin-bottom: 4px; display: block; }
+        .trend-box .trend-value { font-size: 1.3em; font-weight: bold; }
+        .trend-box-split .trend-value { font-size: 1.2em; }
+        .filter-group label.group-label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9em; color: var(--legend-label-text); }
+        .filter-group select, .filter-group .checkbox-group { width: 100%; padding: 8px; border: 1px solid var(--input-border); border-radius: 4px; font-size: 0.9em; box-sizing: border-box; background-color: var(--input-bg); color: var(--text-color); }
+        .checkbox-group { max-height: 100px; overflow-y: auto; padding: 8px; }
         .checkbox-group div { margin-bottom: 3px; display: flex; align-items: center;}
         .checkbox-group input[type="checkbox"] { margin-right: 5px; }
         .checkbox-group label { font-weight: normal; font-size: 0.9em; color: var(--legend-label-text);}
-        
-        .map-container {
-            grid-area: 1 / 2 / 2 / 3; /* Top right */
-            position: relative;
-        }
-        #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); } 
-        
-        /* --- Chart and Tab Styles --- */
-        .charts-container-wrapper {
-            grid-area: 2 / 1 / 3 / 3; /* Span full width at the bottom */
-            border-top: 1px solid var(--legend-border);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .charts-container {
-            flex-shrink: 0;
-            display: flex;
-            flex-direction: column;
-            flex-grow: 1;
-        }
-        .chart-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--legend-border);
-            padding: 0 10px;
-            flex-shrink: 0;
-        }
-        .tab-btn {
-            padding: 8px 12px;
-            cursor: pointer;
-            border: none;
-            background-color: transparent;
-            font-weight: bold;
-            color: var(--text-color);
-            border-bottom: 3px solid transparent;
-            margin-bottom: -1px; 
-            font-size: 0.9em;
-        }
-        .tab-btn.active {
-            border-bottom-color: var(--banner-bg);
-            color: var(--banner-bg);
-        }
-        .chart-tab-content {
-            display: none;
-            flex-wrap: nowrap;
-            flex-grow: 1;
-        }
-        .chart-tab-content.active {
-            display: flex;
-        }
-
-        .chart-box { 
-            padding: 15px; 
-            position: relative; 
-            display: flex; 
-            flex-direction: column; 
-            box-sizing: border-box; 
-        }
-        
+        .charts-container-wrapper { height: 100%; display: flex; flex-direction: column; overflow: hidden; border: none; }
+        .charts-container { flex-shrink: 0; display: flex; flex-direction: column; flex-grow: 1; }
+        .chart-tabs { display: flex; border-bottom: 1px solid var(--legend-border); padding: 0 10px; flex-shrink: 0; }
+        .tab-btn { padding: 8px 12px; cursor: pointer; border: none; background-color: transparent; font-weight: bold; color: var(--text-color); border-bottom: 3px solid transparent; margin-bottom: -1px; font-size: 0.9em; }
+        .tab-btn.active { border-bottom-color: var(--banner-bg); color: var(--banner-bg); }
+        .chart-tab-content { display: none; flex-wrap: nowrap; flex-grow: 1; overflow: hidden; }
+        .chart-tab-content.active { display: flex; }
+        .chart-box { padding: 15px; position: relative; display: flex; flex-direction: column; box-sizing: border-box; overflow-y: auto; }
         #main-trends-content .chart-box { width: 50% !important; }
         #main-trends-content .chart-box:first-child { border-right: 1px solid var(--legend-border) !important; }
-       
-        #details-content .chart-box { width: 25% !important; }
-        #details-content .chart-box:not(:last-child) {
-            border-right: 1px solid var(--legend-border) !important;
-        }
-
+        #details-content { flex-direction: column; overflow-y: auto; }
+        #details-content .chart-box { width: 100% !important; flex-grow: 1; min-height: 200px; }
+        #details-content .chart-box:not(:last-child) { border-right: none !important; border-bottom: 1px solid var(--legend-border) !important; }
         .chart-box h4 { text-align: center; margin-top: 0; margin-bottom: 10px; font-size: 1em; color: var(--chart-title-text); }
         .chart-canvas-container { flex-grow: 1; position: relative; min-height: 150px; } 
-
-        .footer {
-            padding: 8px 15px; text-align: center; 
-            font-size: 0.75em; color: var(--footer-text); 
-            background-color: var(--footer-bg);
-            border-top: 1px solid var(--header-border); flex-shrink: 0;
-        }
+        .footer { padding: 8px 15px; text-align: center; font-size: 0.75em; color: var(--footer-text); background-color: var(--footer-bg); border-top: 1px solid var(--header-border); flex-shrink: 0; }
         .footer p { margin: 3px 0; } 
         .footer a { color: var(--footer-link); text-decoration: none; } 
         .footer a:hover { text-decoration: underline; }
-
-        /* --- PLUGIN & MODAL STYLES --- */
-        .leaflet-tooltip {
-            background-color: var(--tooltip-bg); 
-            color: var(--tooltip-text);
-            border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); 
-            border-radius: 4px; padding: 10px 15px; 
-            font-size: 1em; 
-        }
+        .leaflet-tooltip { background-color: var(--tooltip-bg); color: var(--tooltip-text); border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2); border-radius: 4px; padding: 10px 15px; font-size: 1em; }
         .leaflet-tooltip p { margin: 0; padding: 3px 0; } 
         .leaflet-tooltip p:first-child { font-size: 1.1em; font-weight: bold; margin-bottom: 5px; }
         .leaflet-tooltip hr { border: 0; border-top: 1px solid #666; margin: 5px 0; }
         .leaflet-tooltip b { color: var(--tooltip-text); font-weight: bold; } 
-
         .leaflet-control-layers { background: var(--content-bg); border: 1px solid var(--legend-border); }
         .leaflet-control-layers-selector, .leaflet-control-layers label, .leaflet-control-layers label span { color: var(--text-color); }
-
-        .modal-overlay {
-            display: none; position: fixed;
-            z-index: 1000; left: 0; top: 0;
-            width: 100%; height: 100%;
-            overflow: auto; background-color: rgba(0,0,0,0.5); 
-            justify-content: center; align-items: center;
-        }
-        .modal-content {
-            background-color: #fefefe; padding: 20px;
-            border: 1px solid #888; border-radius: 8px;
-            width: 90%; max-width: 600px; position: relative;
-            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
-        }
-        .modal-close {
-            color: #aaa; position: absolute; top: 10px; right: 20px;
-            font-size: 28px; font-weight: bold; line-height: 1;
-            cursor: pointer;
-        }
+        .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.5); justify-content: center; align-items: center; }
+        .modal-content { background-color: #fefefe; padding: 20px; border: 1px solid #888; border-radius: 8px; width: 90%; max-width: 600px; position: relative; box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19); }
+        .modal-close { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; line-height: 1; cursor: pointer; }
         .modal-close:hover, .modal-close:focus { color: black; text-decoration: none; }
         .modal-content h2 { margin-top: 0; color: #333; }
         .modal-content p { line-height: 1.6; color: #555; }
@@ -356,81 +197,36 @@
         .modal-content li { margin-bottom: 15px; }
         .modal-content a { color: var(--footer-link); text-decoration: none; font-weight: bold;}
         .modal-content a:hover { text-decoration: underline; }
-        
-        .tip-button-floating {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 60px;
-            height: 60px;
-            background-color: var(--tip-button-bg);
-            color: var(--tip-button-text);
-            border-radius: 50%;
-            border: none;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            cursor: pointer;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1001; /* Higher than leaflet controls */
-            transition: background-color 0.3s ease, transform 0.2s ease;
-        }
+        .tip-button-floating { position: fixed; bottom: 20px; right: 20px; width: 60px; height: 60px; background-color: var(--tip-button-bg); color: var(--tip-button-text); border-radius: 50%; border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.2); cursor: pointer; display: flex; justify-content: center; align-items: center; z-index: 1001; transition: background-color 0.3s ease, transform 0.2s ease; }
+        .tip-button-floating:hover { background-color: var(--tip-button-hover-bg); transform: scale(1.05); }
+        .tip-button-floating svg { width: 28px; height: 28px; stroke: var(--tip-button-text); }
 
-        .tip-button-floating:hover {
-            background-color: var(--tip-button-hover-bg);
-            transform: scale(1.05);
-        }
-
-        .tip-button-floating svg {
-            width: 28px;
-            height: 28px;
-            stroke: var(--tip-button-text);
-        }
-
-        /* --- RESPONSIVE STYLES --- */
+        /* --- OPTIMIZED RESPONSIVE STYLES --- */
         @media (max-width: 900px) {
+            .dashboard-container {
+                height: auto;
+                max-width: 100%;
+            }
             .main-content-area { 
                 display: flex;
                 flex-direction: column; 
                 overflow-y: auto;
-            }
-            .top-section-container {
-                flex-direction: column;
-                height: auto;
-                overflow: visible;
-            }
-            .left-column { 
-                width: 100%; 
-                max-width: none; 
-                border-right: none; 
-                overflow-y: visible;
-                height: auto;
-            } 
-            .map-container {
-                height: 50vh; /* Give map a fixed height on mobile */
-                flex-grow: 0;
-            }
-            .charts-container-wrapper {
-                height: auto;
-            }
-            .filter-columns-wrapper {
+                grid-template-areas: none;
                 grid-template-columns: 1fr;
+                grid-template-rows: auto;
             }
-            .chart-tab-content {
-                flex-direction: column;
+            .filters-panel, .map-panel, .trends-panel, .charts-panel {
+                grid-area: auto !important; /* Reset grid areas for stacking */
             }
-            #main-trends-content .chart-box, #details-content .chart-box {
-                width: 100% !important;
-                border-right: none !important;
+            .map-panel {
+                height: 50vh;
             }
-            #main-trends-content .chart-box:first-child, #details-content .chart-box:not(:last-child) {
-                border-bottom: 1px solid var(--legend-border);
+            .charts-panel, .trends-panel {
+                height: auto;
             }
-            .header-logo-main img, .header-logo-secondary img { max-height: 45px; } 
-              .map-panel {
-            overflow: visible; /* Allows tooltips to appear outside the map's border */
-            z-index: 10;       /* Ensures map is on top of other grid elements if needed */
-        }
+             #details-content .chart-box {
+                height: 350px;
+            }
         }
     </style>
 </head>
@@ -1554,6 +1350,7 @@
     </script>
 </body>
 </html>
+
 
 
 
