@@ -14,21 +14,26 @@
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
 <style>
-    /* --- BASE STYLES & COLOR THEME (Modern & Authoritative) --- */
+    /* --- BASE STYLES & COLOR THEME (High-Contrast & "News" Feel) --- */
     :root {
-        --body-bg: #f0f2f5;
+        --body-bg: #e9ecef;
         --content-bg: #ffffff;
-        --text-color: #333333;
-        --header-bg: #ffffff;
-        --header-border: #dee2e6;
-        --banner-bg: #0d6efd; /* Primary Blue */
+        --text-color: #212529;
+        --header-bg: #212529; /* Dark Header */
+        --header-border: #495057;
+        --banner-bg: #d9534f;
         --banner-text: #ffffff;
-        --legend-bg: #f8f9fa;
-        --legend-border: #dee2e6;
-        --legend-label-text: #495057;
-        --input-border: #ced4da;
-        --input-bg: #ffffff;
+        --legend-bg: #343a40; /* Dark Sidebar */
+        --legend-border: #495057; /* Darker border for dark sidebar */
+        --legend-label-text: #f8f9fa; /* Light text on dark */
+        --input-border: #6c757d;
+        --input-bg: #495057;
+        --input-text: #ffffff; /* Light text for inputs */
         --chart-title-text: #343a40;
         --chart-axis-text: #6c757d;
         --chart-grid-color: rgba(0, 0, 0, 0.1);
@@ -46,8 +51,8 @@
         --rank-banner-ranklow-bg: #198754;
         --rank-banner-error-bg: #777777;
         --percentage-increase-color: #d9534f;
-        --percentage-decrease-color: #198754; /* Green for positive */
-        --percentage-neutral-color: var(--text-color);
+        --percentage-decrease-color: #198754;
+        --percentage-neutral-color: var(--legend-label-text); /* Light text on dark sidebar */
         --tip-button-bg: #0d6efd;
         --tip-button-text: #ffffff;
         --tip-button-hover-bg: #0b5ed7;
@@ -64,8 +69,8 @@
         min-height: 100vh;
         margin: 0;
         padding: 0;
-        font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; /* UPDATED FONT */
-        background-color: var(--body-bg); /* UPDATED BG for floating effect */
+        font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+        background-color: var(--body-bg);
         color: var(--text-color);
     }
 
@@ -75,7 +80,7 @@
         margin: 0 auto;
         display: flex;
         flex-direction: column;
-        background-color: transparent; /* Make container transparent to show body bg */
+        background-color: transparent;
     }
 
     /* --- LAYOUT & COMPONENT STYLES --- */
@@ -142,18 +147,16 @@
         100% { transform: translateX(-50%); }
     }
 
-    /* UPDATED LAYOUT with Gaps and Padding */
     .main-content-area {
         display: grid;
         grid-template-columns: minmax(320px, 22%) 1fr;
         grid-template-rows: 55fr 45fr;
         flex: 1 1 auto;
         overflow: hidden;
-        gap: 16px; /* ADDED */
-        padding: 16px; /* ADDED */
+        gap: 16px;
+        padding: 16px;
     }
 
-    /* ADDED CARD STYLES */
     .left-column, .map-container, .charts-container-wrapper {
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
@@ -161,11 +164,13 @@
         background-color: var(--content-bg);
     }
 
+    /* UPDATED for Dark Sidebar */
     .left-column {
         grid-area: 1 / 1 / 2 / 2;
         display: flex;
         flex-direction: column;
-        border-right: none; /* REMOVED */
+        border-right: none;
+        background-color: var(--legend-bg); /* Use dark bg */
         overflow-y: auto;
     }
 
@@ -188,17 +193,17 @@
     .filter-group.circumstance-filter, .filter-group.trends-container {
         grid-column: 1 / -1;
     }
-
-    /* --- UPDATED TRENDS SECTION --- */
+    
+    /* --- UPDATED TRENDS SECTION for Dark Sidebar --- */
     .trends-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr; /* Two cards side-by-side */
+        grid-template-columns: 1fr 1fr;
         gap: 12px;
         margin-top: 15px;
     }
 
     .trend-box-split {
-        grid-column: 1 / -1; /* Make split box span columns */
+        grid-column: 1 / -1;
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 12px;
@@ -206,8 +211,8 @@
 
     .trend-box {
         padding: 16px;
-        background-color: var(--content-bg);
-        border: 1px solid var(--header-border); /* Changed from input-border */
+        background-color: var(--input-bg); /* Darker background for cards */
+        border: 1px solid var(--input-border);
         border-radius: 8px;
         text-align: center;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
@@ -215,20 +220,21 @@
 
     .trend-box .trend-label {
         font-size: 0.85em;
-        color: #6c757d;
+        color: #ced4da; /* Lighter label text */
         margin-bottom: 8px;
-        font-weight: 600; /* Bolder label */
+        font-weight: 600;
         display: block;
     }
 
     .trend-box .trend-value {
-        font-size: 1.75em; /* Larger value */
+        font-size: 1.75em;
         font-weight: 700;
         line-height: 1.2;
+        color: var(--legend-label-text); /* Use light text color */
     }
 
     .trend-box-split .trend-value {
-         font-size: 1.5em; /* Adjust split value size */
+         font-size: 1.5em;
     }
 
     .filter-group label.group-label {
@@ -237,12 +243,14 @@
         font-size: 0.9em;
         color: var(--legend-label-text);
     }
-
+    
     .filter-group select, .filter-group .checkbox-group {
         width: 100%; padding: 8px;
         border: 1px solid var(--input-border);
         border-radius: 4px; font-size: 0.9em;
-        box-sizing: border-box; background-color: var(--input-bg); color: var(--text-color);
+        box-sizing: border-box;
+        background-color: var(--input-bg);
+        color: var(--input-text); /* Use light text color */
     }
 
     .checkbox-group {
@@ -257,14 +265,14 @@
     .map-container {
         grid-area: 1 / 2 / 2 / 3;
         position: relative;
-        overflow: hidden; /* To contain the rounded map */
+        overflow: hidden;
     }
     #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); }
 
     /* --- Chart and Tab Styles --- */
     .charts-container-wrapper {
         grid-area: 2 / 1 / 3 / 3;
-        border-top: none; /* REMOVED */
+        border-top: none;
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -313,12 +321,12 @@
         box-sizing: border-box;
     }
 
-    #main-trends-content .chart-box { width: 50%; } /* Removed !important */
-    #main-trends-content .chart-box:first-child { border-right: 1px solid var(--legend-border); } /* Removed !important */
+    #main-trends-content .chart-box { width: 50%; }
+    #main-trends-content .chart-box:first-child { border-right: 1px solid var(--legend-border); }
 
-    #details-content .chart-box { width: 25%; } /* Removed !important */
+    #details-content .chart-box { width: 25%; }
     #details-content .chart-box:not(:last-child) {
-        border-right: 1px solid var(--legend-border); /* Removed !important */
+        border-right: 1px solid var(--legend-border);
     }
 
     .chart-box h4 { text-align: center; margin-top: 0; margin-bottom: 10px; font-size: 1em; color: var(--chart-title-text); }
@@ -341,7 +349,7 @@
         border: none; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         border-radius: 4px; padding: 10px 15px;
         font-size: 1em;
-        font-family: 'Inter', sans-serif; /* Consistent font */
+        font-family: 'Inter', sans-serif;
     }
     .leaflet-tooltip p { margin: 0; padding: 3px 0; }
     .leaflet-tooltip p:first-child { font-size: 1.1em; font-weight: bold; margin-bottom: 5px; }
@@ -393,7 +401,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 1001; /* Higher than leaflet controls */
+        z-index: 1001;
         transition: background-color 0.3s ease, transform 0.2s ease;
     }
 
@@ -414,8 +422,8 @@
             display: flex;
             flex-direction: column;
             overflow-y: auto;
-            padding: 8px; /* Adjust padding for mobile */
-            gap: 8px; /* Adjust gap for mobile */
+            padding: 8px;
+            gap: 8px;
         }
         .top-section-container {
             flex-direction: column;
@@ -430,21 +438,21 @@
             height: auto;
         }
         .map-container {
-            height: 50vh; /* Give map a fixed height on mobile */
+            height: 50vh;
             flex-grow: 0;
         }
         .charts-container-wrapper {
             height: auto;
         }
-        .filter-columns-wrapper, .trends-grid { /* Updated */
+        .filter-columns-wrapper, .trends-grid {
             grid-template-columns: 1fr;
         }
         .chart-tab-content {
             flex-direction: column;
         }
         #main-trends-content .chart-box, #details-content .chart-box {
-            width: 100%; /* Removed !important */
-            border-right: none !important; /* Kept !important to override inline/specificity issues if any */
+            width: 100%;
+            border-right: none !important;
         }
         #main-trends-content .chart-box:first-child, #details-content .chart-box:not(:last-child) {
             border-bottom: 1px solid var(--legend-border);
@@ -1573,6 +1581,7 @@
     </script>
 </body>
 </html>
+
 
 
 
