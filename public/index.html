@@ -53,60 +53,31 @@
             --tip-button-hover-bg: #0056b3;
         }
         
-html, body {
-            margin: 0;
+        html, body {
+            height: 100%;
+            overflow: hidden; /* Prevent body scroll */
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            margin: 0; 
             padding: 0;
             font-family: 'Helvetica Neue', Arial, sans-serif;
             background-color: var(--body-bg);
             color: var(--text-color);
         }
-
-        /* --- OPTIMIZED LAYOUT STYLES for 1140x800px --- */
+        
         .dashboard-container {
             width: 100%; 
-            max-width: 1140px; /* Max width for the container */
-            height: 800px; /* Fixed height for the container */
+            height: 100%;
             margin: 0 auto;
             display: flex;
             flex-direction: column;
             background-color: var(--content-bg);
-            border: 1px solid var(--header-border);
-            overflow: hidden;
-        }
-        
-        .main-content-area { 
-            display: flex;
-            flex-direction: row; /* Two-column layout */
-            flex-grow: 1;
-            overflow: hidden;
-        }
-        
-        .left-column {
-            flex: 0 0 320px; /* Fixed width for the filter column */
-            display: flex;
-            flex-direction: column;
-            border-right: 1px solid var(--legend-border);
-            background-color: var(--legend-bg);
-            overflow-y: auto; /* Allow this column to scroll if content overflows */
-        }
-        
-        .right-column {
-            flex: 1 1 auto; /* This column takes the remaining space */
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
         }
 
-        .map-container {
-            height: 50%; /* Map takes the top half of the right column */
-            position: relative;
-        }
-
-        .charts-container-wrapper {
-            height: 50%; /* Charts take the bottom half of the right column */
-        }
-        
-        /* --- ORIGINAL COMPONENT STYLES (Largely Unchanged) --- */
+        /* --- LAYOUT & COMPONENT STYLES --- */
         .header {
             display: flex;
             justify-content: center;
@@ -166,6 +137,23 @@ html, body {
         @keyframes ticker {
             0% { transform: translateX(0); }
             100% { transform: translateX(-50%); }
+        }
+        
+        .main-content-area { 
+            display: grid;
+            grid-template-columns: minmax(320px, 22%) 1fr; /* Narrower left column */
+            grid-template-rows: 55fr 45fr; /* Map gets 55%, charts get 45% */
+            flex: 1 1 auto;
+            overflow: hidden;
+        }
+        
+        .left-column {
+            grid-area: 1 / 1 / 2 / 2; /* Top-left cell */
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--legend-border);
+            background-color: var(--legend-bg);
+            overflow-y: auto;
         }
 
         .filters-container {
@@ -232,7 +220,6 @@ html, body {
             font-size: 0.9em; 
             color: var(--legend-label-text); 
         }
-
         .filter-group select, .filter-group .checkbox-group {
             width: 100%; padding: 8px; 
             border: 1px solid var(--input-border);
@@ -247,9 +234,21 @@ html, body {
         .checkbox-group div { margin-bottom: 3px; display: flex; align-items: center;}
         .checkbox-group input[type="checkbox"] { margin-right: 5px; }
         .checkbox-group label { font-weight: normal; font-size: 0.9em; color: var(--legend-label-text);}
-
+        
+        .map-container {
+            grid-area: 1 / 2 / 2 / 3; /* Top right */
+            position: relative;
+        }
         #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); } 
-
+        
+        /* --- Chart and Tab Styles --- */
+        .charts-container-wrapper {
+            grid-area: 2 / 1 / 3 / 3; /* Span full width at the bottom */
+            border-top: 1px solid var(--legend-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
         .charts-container {
             flex-shrink: 0;
             display: flex;
@@ -281,7 +280,6 @@ html, body {
             display: none;
             flex-wrap: nowrap;
             flex-grow: 1;
-            overflow: hidden; /* Added to contain charts */
         }
         .chart-tab-content.active {
             display: flex;
@@ -316,6 +314,7 @@ html, body {
         .footer a { color: var(--footer-link); text-decoration: none; } 
         .footer a:hover { text-decoration: underline; }
 
+        /* --- PLUGIN & MODAL STYLES --- */
         .leaflet-tooltip {
             background-color: var(--tooltip-bg); 
             color: var(--tooltip-text);
@@ -373,7 +372,7 @@ html, body {
             display: flex;
             justify-content: center;
             align-items: center;
-            z-index: 1001;
+            z-index: 1001; /* Higher than leaflet controls */
             transition: background-color 0.3s ease, transform 0.2s ease;
         }
 
@@ -388,31 +387,31 @@ html, body {
             stroke: var(--tip-button-text);
         }
 
-        /* --- OPTIMIZED RESPONSIVE STYLES --- */
+        /* --- RESPONSIVE STYLES --- */
         @media (max-width: 900px) {
-            .dashboard-container {
-                height: auto; /* Allow height to be flexible on mobile */
-                max-width: 100%;
-            }
             .main-content-area { 
+                display: flex;
                 flex-direction: column; 
                 overflow-y: auto;
             }
+            .top-section-container {
+                flex-direction: column;
+                height: auto;
+                overflow: visible;
+            }
             .left-column { 
-                flex: 0 0 auto; /* Height is determined by content */
                 width: 100%; 
                 max-width: none; 
                 border-right: none; 
                 overflow-y: visible;
+                height: auto;
             } 
-            .right-column {
-                flex: 1 1 auto;
-            }
             .map-container {
-                height: 50vh; /* Give map a fixed viewport height on mobile */
+                height: 50vh; /* Give map a fixed height on mobile */
+                flex-grow: 0;
             }
             .charts-container-wrapper {
-                 height: auto; /* Let charts take the space they need */
+                height: auto;
             }
             .filter-columns-wrapper {
                 grid-template-columns: 1fr;
@@ -422,12 +421,12 @@ html, body {
             }
             #main-trends-content .chart-box, #details-content .chart-box {
                 width: 100% !important;
-                height: 350px; /* Give charts a fixed height on mobile */
                 border-right: none !important;
             }
             #main-trends-content .chart-box:first-child, #details-content .chart-box:not(:last-child) {
                 border-bottom: 1px solid var(--legend-border);
             }
+            .header-logo-main img, .header-logo-secondary img { max-height: 45px; } 
         }
     </style>
 </head>
@@ -445,7 +444,7 @@ html, body {
     <div class="count-banner" id="homicideCountBanner">2025 COUNT: ...</div>
     <div class="ranking-banner" id="rankingBanner">
         <div class="ticker-wrap" id="tickerWrap">
-        </div>
+            </div>
     </div>
 
     <div class="main-content-area">
@@ -464,7 +463,7 @@ html, body {
                         <label class="group-label" for="circumstanceFilter">Circumstance:</label>
                         <select id="circumstanceFilter"></select>
                     </div>
-                    <div class="filter-group trends-container">
+                     <div class="filter-group trends-container">
                         <label class="group-label">Trends</label>
                         <div class="trends-grid">
                             <div class="trend-box">
@@ -481,86 +480,83 @@ html, body {
                                     <div id="fiveYearAvgValue" class="trend-value"></div>
                                 </div>
                             </div>
-                            <div class="trend-box">
+                             <div class="trend-box">
                                 <span class="trend-label">Last 30 Days</span>
                                 <div id="rolling30DayText" class="trend-value"></div>
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> 
             </div>
         </div>
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        <div class="charts-container-wrapper">
+            <div class="charts-container">
+                <div class="chart-tabs">
+                    <button class="tab-btn active" data-tab="main-trends-content">Key Trends</button>
+                    <button class="tab-btn" data-tab="details-content">Detailed Breakdowns</button>
+                </div>
 
-        <div class="right-column">
-            <div class="map-container">
-                <div id="map"></div>
+                <div id="main-trends-content" class="chart-tab-content active">
+                    <div class="chart-box">
+                        <h4>Cumulative Homicides by Year</h4>
+                        <div class="chart-canvas-container">
+                            <canvas id="homicideTrendsChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <h4 style="margin: 0;">Homicides by Year</h4>
+                            <button id="toggleYearRangeBtn" style="padding: 3px 10px; font-size: 0.8em; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background-color: #f0f0f0;">Show All Years</button>
+                        </div>
+                        <div class="chart-canvas-container">
+                            <canvas id="homicidesByYearChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="details-content" class="chart-tab-content">
+                    <div class="chart-box">
+                        <h4>Victims by Age Group</h4>
+                        <div class="chart-canvas-container">
+                            <canvas id="victimsByAgeChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <h4>Victims by Race</h4>
+                        <div class="chart-canvas-container">
+                            <canvas id="victimsByRaceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <h4>Homicides by Circumstance</h4>
+                        <div class="chart-canvas-container">
+                            <canvas id="homicidesByCircumstanceChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-box">
+                        <h4>Homicides by Agency</h4>
+                        <div class="chart-canvas-container">
+                            <canvas id="homicidesByAgencyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="charts-container-wrapper">
-                <div class="charts-container">
-                    <div class="chart-tabs">
-                        <button class="tab-btn active" data-tab="main-trends-content">Key Trends</button>
-                        <button class="tab-btn" data-tab="details-content">Detailed Breakdowns</button>
-                    </div>
-
-                    <div id="main-trends-content" class="chart-tab-content active">
-                        <div class="chart-box">
-                            <h4>Cumulative Homicides by Year</h4>
-                            <div class="chart-canvas-container">
-                                <canvas id="homicideTrendsChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="chart-box">
-                            <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 10px;">
-                                <h4 style="margin: 0;">Homicides by Year</h4>
-                                <button id="toggleYearRangeBtn" style="padding: 3px 10px; font-size: 0.8em; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background-color: #f0f0f0;">Show All Years</button>
-                            </div>
-                            <div class="chart-canvas-container">
-                                <canvas id="homicidesByYearChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div id="details-content" class="chart-tab-content">
-                        <div class="chart-box">
-                            <h4>Victims by Age Group</h4>
-                            <div class="chart-canvas-container">
-                                <canvas id="victimsByAgeChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="chart-box">
-                            <h4>Victims by Race</h4>
-                            <div class="chart-canvas-container">
-                                <canvas id="victimsByRaceChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="chart-box">
-                            <h4>Homicides by Circumstance</h4>
-                            <div class="chart-canvas-container">
-                                <canvas id="homicidesByCircumstanceChart"></canvas>
-                            </div>
-                        </div>
-                        <div class="chart-box">
-                            <h4>Homicides by Agency</h4>
-                            <div class="chart-canvas-container">
-                                <canvas id="homicidesByAgencyChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="footer">
-                    <p><a href="#" id="openAboutModal">About the Data</a></p>
-                    <p>Data Sources: JPD, DPS, Hinds County, JSUPD | Design/Layout: C.J. LeMaster</p>
-                </div>
+            <div class="footer">
+                <p><a href="#" id="openAboutModal">About the Data</a></p>
+                <p>Data Sources: JPD, DPS, Hinds County, JSUPD | Design/Layout: C.J. LeMaster</p>
             </div>
         </div>
     </div>
-
+    
     <div id="aboutDataModal" class="modal-overlay">
         <div class="modal-content">
             <span class="modal-close" id="closeAboutModal">×</span>
             <h2>Our Methodology</h2>
             <p><strong>Homicide</strong> refers to one person killing another, regardless of intent. Unlike <strong>murder</strong>, which implies intent, some homicides—such as <strong>justified or officer-involved deaths</strong>—are not crimes. That’s why the number of homicides is typically higher than murders.</p>
-            <p><strong>WLBT uses the same criteria as the Jackson Police Department:</strong> we count all homicides, including justified ones, but exclude most vehicular homicides unless officially classified as such. Our numbers come from <strong>JPD releases</strong>, <strong>confirmations from police and the coroner</strong>, and
+            <p><strong>WLBT uses the same criteria as the Jackson Police Department:</strong> we count all homicides, including justified ones, but exclude most vehicular homicides unless officially classified as such. Our numbers come from <strong>JPD releases</strong>, <strong>confirmations from police and the coroner</strong>, and 
                 <strong>reports from other lead agencies</strong> when killings occur within Jackson city limits.</p>
             <p><strong>Because we count all homicides that happen in Jackson</strong>—not just those investigated by JPD—our totals may differ from those reported by individual agencies. For example, <strong>Capitol Police and Jackson State officers</strong> have led several homicide investigations in recent years.</p>
             <p><strong>Our data may be updated</strong> as new cases surface. In 2023, we discovered JPD had not disclosed 24 homicide cases, prompting a correction in our reporting. Since then, <strong>we regularly request updates</strong> to prevent similar omissions.</p>
@@ -591,9 +587,11 @@ html, body {
         </div>
     </div>
 
-    <button class="tip-button-floating" id="openTipModal" title="Submit a Tip" aria-label="Submit a Tip">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-    </button>
+</div>
+
+<button class="tip-button-floating" id="openTipModal" title="Submit a Tip" aria-label="Submit a Tip">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+</button>
 
 <script>
         // --- Configuration ---
@@ -1552,7 +1550,6 @@ html, body {
     </script>
 </body>
 </html>
-
 
 
 
