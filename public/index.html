@@ -427,6 +427,10 @@
                 border-bottom: 1px solid var(--legend-border);
             }
             .header-logo-main img, .header-logo-secondary img { max-height: 45px; } 
+              .map-panel {
+            overflow: visible; /* Allows tooltips to appear outside the map's border */
+            z-index: 10;       /* Ensures map is on top of other grid elements if needed */
+        }
         }
     </style>
 </head>
@@ -1550,6 +1554,7 @@
     </script>
 </body>
 </html>
+
 
 
 
