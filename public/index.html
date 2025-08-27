@@ -1228,8 +1228,8 @@
             cityLimitsLayer = cityLayer;
             ccidLayer = ccidLayerResult;
             if (overlayLayersControl) map.removeControl(overlayLayersControl);
-            // FIXED: Position the layer control in the top left
-            overlayLayersControl = L.control.layers(baseLayers, overlayMaps, { position: 'topleft' }).addTo(map);
+            // FIXED: Position the layer control in the bottom left
+            overlayLayersControl = L.control.layers(baseLayers, overlayMaps, { position: 'bottomleft' }).addTo(map);
         });
     }
     function updateMapTiles() {
@@ -1241,3 +1241,5 @@
 </script>
 </body>
 </html>
+" in the canvas.
+Can you remove the ticker from the header and instead place it in the foot
