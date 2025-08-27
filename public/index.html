@@ -281,7 +281,21 @@
         .info-details .detail-list { list-style: none; padding: 0; margin: 0; }
         .info-details .detail-list li { margin-bottom: 4px; }
         .info-details .detail-list strong { color: var(--legend-label-text); }
-        .info-details .prompt { margin-top: 10px; font-style: italic; font-size: 0.85em; color: var(--chart-axis-text); text-align: center;}
+        
+        #back-to-summary-btn {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+            background-color: var(--tip-button-bg);
+            color: var(--banner-text);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #back-to-summary-btn:hover {
+            background-color: var(--tip-button-hover-bg);
+        }
 
         .leaflet-control-layers {
              background: var(--map-overlay-bg);
@@ -674,10 +688,22 @@
         victimsByRaceChartInstance, homicidesByCircumstanceChartInstance, homicidesByAgencyChartInstance;
 
     const infoPanel = document.getElementById('map-info-panel');
+    let defaultMarkerStyle, selectedMarkerStyle;
 
     // --- Main Execution Block ---
-    // FIXED: Using DOMContentLoaded to ensure all HTML elements are ready before the script runs.
     document.addEventListener('DOMContentLoaded', () => {
+        // Define marker styles here so CSS variables are available
+        defaultMarkerStyle = {
+            radius: 6,
+            fillColor: getComputedStyle(document.documentElement).getPropertyValue('--marker-color').trim(),
+            color: getComputedStyle(document.documentElement).getPropertyValue('--marker-border-color').trim(),
+            weight: 1, opacity: 1, fillOpacity: 0.8
+        };
+        selectedMarkerStyle = {
+            fillColor: getComputedStyle(document.documentElement).getPropertyValue('--marker-selected-color').trim(),
+            color: getComputedStyle(document.documentElement).getPropertyValue('--marker-selected-border-color').trim(),
+            radius: 8,
+        };
         init();
     });
 
@@ -750,7 +776,6 @@
             let dateObj;
             const dateStr = entry[indices.date] ? String(entry[indices.date]).trim() : '';
             
-            // FIXED: More robust date parsing from original file
             if (dateStr) {
                 if (dateStr.includes('-')) { dateObj = new Date(dateStr + "T00:00:00"); } 
                 else if (dateStr.includes('/')) {
@@ -826,8 +851,17 @@
                         ${d.Address ? `<li><strong>Address:</strong> ${d.Address}</li>` : ''}
                         ${d['Investigating Agency'] ? `<li><strong>Agency:</strong> ${d['Investigating Agency']}</li>` : ''}
                     </ul>
-                    <p class="prompt"><i>Click map to return to summary</i></p>
+                    <button id="back-to-summary-btn">Back to Summary</button>
                 </div>`;
+            
+            document.getElementById('back-to-summary-btn').addEventListener('click', () => {
+                if (selectedMarker) {
+                    selectedMarker.setStyle(defaultMarkerStyle);
+                    selectedMarker = null;
+                }
+                updateInfoPanel(filteredHomicideDataForMap);
+            });
+
         } else {
             const totalCount = data.length;
             const yearCounts = data.reduce((acc, d) => { acc[d.Year] = (acc[d.Year] || 0) + 1; return acc; }, {});
@@ -846,7 +880,6 @@
     }
 
     function initMap() {
-        // FIXED: Disable default zoom control and add it to a different corner
         map = L.map('map', { 
             scrollWheelZoom: false, 
             minZoom: MAP_ZOOM,
@@ -859,16 +892,6 @@
         markersLayer.addTo(map);
         heatLayer = L.heatLayer([], { radius: 25 });
         loadBoundaryLayers();
-        map.on('click', () => {
-            if (selectedMarker) {
-                selectedMarker.setStyle({
-                    fillColor: getComputedStyle(document.documentElement).getPropertyValue('--marker-color').trim(),
-                    color: getComputedStyle(document.documentElement).getPropertyValue('--marker-border-color').trim(),
-                });
-                selectedMarker = null;
-            }
-            updateInfoPanel(filteredHomicideDataForMap);
-        });
     }
 
     function updateMapDisplay() {
@@ -883,29 +906,18 @@
         markersLayer.clearLayers();
         const heatPoints = [];
         const visibleMarkers = [];
-        const defaultStyle = {
-            radius: 6,
-            fillColor: getComputedStyle(document.documentElement).getPropertyValue('--marker-color').trim(),
-            color: getComputedStyle(document.documentElement).getPropertyValue('--marker-border-color').trim(),
-            weight: 1, opacity: 1, fillOpacity: 0.8
-        };
-        const selectedStyle = {
-            fillColor: getComputedStyle(document.documentElement).getPropertyValue('--marker-selected-color').trim(),
-            color: getComputedStyle(document.documentElement).getPropertyValue('--marker-selected-border-color').trim(),
-            radius: 8,
-        };
+        
         filteredHomicideDataForMap.forEach(d => {
             const latLng = [d.Latitude, d.Longitude];
             heatPoints.push(latLng);
-            const marker = L.circleMarker(latLng, defaultStyle);
+            const marker = L.circleMarker(latLng, defaultMarkerStyle);
             
-            // FIXED: Re-added the click handler for the info panel
+            // FIXED: Marker click handler
             marker.on('click', (e) => {
-                L.DomEvent.stopPropagation(e.originalEvent);
                 if (selectedMarker) {
-                    selectedMarker.setStyle(defaultStyle);
+                    selectedMarker.setStyle(defaultMarkerStyle);
                 }
-                marker.setStyle(selectedStyle);
+                marker.setStyle(selectedMarkerStyle);
                 selectedMarker = marker;
                 updateInfoPanel(d);
             });
