@@ -621,7 +621,7 @@
 </div>
 
 <button class="tip-button-floating" id="openTipModal" title="Submit a Tip" aria-label="Submit a Tip">
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
 </button>
 
 <script>
@@ -901,7 +901,7 @@
             
             // FIXED: Re-added the click handler for the info panel
             marker.on('click', (e) => {
-                L.DomEvent.stopPropagation(e);
+                L.DomEvent.stopPropagation(e.originalEvent);
                 if (selectedMarker) {
                     selectedMarker.setStyle(defaultStyle);
                 }
