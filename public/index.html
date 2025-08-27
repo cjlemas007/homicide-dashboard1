@@ -701,12 +701,6 @@
                 allHomicideData = homicideDataResult;
                 cityComparisonData = cityDataResult;
 
-                // DEBUG: Log final processed data array
-                console.log(`DEBUG: Final processed homicide data count: ${allHomicideData.length}`);
-                if (allHomicideData.length > 0) {
-                    console.log("DEBUG: First 3 processed records:", allHomicideData.slice(0, 3));
-                }
-
                 populateFiltersForMap(true);
                 updateDashboard();
                 if (map) map.invalidateSize();
@@ -738,11 +732,8 @@
 
         // --- Data Processing Logic with Debugging ---
         function processHomicideData(rawData) {
-            // DEBUG: Log the raw data structure before processing
-            console.log("DEBUG: Raw data object before processing:", rawData);
-
             if (!rawData || !rawData.headers || !rawData.entries) {
-                console.error("DEBUG: Invalid rawData structure. 'headers' or 'entries' is missing.");
+                console.error("Invalid rawData structure. 'headers' or 'entries' is missing.");
                 return [];
             }
             const headers = rawData.headers.map(h => String(h).trim().toLowerCase());
@@ -755,29 +746,14 @@
                 lat: getHeaderIndex(['Latitude', 'Lat']), lon: getHeaderIndex(['Longitude', 'Lon', 'Long'])
             };
 
-            // DEBUG: Log the identified header indices
-            console.log("DEBUG: Header indices found:", indices);
-
             return rawData.entries.map((entry, i) => {
                 const dateStr = entry[indices.date] ? String(entry[indices.date]).trim() : '';
+                // FIXED: More robust date parsing from original file
                 const dateObj = dateStr ? new Date(dateStr.includes('/') ? dateStr.split('/').reverse().join('-') + 'T00:00:00' : dateStr + 'T00:00:00') : null;
                 
                 const lat = parseFloat(entry[indices.lat]), lon = parseFloat(entry[indices.lon]);
 
-                // DEBUG: Log first 3 entries during processing
-                if (i < 3) {
-                    console.log(`DEBUG: Processing entry ${i+1}:`, {
-                        rawEntry: entry,
-                        dateStr: dateStr,
-                        parsedDate: dateObj,
-                        lat: lat,
-                        lon: lon
-                    });
-                }
-
                 if (!dateObj || isNaN(dateObj.getTime()) || isNaN(lat) || isNaN(lon)) {
-                    // DEBUG: Log discarded records
-                    console.warn(`DEBUG: Discarding record ${i+1} due to invalid data:`, {date: dateStr, lat: entry[indices.lat], lon: entry[indices.lon]});
                     return null;
                 }
 
@@ -795,10 +771,7 @@
                 try {
                     const response = await fetch(url);
                     if (!response.ok) throw new Error(`Network response was not ok for ${url}`);
-                    // DEBUG: Log raw text response
-                    const rawText = await response.text();
-                    console.log("DEBUG: Raw text fetched from homicide URL:", rawText.substring(0, 500) + "...");
-                    const rawData = JSON.parse(rawText);
+                    const rawData = await response.json();
                     return processHomicideData(rawData);
                 } catch (error) {
                     console.error(`Failed to fetch main homicide data:`, error);
@@ -1245,3 +1218,7 @@
 </script>
 </body>
 </html>
+" in the document.
+I have a follow-up question.
+
+Why are the map markers not displayi
