@@ -939,11 +939,19 @@
         });
         heatLayer.setLatLngs(heatPoints);
         updateInfoPanel(filteredHomicideDataForMap);
-        if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
-            map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1));
-        } else {
-            map.setView(MAP_CENTER, MAP_ZOOM);
+       if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
+    map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1));
+    
+    // NEW: Apply pan offset *after* the zoom animation finishes
+    map.once('zoomend', function() {
+        if (MAP_PAN_OFFSET[0] !== 0 || MAP_PAN_OFFSET[1] !== 0) {
+            map.panBy(MAP_PAN_OFFSET);
         }
+    });
+
+} else {
+    map.setView(MAP_CENTER, MAP_ZOOM);
+}
     }
     
     function setupModals() {
@@ -1266,3 +1274,4 @@
 </script>
 </body>
 </html>
+
