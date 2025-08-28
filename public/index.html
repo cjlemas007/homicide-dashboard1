@@ -651,7 +651,11 @@
     const START_YEAR_DATA = 2016;
     const MAP_CENTER = [32.2988, -90.1848];
     const MAP_ZOOM = 11;
-    const MAP_PAN_OFFSET = [50, 0]; // [x, y] in pixels. Positive x pans left.
+    // This tells the map to act as if it has 100px of padding on the left,
+// which shifts the visual center to the right, revealing the eastern boundary.
+    const FIT_BOUNDS_OPTIONS = {
+    paddingTopLeft: [100, 0] // [x, y] padding in pixels
+};
     const JACKSON_CITY_LIMITS_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1';
     const CCID_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1';
     const AGENCY_CATEGORIES = { JPD: 'JPD', CAPITOL_POLICE: 'Capitol Police', OTHER: 'Other Agencies' };
@@ -903,54 +907,48 @@
         });
     }
 
-    function updateMapDisplay() {
-        const selectedYears = Array.from(document.querySelectorAll('#yearFilter input:checked')).map(cb => parseInt(cb.value));
-        const selectedAgencies = Array.from(document.querySelectorAll('#agencyFilter input:checked')).map(cb => cb.value);
-        const selectedCircumstance = document.getElementById('circumstanceFilter').value;
-        filteredHomicideDataForMap = allHomicideData.filter(d => 
-            selectedYears.includes(d.Year) &&
-            selectedAgencies.includes(d['Investigating Agency']) &&
-            (!selectedCircumstance || d.Circumstance === selectedCircumstance)
-        );
-        markersLayer.clearLayers();
-        const heatPoints = [];
-        const visibleMarkers = [];
+function updateMapDisplay() {
+    const selectedYears = Array.from(document.querySelectorAll('#yearFilter input:checked')).map(cb => parseInt(cb.value));
+    const selectedAgencies = Array.from(document.querySelectorAll('#agencyFilter input:checked')).map(cb => cb.value);
+    const selectedCircumstance = document.getElementById('circumstanceFilter').value;
+    filteredHomicideDataForMap = allHomicideData.filter(d => 
+        selectedYears.includes(d.Year) &&
+        selectedAgencies.includes(d['Investigating Agency']) &&
+        (!selectedCircumstance || d.Circumstance === selectedCircumstance)
+    );
+    markersLayer.clearLayers();
+    const heatPoints = [];
+    const visibleMarkers = [];
+    
+    filteredHomicideDataForMap.forEach(d => {
+        const latLng = [d.Latitude, d.Longitude];
+        heatPoints.push(latLng);
         
-        filteredHomicideDataForMap.forEach(d => {
-            const latLng = [d.Latitude, d.Longitude];
-            heatPoints.push(latLng);
-            
-            // FIXED: Prevent Leaflet from bubbling mouse events from the marker
-            const marker = L.circleMarker(latLng, { ...defaultMarkerStyle, bubblingMouseEvents: false });
-            
-            // FIXED: Stop the original DOM event to prevent the map's handler from firing
-            marker.on('click', (e) => {
-                if (e.originalEvent) L.DomEvent.stop(e.originalEvent); else L.DomEvent.stop(e);
-                if (selectedMarker) {
-                    selectedMarker.setStyle(defaultMarkerStyle);
-                }
-                marker.setStyle(selectedMarkerStyle);
-                selectedMarker = marker;
-                updateInfoPanel(d);
-            });
-            
-            markersLayer.addLayer(marker);
-            visibleMarkers.push(marker);
+        const marker = L.circleMarker(latLng, { ...defaultMarkerStyle, bubblingMouseEvents: false });
+        
+        marker.on('click', (e) => {
+            if (e.originalEvent) L.DomEvent.stop(e.originalEvent); else L.DomEvent.stop(e);
+            if (selectedMarker) {
+                selectedMarker.setStyle(defaultMarkerStyle);
+            }
+            marker.setStyle(selectedMarkerStyle);
+            selectedMarker = marker;
+            updateInfoPanel(d);
         });
-        heatLayer.setLatLngs(heatPoints);
-        updateInfoPanel(filteredHomicideDataForMap);
-        if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
-            map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1));
-            // Apply pan offset after fitting bounds
-            map.once('zoomend', function() {
-                if (MAP_PAN_OFFSET[0] !== 0 || MAP_PAN_OFFSET[1] !== 0) {
-                    map.panBy(MAP_PAN_OFFSET);
-                }
-            });
-        } else {
-            map.setView(MAP_CENTER, MAP_ZOOM);
-        }
+        
+        markersLayer.addLayer(marker);
+        visibleMarkers.push(marker);
+    });
+    heatLayer.setLatLngs(heatPoints);
+    updateInfoPanel(filteredHomicideDataForMap);
+
+    if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
+        // FIXED: Use fitBounds with padding options for a smooth, offset zoom
+        map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1), FIT_BOUNDS_OPTIONS);
+    } else {
+        map.setView(MAP_CENTER, MAP_ZOOM);
     }
+}
     
     function setupModals() {
         const aboutModal = document.getElementById("aboutDataModal");
@@ -1288,3 +1286,4 @@
 </script>
 </body>
 </html>
+
