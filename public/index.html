@@ -884,6 +884,9 @@
             minZoom: MAP_ZOOM,
             zoomControl: false 
         }).setView(MAP_CENTER, MAP_ZOOM);
+        if (window.innerWidth > 900) {
+    map.panBy([70, 0], { animate: false });
+        }
         
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -940,11 +943,16 @@
         heatLayer.setLatLngs(heatPoints);
         updateInfoPanel(filteredHomicideDataForMap);
         if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
-            map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1));
-        } else {
-            map.setView(MAP_CENTER, MAP_ZOOM);
-        }
+    map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1));
+    if (window.innerWidth > 900) {
+        map.panBy([70, 0], { animate: false });
     }
+} else {
+    map.setView(MAP_CENTER, MAP_ZOOM);
+    if (window.innerWidth > 900) {
+        map.panBy([70, 0], { animate: false });
+    }
+}
     
     function setupModals() {
         const aboutModal = document.getElementById("aboutDataModal");
@@ -1266,3 +1274,4 @@
 </script>
 </body>
 </html>
+
