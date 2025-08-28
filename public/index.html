@@ -1151,59 +1151,59 @@ function updateMapDisplay() {
         }
     }
 
-    function updateHomicideTrendsChart() {
-        const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
-        if (homicideTrendsChartInstance) homicideTrendsChartInstance.destroy();
-        const getRunningTotalData = (year) => {
-            const yearData = allHomicideData.filter(d => d.Year === year).sort((a, b) => new Date(a.Date) - new Date(b.Date));
-            const chartDataPoints = [];
-            const commonAxisYear = 2000; 
-            let cumulativeCount = 0;
-            let homicideDataIndex = 0;
-            let loopEndDate = (year === CURRENT_YEAR) ? new Date() : new Date(year, 11, 31);
-            for (let dLoop = new Date(year, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
-                const currentLoopDayFormatted = dLoop.toISOString().split('T')[0];
-                while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
-                    cumulativeCount++;
-                    homicideDataIndex++;
-                }
-                chartDataPoints.push({
-                    x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
-                    y: cumulativeCount 
-                });
+ function updateHomicideTrendsChart() {
+    const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
+    if (homicideTrendsChartInstance) homicideTrendsChartInstance.destroy();
+    const getRunningTotalData = (year) => {
+        const yearData = allHomicideData.filter(d => d.Year === year).sort((a, b) => new Date(a.Date) - new Date(b.Date));
+        const chartDataPoints = [];
+        const commonAxisYear = 2000; 
+        let cumulativeCount = 0;
+        let homicideDataIndex = 0;
+        let loopEndDate = (year === CURRENT_YEAR) ? new Date() : new Date(year, 11, 31);
+        for (let dLoop = new Date(year, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
+            const currentLoopDayFormatted = dLoop.toISOString().split('T')[0];
+            while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
+                cumulativeCount++;
+                homicideDataIndex++;
             }
-            if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
-                chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
-            }
-            return chartDataPoints;
-        };
-        
-        // FIXED: Added tooltipFormat to clean up the tooltip display
-        const trendChartOptions = { 
-            ...getChartOptions(() => {}), 
-            scales: { 
-                x: { 
-                    type: 'time', 
-                    time: { 
-                        unit: 'month',
-                        tooltipFormat: 'MMM dd' // This formats the tooltip
-                        displayFormats: {
-                            month: 'MMM'
-                        }
-                    } 
-                }, 
-                y: { beginAtZero: true } 
-            } 
-        };
+            chartDataPoints.push({
+                x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
+                y: cumulativeCount 
+            });
+        }
+        if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
+            chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
+        }
+        return chartDataPoints;
+    };
+    
+    // FIXED: Added displayFormats to clean up the axis labels
+    const trendChartOptions = { 
+        ...getChartOptions(() => {}), 
+        scales: { 
+            x: { 
+                type: 'time', 
+                time: { 
+                    unit: 'month',
+                    tooltipFormat: 'MMM dd', // This formats the hover tooltip
+                    displayFormats: {
+                        month: 'MMM' // This formats the axis label
+                    }
+                } 
+            }, 
+            y: { beginAtZero: true } 
+        } 
+    };
 
-        homicideTrendsChartInstance = new Chart(ctx, { type: 'line', data: {
-            datasets: [
-                { label: String(CURRENT_YEAR), data: getRunningTotalData(CURRENT_YEAR), borderColor: '#dc3545', tension: 0.1 },
-                { label: String(PREVIOUS_YEAR), data: getRunningTotalData(PREVIOUS_YEAR), borderColor: '#007bff', tension: 0.1 }
-            ]},
-            options: trendChartOptions
-        });
-    }
+    homicideTrendsChartInstance = new Chart(ctx, { type: 'line', data: {
+        datasets: [
+            { label: String(CURRENT_YEAR), data: getRunningTotalData(CURRENT_YEAR), borderColor: '#dc3545', tension: 0.1 },
+            { label: String(PREVIOUS_YEAR), data: getRunningTotalData(PREVIOUS_YEAR), borderColor: '#007bff', tension: 0.1 }
+        ]},
+        options: trendChartOptions
+    });
+}
 
     function updateDemographicCharts() {
         const ageGroups = { '0-17': 0, '18-29': 0, '30-49': 0, '50+': 0, 'Unknown': 0 };
@@ -1288,6 +1288,7 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
 
 
