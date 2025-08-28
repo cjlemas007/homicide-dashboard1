@@ -884,9 +884,6 @@
             minZoom: MAP_ZOOM,
             zoomControl: false 
         }).setView(MAP_CENTER, MAP_ZOOM);
-        if (window.innerWidth > 900) {
-    map.panBy([70, 0], { animate: false });
-        }
         
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -943,16 +940,11 @@
         heatLayer.setLatLngs(heatPoints);
         updateInfoPanel(filteredHomicideDataForMap);
         if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
-    map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1));
-    if (window.innerWidth > 900) {
-        map.panBy([70, 0], { animate: false });
+            map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1));
+        } else {
+            map.setView(MAP_CENTER, MAP_ZOOM);
+        }
     }
-} else {
-    map.setView(MAP_CENTER, MAP_ZOOM);
-    if (window.innerWidth > 900) {
-        map.panBy([70, 0], { animate: false });
-    }
-}
     
     function setupModals() {
         const aboutModal = document.getElementById("aboutDataModal");
@@ -997,7 +989,7 @@
     function populateFiltersForMap(isInitialLoad = false) {
         const yearContainer = document.getElementById('yearFilter');
         if (isInitialLoad) {
-            const allYears = Array.from(new Set(allHomicideData.map(d => d.Year))).sort((a, b) => b - a);
+            const allYears = [...new Set(allHomicideData.map(d => d.Year))].sort((a, b) => b - a);
             populateCheckboxFilter('yearFilter', allYears.filter(y => y >= START_YEAR_DATA), [CURRENT_YEAR], handleYearFilterChange);
         }
         const selectedYears = Array.from(yearContainer.querySelectorAll('input:checked')).map(cb => parseInt(cb.value));
@@ -1274,5 +1266,3 @@
 </script>
 </body>
 </html>
-
-
