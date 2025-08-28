@@ -997,7 +997,7 @@
     function populateFiltersForMap(isInitialLoad = false) {
         const yearContainer = document.getElementById('yearFilter');
         if (isInitialLoad) {
-            const allYears = [...new Set(allHomicideData.map(d => d.Year))].sort((a, b) => b - a);
+            const allYears = Array.from(new Set(allHomicideData.map(d => d.Year))).sort((a, b) => b - a);
             populateCheckboxFilter('yearFilter', allYears.filter(y => y >= START_YEAR_DATA), [CURRENT_YEAR], handleYearFilterChange);
         }
         const selectedYears = Array.from(yearContainer.querySelectorAll('input:checked')).map(cb => parseInt(cb.value));
@@ -1274,4 +1274,5 @@
 </script>
 </body>
 </html>
+
 
