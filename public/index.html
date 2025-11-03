@@ -1046,9 +1046,38 @@ function updateMapDisplay() {
         document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: ${count}`;
     }
 
+ // MODIFIED: Added logic to show placeholder during the first week of January
     function updateRankingBanner() {
         const banner = document.getElementById('rankingBanner');
         const tickerWrap = document.getElementById('tickerWrap');
+        
+        // --- NEW LOGIC ---
+        // Get current date components
+        const today = new Date();
+        const month = today.getMonth(); // 0 = January
+        const dayOfMonth = today.getDate(); // 1-31
+
+        // Check if it's the first week of January (days 1-7)
+        if (month === 0 && dayOfMonth >= 1 && dayOfMonth <= 7) {
+            // It's the first week of Jan, show placeholder
+            tickerWrap.innerHTML = `<div class="ticker-item" style="padding-left: 1rem; padding-right: 1rem;">Homicide rate data will be updated after January 7.</div>`;
+            banner.style.backgroundColor = `var(--rank-banner-error-bg)`; // Use the neutral grey
+            // Ensure animation is stopped and text is centered
+            tickerWrap.style.animation = 'none'; 
+            tickerWrap.style.padding = '6px 0'; // Restore padding
+            tickerWrap.style.display = 'block'; // Ensure it behaves as a block
+            tickerWrap.style.textAlign = 'center'; // Center the text
+            return; // Skip the rest of the function
+        }
+        // --- END NEW LOGIC ---
+
+        // If not the first week of Jan, run the normal ranking logic
+        // Restore animation and styles for ticker
+        tickerWrap.style.animation = 'ticker 40s linear infinite';
+        tickerWrap.style.display = 'inline-block';
+        tickerWrap.style.padding = '6px 0';
+        tickerWrap.style.textAlign = 'left';
+
         const jacksonCount = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
         const jacksonRate = (jacksonCount / JACKSON_POPULATION) * 100000;
         if (!cityComparisonData || cityComparisonData.length === 0) {
@@ -1061,8 +1090,8 @@ function updateMapDisplay() {
         const jacksonRank = citiesWithRates.findIndex(c => c.name === 'Jackson, MS') + 1;
         let bannerColorVar = jacksonRank === 1 ? '--rank-banner-rank1-bg' : (jacksonRank <= 5 ? '--rank-banner-rank2to5-bg' : '--rank-banner-ranklow-bg');
         banner.style.backgroundColor = `var(${bannerColorVar})`;
-        const top5 = citiesWithRates.slice(0,10);
-        const tickerItems = ["Top 10 Homicide Rates (per 100k)"];
+        const top5 = citiesWithRates.slice(0, 10);
+        const tickerItems = ["Top 5 Homicide Rates (per 100k)"];
         top5.forEach((c, i) => tickerItems.push(`${i + 1}. ${c.name} <span>(${c.rate.toFixed(1)})</span>`));
         if (!top5.some(c => c.name === 'Jackson, MS') && jacksonRank > 0) {
             tickerItems.push(`... | ${jacksonRank}. Jackson, MS <span>(${jacksonRate.toFixed(1)})</span>`);
@@ -1070,7 +1099,7 @@ function updateMapDisplay() {
         const tickerText = tickerItems.join(' &nbsp; | &nbsp; ');
         tickerWrap.innerHTML = `<div class="ticker-item">${tickerText}</div><div class="ticker-item">${tickerText}</div>`;
     }
-    
+      
     function updatePercentageChangeDisplay() {
         const div = document.getElementById('percentageChangeText');
         const today = new Date();
@@ -1369,5 +1398,6 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
 
