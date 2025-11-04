@@ -1338,7 +1338,7 @@ function updateMapDisplay() {
     }
 
     function updateHomicidesByAgencyChart() {
-        const counts = filteredHomicideDataForMap.reduce((acc, d) => { acc[d['Investigating Agency'] || 'Unknown'] = (acc[d['InvestCigating Agency'] || 'Unknown'] || 0) + 1; return acc; }, {});
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => { acc[d['Investigating Agency'] || 'Unknown'] = (acc[d['Investigating Agency'] || 'Unknown'] || 0) + 1; return acc; }, {});
         if (homicidesByAgencyChartInstance) homicidesByAgencyChartInstance.destroy();
         homicidesByAgencyChartInstance = new Chart(document.getElementById('homicidesByAgencyChart'), { type: 'pie', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}} });
     }
@@ -1398,6 +1398,7 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
 
 
