@@ -1091,7 +1091,7 @@ function updateMapDisplay() {
         let bannerColorVar = jacksonRank === 1 ? '--rank-banner-rank1-bg' : (jacksonRank <= 5 ? '--rank-banner-rank2to5-bg' : '--rank-banner-ranklow-bg');
         banner.style.backgroundColor = `var(${bannerColorVar})`;
         const top5 = citiesWithRates.slice(0, 10);
-        const tickerItems = ["Top 5 Homicide Rates (per 100k)"];
+        const tickerItems = ["Top 10 Homicide Rates (per 100k)"];
         top5.forEach((c, i) => tickerItems.push(`${i + 1}. ${c.name} <span>(${c.rate.toFixed(1)})</span>`));
         if (!top5.some(c => c.name === 'Jackson, MS') && jacksonRank > 0) {
             tickerItems.push(`... | ${jacksonRank}. Jackson, MS <span>(${jacksonRate.toFixed(1)})</span>`);
@@ -1398,6 +1398,7 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
 
 
