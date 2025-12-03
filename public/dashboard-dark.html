@@ -528,3 +528,579 @@
             populateFiltersForMap(true);
             updateDashboard();
         }
+    }
+
+    // --- Placeholder Data Functions ---
+    function getPlaceholderHomicideData() {
+        return {
+            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year"],
+            entries: [
+                [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR],
+                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR],
+                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln, Jackson, MS", 'Jim Brown', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR]
+            ]
+        };
+    }
+
+    function getPlaceholderCityData() {
+        return [
+            { City: 'St. Louis, MO', Homicides: 190, Population: 286578 },
+            { City: 'Baltimore, MD', Homicides: 330, Population: 569931 },
+        ];
+    }
+
+    // --- Data Processing Logic ---
+    function processHomicideData(rawData) {
+        if (!rawData || !rawData.headers || !rawData.entries) {
+            return [];
+        }
+        const headers = rawData.headers.map(h => String(h).trim().toLowerCase());
+        const getHeaderIndex = (names) => names.map(name => headers.indexOf(name.toLowerCase())).find(index => index !== -1) ?? -1;
+        
+        const indices = {
+            victim: getHeaderIndex(['Victim']), age: getHeaderIndex(['Age']), race: getHeaderIndex(['Race']),
+            sex: getHeaderIndex(['Sex']), circumstance: getHeaderIndex(['Circumstance']), date: getHeaderIndex(['Date']),
+            address: getHeaderIndex(['Address', 'Location']), agency: getHeaderIndex(['Investigating Agency', 'Agency']),
+            lat: getHeaderIndex(['Latitude', 'Lat']), lon: getHeaderIndex(['Longitude', 'Lon', 'Long']),
+            year: getHeaderIndex(['Year']), month: getHeaderIndex(['Month']), day: getHeaderIndex(['Day'])
+        };
+
+        return rawData.entries.map((entry, i) => {
+            let dateObj;
+            const dateStr = entry[indices.date] ? String(entry[indices.date]).trim() : '';
+            
+            if (dateStr) {
+                if (dateStr.includes('-')) { dateObj = new Date(dateStr + "T00:00:00"); } 
+                else if (dateStr.includes('/')) {
+                    const parts = dateStr.split('/');
+                    if (parts.length === 3) { 
+                        let year = parseInt(parts[2]);
+                        if (year < 100) year += 2000;
+                        dateObj = new Date(year, parseInt(parts[0]) - 1, parseInt(parts[1])); 
+                    }
+                }
+            }
+            if (!dateObj || isNaN(dateObj.getTime())) {
+                const year = parseInt(entry[indices.year]), month = parseInt(entry[indices.month]), day = parseInt(entry[indices.day]);
+                if (!isNaN(year) && !isNaN(month) && !isNaN(day)) { dateObj = new Date(year, month - 1, day); }
+            }
+
+            const lat = parseFloat(entry[indices.lat]), lon = parseFloat(entry[indices.lon]);
+            if (!dateObj || isNaN(dateObj.getTime()) || isNaN(lat) || isNaN(lon)) return null;
+            
+            return {
+                Victim: entry[indices.victim] || 'N/A', Age: entry[indices.age] ? parseInt(entry[indices.age]) : null, Race: entry[indices.race] || 'N/A',
+                Date: dateObj.toISOString().split('T')[0], DisplayDate: dateStr, Address: entry[indices.address] || 'N/A',
+                'Investigating Agency': entry[indices.agency] || 'N/A', Latitude: lat, Longitude: lon, Year: dateObj.getFullYear(),
+                Circumstance: entry[indices.circumstance] || 'N/A'
+            };
+        }).filter(Boolean);
+    }
+
+    async function fetchDataAndProcess(url, isMainHomicideData = false) {
+        if (isMainHomicideData) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Network response was not ok for ${url}`);
+                const rawData = await response.json();
+                return processHomicideData(rawData);
+            } catch (error) {
+                console.warn(`Using placeholder data due to:`, error);
+                return processHomicideData(getPlaceholderHomicideData());
+            }
+        } else {
+             try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Network response was not ok for ${url}`);
+                const rawData = await response.json();
+                if (!rawData || !rawData.values) return getPlaceholderCityData();
+                const [headerRow, ...dataRows] = rawData.values;
+                const headers = headerRow.map(h => h.trim().toLowerCase());
+                const cityIndex = headers.indexOf('city'), homicidesIndex = headers.indexOf('homicides'), populationIndex = headers.indexOf('population');
+                return dataRows.map(row => ({
+                    City: row[cityIndex]?.trim(),
+                    Homicides: parseInt(String(row[homicidesIndex]).replace(/,/g, '')),
+                    Population: parseInt(String(row[populationIndex]).replace(/,/g, ''))
+                })).filter(d => d.City && d.Homicides >= 0 && d.Population > 0);
+            } catch (error) {
+                return getPlaceholderCityData();
+            }
+        }
+    }
+
+    function updateInfoPanel(data) {
+        if (!infoPanel) return;
+        if (data && !Array.isArray(data)) {
+            const d = data;
+            infoPanel.innerHTML = `
+                <h4 style="color:var(--accent-red)">${d.Victim || 'Unknown Victim'}</h4>
+                <div class="info-details" style="font-size:0.8rem; margin-top:10px;">
+                    <ul style="list-style:none; padding:0;">
+                        ${d.Age ? `<li><strong>Age:</strong> ${d.Age}</li>` : ''}
+                        ${d.Race ? `<li><strong>Race:</strong> ${d.Race}</li>` : ''}
+                        ${d.DisplayDate ? `<li><strong>Date:</strong> ${d.DisplayDate}</li>` : ''}
+                        ${d.Address ? `<li><strong>Address:</strong> ${d.Address}</li>` : ''}
+                        ${d['Investigating Agency'] ? `<li><strong>Agency:</strong> ${d['Investigating Agency']}</li>` : ''}
+                        ${d.Circumstance ? `<li><strong>Circumstance:</strong> ${d.Circumstance}</li>` : ''}
+                    </ul>
+                    <button id="back-to-summary-btn" style="margin-top:10px; width:100%; background:var(--accent-blue); border:none; color:white; padding:5px; border-radius:4px; cursor:pointer;">Close</button>
+                </div>`;
+            
+            document.getElementById('back-to-summary-btn').addEventListener('click', () => {
+                if (selectedMarker) {
+                    selectedMarker.setStyle(defaultMarkerStyle);
+                    selectedMarker = null;
+                }
+                updateInfoPanel(filteredHomicideDataForMap);
+            });
+
+        } else {
+            const totalCount = data.length;
+            infoPanel.innerHTML = `
+                <h4>Area Summary</h4>
+                <div class="info-summary">
+                    <div style="font-size:1.5rem; font-family:'Orbitron'; color:white; margin:10px 0;">${totalCount}</div>
+                    <div style="font-size:0.7rem;">Homicides visible in current filter</div>
+                    <p style="font-style: italic; font-size: 0.7rem; color: var(--accent-blue); margin-top:10px;">Click a marker for details</p>
+                </div>`;
+        }
+    }
+
+    function initMap() {
+        map = L.map('map', { 
+            scrollWheelZoom: true, // Enabled for dashboard feel
+            minZoom: 10,
+            zoomControl: false 
+        }).setView(MAP_CENTER, MAP_ZOOM);
+        
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        updateMapTiles();
+        markersLayer.addTo(map);
+        loadBoundaryLayers();
+        
+        map.on('click', (e) => {
+            if (e.originalEvent && e.originalEvent._stopped) return; 
+            if (selectedMarker) {
+                selectedMarker.setStyle(defaultMarkerStyle);
+                selectedMarker = null;
+            }
+            updateInfoPanel(filteredHomicideDataForMap);
+        });
+    }
+
+    function updateMapDisplay() {
+        const selectedYears = Array.from(document.querySelectorAll('#yearFilter input:checked')).map(cb => parseInt(cb.value));
+        const selectedAgencies = Array.from(document.querySelectorAll('#agencyFilter input:checked')).map(cb => cb.value);
+        const selectedCircumstance = document.getElementById('circumstanceFilter').value;
+        filteredHomicideDataForMap = allHomicideData.filter(d => 
+            selectedYears.includes(d.Year) &&
+            selectedAgencies.includes(d['Investigating Agency']) &&
+            (!selectedCircumstance || d.Circumstance === selectedCircumstance)
+        );
+        markersLayer.clearLayers();
+        const visibleMarkers = [];
+        
+        filteredHomicideDataForMap.forEach(d => {
+            const latLng = [d.Latitude, d.Longitude];
+            
+            const marker = L.circleMarker(latLng, { ...defaultMarkerStyle, bubblingMouseEvents: false });
+            
+            marker.on('click', (e) => {
+                if (e.originalEvent) L.DomEvent.stop(e.originalEvent); else L.DomEvent.stop(e);
+                if (selectedMarker) {
+                    selectedMarker.setStyle(defaultMarkerStyle);
+                }
+                marker.setStyle(selectedMarkerStyle);
+                selectedMarker = marker;
+                updateInfoPanel(d);
+            });
+            
+            markersLayer.addLayer(marker);
+            visibleMarkers.push(marker);
+        });
+        updateInfoPanel(filteredHomicideDataForMap);
+
+        if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
+            map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1), FIT_BOUNDS_OPTIONS);
+        } else {
+            map.setView(MAP_CENTER, MAP_ZOOM);
+        }
+    }
+    
+    function setupModals() {
+        const aboutModal = document.getElementById("aboutDataModal");
+        const openAboutBtn = document.getElementById("openAboutModal");
+        const closeAboutBtn = document.getElementById("closeAboutModal");
+        openAboutBtn.onclick = (e) => { e.preventDefault(); aboutModal.style.display = "flex"; };
+        closeAboutBtn.onclick = () => { aboutModal.style.display = "none"; };
+
+        const tipModal = document.getElementById("tipModal");
+        const openTipBtn = document.getElementById("openTipModal");
+        const closeTipBtn = document.getElementById("closeTipModal");
+        if(openTipBtn) openTipBtn.onclick = () => { tipModal.style.display = "flex"; };
+        if(closeTipBtn) closeTipBtn.onclick = () => { tipModal.style.display = "none"; };
+        
+        window.onclick = (event) => {
+            if (event.target == aboutModal) aboutModal.style.display = "none";
+            if (event.target == tipModal) tipModal.style.display = "none";
+        };
+    }
+    
+    function setupChartToggles() {
+        document.getElementById('toggleYearRangeBtn')?.addEventListener('click', () => {
+            showAllYears = !showAllYears;
+            document.getElementById('toggleYearRangeBtn').textContent = showAllYears ? 'Show Recent' : 'Show History';
+            updateHomicidesByYearChart();
+        });
+    }
+
+    function populateFiltersForMap(isInitialLoad = false) {
+        const yearContainer = document.getElementById('yearFilter');
+        if (isInitialLoad) {
+            const allYears = [...new Set(allHomicideData.map(d => d.Year))].sort((a, b) => b - a);
+            populateCheckboxFilter('yearFilter', allYears.filter(y => y >= START_YEAR_DATA), [CURRENT_YEAR], handleYearFilterChange);
+        }
+        const selectedYears = Array.from(yearContainer.querySelectorAll('input:checked')).map(cb => parseInt(cb.value));
+        const dataForDependentFilters = allHomicideData.filter(d => selectedYears.includes(d.Year));
+        const agenciesToShow = [...new Set(dataForDependentFilters.map(d => d['Investigating Agency']))].filter(Boolean).sort();
+        populateCheckboxFilter('agencyFilter', agenciesToShow, agenciesToShow, updateDashboard);
+        const circumstancesToShow = [...new Set(dataForDependentFilters.map(d => d.Circumstance))].filter(Boolean).sort();
+        const circumstanceSelect = document.getElementById('circumstanceFilter');
+        circumstanceSelect.innerHTML = '<option value="">All Circumstances</option>';
+        circumstancesToShow.forEach(c => circumstanceSelect.add(new Option(c, c)));
+        circumstanceSelect.onchange = updateDashboard;
+    }
+
+    function handleYearFilterChange() {
+        populateFiltersForMap(false);
+        updateDashboard();
+    }
+
+    function populateCheckboxFilter(elementId, values, defaultSelected, changeCallback) {
+        const container = document.getElementById(elementId);
+        const previouslySelected = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+        container.innerHTML = '';
+        values.forEach(val => {
+            const div = document.createElement('div');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${elementId}_${String(val).replace(/\s+/g, '_')}`;
+            checkbox.value = val;
+            checkbox.checked = defaultSelected.includes(val) || previouslySelected.includes(String(val));
+            checkbox.addEventListener('change', changeCallback);
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = val;
+            div.append(checkbox, label);
+            container.appendChild(div);
+        });
+    }
+
+    function updateCurrentYearHomicideCount() {
+        const count = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
+        // Updating the new big stat display
+        document.getElementById('homicideCountDisplay').innerText = count;
+        // Keeping hidden one for logic
+        document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: ${count}`;
+    }
+
+    function updateRankingBanner() {
+        const tickerWrap = document.getElementById('tickerWrap');
+        const jacksonCount = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
+        const jacksonRate = (jacksonCount / JACKSON_POPULATION) * 100000;
+        
+        if (!cityComparisonData || cityComparisonData.length === 0) {
+            tickerWrap.innerHTML = `<div class="ticker-item">Comparison data unavailable.</div>`;
+            return;
+        }
+        
+        const citiesWithRates = cityComparisonData.map(c => ({ name: c.City, rate: (c.Homicides / c.Population) * 100000 }));
+        citiesWithRates.push({ name: 'Jackson, MS', rate: jacksonRate });
+        citiesWithRates.sort((a, b) => b.rate - a.rate);
+        
+        const top5 = citiesWithRates.slice(0, 10);
+        const tickerItems = ["Top 10 Homicide Rates (per 100k)"];
+        top5.forEach((c, i) => tickerItems.push(`${i + 1}. ${c.name} <span style="color:var(--accent-red)">(${c.rate.toFixed(1)})</span>`));
+        
+        const tickerText = tickerItems.join(' &nbsp; | &nbsp; ');
+        tickerWrap.innerHTML = `<div class="ticker-item">${tickerText}</div><div class="ticker-item">${tickerText}</div>`;
+    }
+      
+    function updatePercentageChangeDisplay() {
+        const div = document.getElementById('percentageChangeText');
+        const today = new Date();
+        const dayOfYear = (Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 0)) / 86400000;
+        const getCountUpToDay = (year, day) => allHomicideData.filter(d => {
+            if (d.Year !== year || !d.Date) return false;
+            const itemDate = new Date(d.Date + 'T00:00:00');
+            const itemDayOfYear = (Date.UTC(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()) - Date.UTC(itemDate.getFullYear(), 0, 0)) / 86400000;
+            return itemDayOfYear <= day;
+        }).length;
+        const currentYTD = getCountUpToDay(CURRENT_YEAR, dayOfYear);
+        const prevYTD = getCountUpToDay(PREVIOUS_YEAR, dayOfYear);
+        let text = "N/A", colorVar = 'var(--percentage-neutral)';
+        if (prevYTD > 0) {
+            const change = ((currentYTD - prevYTD) / prevYTD) * 100;
+            text = `${change > 0 ? '+' : ''}${change.toFixed(0)}%`;
+            colorVar = change > 0 ? 'var(--percentage-increase)' : 'var(--percentage-decrease)';
+            if (change === 0) colorVar = 'var(--percentage-neutral)';
+        } else if (currentYTD > 0) {
+            text = `+${currentYTD}`; colorVar = 'var(--percentage-increase)';
+        } else { text = "0%"; }
+        div.innerText = text;
+        div.style.color = colorVar;
+    }
+
+    function updateProjectedYearEndTotal() {
+        const div = document.getElementById('projectedYearEndText');
+        const today = new Date();
+        const start = new Date(today.getFullYear(), 0, 0);
+        const diff = today - start;
+        const oneDay = 1000 * 60 * 60 * 24;
+        const dayOfYear = Math.floor(diff / oneDay);
+        const currentYTD = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
+
+        if (dayOfYear > 0 && currentYTD > 0) {
+            const projection = (currentYTD / dayOfYear) * (today.getFullYear() % 4 === 0 ? 366 : 365); 
+            div.innerText = Math.round(projection);
+        } else {
+            div.innerText = currentYTD; 
+        }
+    }
+
+    function updateMonthlyTrend() {
+        // Logic kept for rolling average calculation, even if display is hidden
+        const thisMonthDiv = document.getElementById('thisMonthValue');
+        const fiveYearAvgDiv = document.getElementById('fiveYearAvgValue');
+        const today = new Date(), month = today.getMonth(), year = today.getFullYear();
+        const thisMonthCount = allHomicideData.filter(d => new Date(d.Date + 'T00:00:00').getFullYear() === year && new Date(d.Date + 'T00:00:00').getMonth() === month).length;
+        let total = 0, years = 0;
+        for (let i = 1; i <= 5; i++) {
+            total += allHomicideData.filter(d => new Date(d.Date + 'T00:00:00').getFullYear() === (year - i) && new Date(d.Date + 'T00:00:00').getMonth() === month).length;
+            years++;
+        }
+        const avg = years > 0 ? (total / years) : 0;
+        if(thisMonthDiv) thisMonthDiv.innerText = thisMonthCount;
+        if(fiveYearAvgDiv) fiveYearAvgDiv.innerText = avg.toFixed(1);
+    }
+   
+    function calculateRollingAverage(days) {
+        const today = new Date();
+        today.setHours(23, 59, 59, 999);
+        const daysAgo = new Date(new Date().setDate(today.getDate() - days));
+        daysAgo.setHours(0, 0, 0, 0); 
+        const count = allHomicideData.filter(d => {
+            const date = new Date(d.Date + 'T00:00:00'); 
+            return date >= daysAgo && date <= today;
+        }).length;
+        return count;
+    }
+
+    function updateRolling30DayTrend() {
+        document.getElementById('rolling30DayText').innerText = calculateRollingAverage(30);
+    }
+
+    // --- CHART CONFIGURATION FOR DARK MODE ---
+    function getChartOptions(tooltipCallback) {
+        // Dark Mode Override
+        const textColor = '#94a3b8';
+        const gridColor = '#2d3748';
+        return {
+            responsive: true, maintainAspectRatio: false,
+            scales: { 
+                x: { ticks: { color: textColor }, grid: { color: gridColor } }, 
+                y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } } 
+            },
+            plugins: { 
+                legend: { position: 'top', labels: { color: textColor } }, 
+                tooltip: { mode: 'index', intersect: false, callbacks: { label: tooltipCallback } } 
+            }
+        };
+    }
+
+    function updateHomicidesByYearChart() {
+        const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
+        if (homicidesByYearChartInstance) homicidesByYearChartInstance.destroy();
+        const chartOptions = getChartOptions(() => {});
+        // Force hide legend for clean look on small charts
+        chartOptions.plugins.legend.display = false;
+        
+        if (showAllYears) {
+            const yearlyTotals = {};
+            historicalHomicideData.forEach(d => { yearlyTotals[d.year] = d.total; });
+            allHomicideData.forEach(d => { yearlyTotals[d.Year] = (yearlyTotals[d.Year] || 0) + 1; });
+            const years = Object.keys(yearlyTotals).map(Number).sort((a, b) => a - b).filter(y => y <= CURRENT_YEAR);
+            const totals = years.map(y => yearlyTotals[y]);
+            homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: years, datasets: [{ label: 'Total Homicides', data: totals, backgroundColor: agencyColors['Historical'] }] }, options: chartOptions });
+        } else {
+            const yearlyTotals = {};
+            const years = Array.from({length: CURRENT_YEAR - START_YEAR_DATA + 1}, (_, i) => START_YEAR_DATA + i);
+            years.forEach(y => yearlyTotals[y] = { [AGENCY_CATEGORIES.JPD]: 0, [AGENCY_CATEGORIES.CAPITOL_POLICE]: 0, [AGENCY_CATEGORIES.OTHER]: 0 });
+            allHomicideData.forEach(d => {
+                if (d.Year >= START_YEAR_DATA) {
+                    const cat = d['Investigating Agency'] === 'JPD' ? 'JPD' : (d['Investigating Agency'] === 'Capitol Police' ? 'Capitol Police' : 'Other Agencies');
+                    yearlyTotals[d.Year][cat]++;
+                }
+            });
+            chartOptions.scales.x.stacked = true; chartOptions.scales.y.stacked = true;
+            const datasets = Object.values(AGENCY_CATEGORIES).map(cat => ({ label: cat, data: years.map(y => yearlyTotals[y][cat]), backgroundColor: agencyColors[cat] }));
+            homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: years, datasets }, options: chartOptions });
+        }
+    }
+
+    function updateHomicideTrendsChart() {
+        const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
+        if (homicideTrendsChartInstance) homicideTrendsChartInstance.destroy();
+        
+        const getRunningTotalData = (year) => {
+            const yearData = allHomicideData.filter(d => d.Year === year).sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            const chartDataPoints = [];
+            const commonAxisYear = 2000; 
+            let cumulativeCount = 0;
+            let homicideDataIndex = 0;
+            let loopEndDate = (year === CURRENT_YEAR) ? new Date() : new Date(year, 11, 31);
+            
+            for (let dLoop = new Date(year, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
+                const currentLoopDayFormatted = dLoop.toISOString().split('T')[0];
+                while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
+                    cumulativeCount++;
+                    homicideDataIndex++;
+                }
+                chartDataPoints.push({
+                    x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
+                    y: cumulativeCount 
+                });
+            }
+            if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
+                chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
+            }
+            return chartDataPoints;
+        };
+        
+        const trendChartOptions = { 
+            ...getChartOptions(() => {}), 
+            scales: { 
+                x: { 
+                    type: 'time', 
+                    time: { unit: 'month', tooltipFormat: 'MMM dd', displayFormats: { month: 'MMM' } },
+                    grid: { color: '#2d3748' }, ticks: { color: '#94a3b8' }
+                }, 
+                y: { beginAtZero: true, grid: { color: '#2d3748' }, ticks: { color: '#94a3b8' } } 
+            } 
+        };
+
+        const paceColors = [
+            '#ef4444', // Current Year (Neon Red)
+            '#475569', // -1 Year (Slate)
+            '#334155', // -2 Year (Darker Slate)
+            '#1e293b', // -3 Year 
+            '#3b82f6', // -4 Year (Neon Blue)
+            '#10b981'  // -5 Year (Neon Green)
+        ];
+
+        const datasets = [];
+        for (let i = 0; i <= 5; i++) {
+            const year = CURRENT_YEAR - i;
+            if (year < START_YEAR_DATA) break; 
+            
+            datasets.push({
+                label: String(year),
+                data: getRunningTotalData(year),
+                borderColor: paceColors[i % paceColors.length],
+                borderWidth: (year === CURRENT_YEAR) ? 3 : 1,
+                tension: 0.1,
+                pointRadius: 0,
+                pointHoverRadius: 4
+            });
+        }
+
+        homicideTrendsChartInstance = new Chart(ctx, { 
+            type: 'line', 
+            data: { datasets: datasets.reverse() }, 
+            options: trendChartOptions
+        });
+    }
+
+    function updateDemographicCharts() {
+        const ageGroups = { '0-17': 0, '18-29': 0, '30-49': 0, '50+': 0, 'Unknown': 0 };
+        filteredHomicideDataForMap.forEach(d => {
+            const age = d.Age;
+            if (age === null) ageGroups['Unknown']++;
+            else if (age <= 17) ageGroups['0-17']++;
+            else if (age <= 29) ageGroups['18-29']++;
+            else if (age <= 49) ageGroups['30-49']++;
+            else ageGroups['50+']++;
+        });
+        const ageCtx = document.getElementById('victimsByAgeChart').getContext('2d');
+        if (victimsByAgeChartInstance) victimsByAgeChartInstance.destroy();
+        victimsByAgeChartInstance = new Chart(ageCtx, { type: 'bar', data: { labels: Object.keys(ageGroups), datasets: [{ label: 'Victims by Age', data: Object.values(ageGroups), backgroundColor: '#3b82f6' }] }, options: { ...getChartOptions(() => {}), plugins: { legend: { display: false } } } });
+    }
+    
+    function updateVictimsByRaceChart() {
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => { acc[d.Race || 'Unknown'] = (acc[d.Race || 'Unknown'] || 0) + 1; return acc; }, {});
+        if (victimsByRaceChartInstance) victimsByRaceChartInstance.destroy();
+        victimsByRaceChartInstance = new Chart(document.getElementById('victimsByRaceChart'), { type: 'doughnut', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#ef4444', '#3b82f6', '#fbbf24', '#10b981'], borderWidth:0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { color:'#94a3b8' } }}} });
+    }
+
+    function updateHomicidesByCircumstanceChart() {
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => { acc[d.Circumstance || 'Unknown'] = (acc[d.Circumstance || 'Unknown'] || 0) + 1; return acc; }, {});
+        if (homicidesByCircumstanceChartInstance) homicidesByCircumstanceChartInstance.destroy();
+        homicidesByCircumstanceChartInstance = new Chart(document.getElementById('homicidesByCircumstanceChart'), { type: 'bar', data: { labels: Object.keys(counts), datasets: [{ label: 'Count', data: Object.values(counts), backgroundColor: '#8b5cf6' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }}, scales: {x:{display:false}} } });
+    }
+
+    function updateHomicidesByAgencyChart() {
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => { acc[d['Investigating Agency'] || 'Unknown'] = (acc[d['Investigating Agency'] || 'Unknown'] || 0) + 1; return acc; }, {});
+        if (homicidesByAgencyChartInstance) homicidesByAgencyChartInstance.destroy();
+        homicidesByAgencyChartInstance = new Chart(document.getElementById('homicidesByAgencyChart'), { type: 'pie', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: ['#3b82f6', '#fbbf24', '#10b981'], borderWidth:0 }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display:false }}} });
+    }
+    
+    function updateDashboard() {
+        updateCurrentYearHomicideCount();
+        updateRankingBanner();
+        updatePercentageChangeDisplay();
+        updateMonthlyTrend(); 
+        updateRolling30DayTrend(); 
+        updateProjectedYearEndTotal();
+        
+        updateMapDisplay();
+        updateHomicidesByYearChart();
+        updateHomicideTrendsChart();
+        updateDemographicCharts();
+        updateVictimsByRaceChart();
+        updateHomicidesByCircumstanceChart();
+        updateHomicidesByAgencyChart();
+    }
+
+    function loadBoundaryLayers(){
+        const fetchGeoJSON = async (url, style, name) => {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const geojson = await response.json();
+                const layer = L.geoJSON(geojson, { style, interactive: false });
+                layer.addTo(map);
+                layer.bringToBack();
+                return layer;
+            } catch (error) { console.error(`Error loading ${name} GeoJSON:`, error); return null; }
+        };
+        Promise.all([
+            fetchGeoJSON(JACKSON_CITY_LIMITS_GEOJSON_URL, { color: `#fff`, weight: 2, opacity: 0.3, fillOpacity: 0.0, dashArray: '5, 5' }, "Jackson City Limits"),
+            fetchGeoJSON(CCID_GEOJSON_URL, { color: `#E65100`, weight: 2, opacity: 0.8, fillOpacity: 0.1 }, "CCID Boundary")
+        ]).then(() => {
+            // Layers loaded
+        });
+    }
+
+    function updateMapTiles() {
+        // Switched to CartoDB Dark Matter for the HUD look
+        if (currentMapTileLayer) map.removeLayer(currentMapTileLayer);
+        currentMapTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            subdomains: 'abcd',
+            maxZoom: 20
+        }).addTo(map);
+    }
+    </script>
+</body>
+</html>
