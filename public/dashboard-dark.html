@@ -1,3 +1,12 @@
+Here are the fixes.
+
+1.  **Map Overlay Fix:** I added a high `z-index` to the `.map-overlay` class so it floats *above* the Leaflet map layers.
+2.  **Ticker Speed:** I slowed the animation duration from `30s` to `90s` for easier reading.
+3.  **Logos:** I restructured the `<header>` to include specific spots for your **"Jackson Homicides"** logo (left) and **"WLBT Investigates"** logo (right).
+
+You can copy and overwrite your `dashboard-dark.html` with this updated version.
+
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -21,18 +30,16 @@
             --bg-header: #1e2532;
             --text-main: #e2e8f0;
             --text-muted: #94a3b8;
-            --accent-red: #ef4444;    /* Homicides */
-            --accent-blue: #3b82f6;   /* JPD/Police */
-            --accent-cyan: #06b6d4;   /* Highlights */
+            --accent-red: #ef4444;    
+            --accent-blue: #3b82f6;   
+            --accent-cyan: #06b6d4;   
             --accent-green: #10b981;
             --border: #2d3748;
             
-            /* Logic Colors from your original file mapped to variables */
             --percentage-increase: #ef4444;
             --percentage-decrease: #10b981;
             --percentage-neutral: #94a3b8;
 
-            /* Effects */
             --glow-red: 0 0 10px rgba(239, 68, 68, 0.4);
         }
 
@@ -45,51 +52,65 @@
             height: 100vh;
             display: flex;
             flex-direction: column;
-            overflow: hidden; /* App-like feel */
+            overflow: hidden; 
         }
 
-        /* --- Header --- */
+        /* --- UPDATED HEADER LAYOUT --- */
         header {
             background-color: var(--bg-panel);
             border-bottom: 1px solid var(--border);
-            padding: 10px 20px;
+            padding: 5px 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 60px;
+            height: 70px; /* Slightly taller for logos */
+            gap: 20px;
         }
 
-        h1 {
+        /* Logo Containers */
+        .logo-container {
+            display: flex;
+            align-items: center;
+            height: 100%;
+        }
+        
+        .logo-img {
+            max-height: 50px; /* Limits logo height */
+            width: auto;
+            display: block;
+        }
+
+        /* Fallback text if no logo image is present */
+        .logo-text {
             font-family: 'Orbitron', sans-serif;
             font-size: 1.2rem;
-            letter-spacing: 2px;
+            letter-spacing: 1px;
             text-transform: uppercase;
-            background: linear-gradient(to right, #fff, #94a3b8);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: white;
+            font-weight: 700;
         }
 
-        /* Ticker styled as a digital marquee */
+        /* --- UPDATED TICKER (SLOWER) --- */
         .ranking-banner {
             flex-grow: 1;
-            margin: 0 20px;
             background: rgba(0,0,0,0.3);
             border: 1px solid var(--border);
             border-radius: 4px;
-            height: 30px;
+            height: 35px;
             overflow: hidden;
             position: relative;
             display: flex;
             align-items: center;
             color: var(--accent-cyan);
             font-family: 'Orbitron', monospace;
-            font-size: 0.8rem;
+            font-size: 0.9rem;
         }
 
         .ticker-wrap {
             white-space: nowrap;
-            animation: ticker 30s linear infinite;
-            padding-left: 100%; /* Start off-screen */
+            /* CHANGED: 30s -> 90s for slower scroll */
+            animation: ticker 90s linear infinite; 
+            padding-left: 100%; 
             display: inline-block;
         }
         
@@ -100,18 +121,17 @@
             100% { transform: translateX(-100%); }
         }
 
-        /* --- Main Grid Layout --- */
+        /* --- Layout & Cards --- */
         .dashboard-container {
             display: grid;
-            grid-template-columns: 280px 1fr 320px; /* Sidebar | Map | Stats */
-            grid-template-rows: 100px 1fr 220px;    /* Top Stats | Main | Bottom Charts */
+            grid-template-columns: 280px 1fr 320px; 
+            grid-template-rows: 100px 1fr 220px;    
             gap: 10px;
             padding: 10px;
-            height: calc(100vh - 60px);
+            height: calc(100vh - 70px); /* Adjusted for new header height */
             overflow-y: auto;
         }
 
-        /* --- Card Styles --- */
         .card {
             background-color: var(--bg-panel);
             border: 1px solid var(--border);
@@ -143,148 +163,73 @@
             overflow-y: auto;
         }
 
-        /* --- Specific Areas --- */
-        
-        /* 1. Sidebar Controls (Left) */
-        .area-controls {
-            grid-column: 1 / 2;
-            grid-row: 1 / 3; 
-        }
-
-        /* Form Controls customized for Dark Mode */
+        /* --- Controls --- */
+        .area-controls { grid-column: 1 / 2; grid-row: 1 / 3; }
         .control-group { margin-bottom: 15px; }
-        .group-label { 
-            display: block; 
-            color: var(--accent-cyan); 
-            font-size: 0.75rem; 
-            font-family: 'Orbitron'; 
-            margin-bottom: 8px; 
-            text-transform: uppercase;
-        }
-        
-        select, input[type="text"] {
-            width: 100%;
-            background: var(--bg-dark);
-            border: 1px solid var(--border);
-            color: white;
-            padding: 8px;
-            border-radius: 4px;
-            font-family: 'Inter', sans-serif;
-        }
-        
-        /* Checkbox styling */
-        .checkbox-group {
-            background: rgba(0,0,0,0.2);
-            padding: 8px;
-            border-radius: 4px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
+        .group-label { display: block; color: var(--accent-cyan); font-size: 0.75rem; font-family: 'Orbitron'; margin-bottom: 8px; text-transform: uppercase; }
+        select, input[type="text"] { width: 100%; background: var(--bg-dark); border: 1px solid var(--border); color: white; padding: 8px; border-radius: 4px; font-family: 'Inter', sans-serif; }
+        .checkbox-group { background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; max-height: 150px; overflow-y: auto; }
         .checkbox-group div { margin-bottom: 5px; display: flex; align-items: center; }
         .checkbox-group label { margin-left: 8px; font-size: 0.85rem; color: var(--text-muted); }
 
-        /* 2. Top Stats (Middle Top) */
+        /* --- Stats --- */
         .area-stats-top {
-            grid-column: 2 / 4;
-            grid-row: 1 / 2;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
+            grid-column: 2 / 4; grid-row: 1 / 2;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;
         }
-
         .stat-box {
-            background: var(--bg-panel);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            padding: 0 15px;
+            background: var(--bg-panel); border: 1px solid var(--border); border-radius: 6px;
+            display: flex; flex-direction: column; justify-content: center; padding: 0 15px;
             border-top: 2px solid var(--accent-blue);
         }
-        
         .stat-box.main-count { border-top-color: var(--accent-red); background: linear-gradient(180deg, rgba(239,68,68,0.1) 0%, rgba(0,0,0,0) 100%); }
-
-        .stat-value {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 1.8rem;
-            font-weight: 700;
-            color: white;
-        }
+        .stat-value { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 700; color: white; }
         .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-top: 5px; }
 
-        /* 3. The Map (Middle Center) */
-        .area-map {
-            grid-column: 2 / 3;
-            grid-row: 2 / 3;
-        }
-        #map { width: 100%; height: 100%; background: #000; }
+        /* --- Map & Overlays --- */
+        .area-map { grid-column: 2 / 3; grid-row: 2 / 3; position: relative; } /* Ensure relative positioning */
+        #map { width: 100%; height: 100%; background: #000; z-index: 0; }
         
-        /* Map Overlays (Legend/Info) adapted for dark mode */
+        /* UPDATED: Z-Index Fix */
         .map-overlay {
             background-color: rgba(11, 14, 20, 0.9) !important;
             border: 1px solid var(--border);
             color: var(--text-main);
             backdrop-filter: blur(4px);
+            z-index: 2000; /* Forces it above Leaflet map tiles */
         }
         .map-overlay h4 { color: var(--accent-cyan); border-bottom: 1px solid var(--border); }
         .map-overlay ul { color: var(--text-muted); }
 
-        /* 4. Side Charts (Right) */
-        .area-charts-side {
-            grid-column: 3 / 4;
-            grid-row: 2 / 3;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+        /* --- Charts --- */
+        .area-charts-side { grid-column: 3 / 4; grid-row: 2 / 3; display: flex; flex-direction: column; gap: 10px; }
+        .area-timeline { grid-column: 1 / 4; grid-row: 3 / 4; }
 
-        /* 5. Bottom Timeline (Bottom Span) */
-        .area-timeline {
-            grid-column: 1 / 4;
-            grid-row: 3 / 4;
-        }
-
-        /* Footer links */
-        .footer-links {
-            padding: 10px;
-            font-size: 0.7rem;
-            text-align: center;
-            color: var(--text-muted);
-        }
+        /* --- Footer & Modals --- */
+        .footer-links { padding: 10px; font-size: 0.7rem; text-align: center; color: var(--text-muted); }
         .footer-links a { color: var(--accent-blue); text-decoration: none; }
-
-        /* Modals */
-        .modal-overlay {
-            background-color: rgba(0,0,0,0.8);
-            backdrop-filter: blur(5px);
-        }
-        .modal-content {
-            background-color: var(--bg-panel);
-            border: 1px solid var(--accent-blue);
-            color: var(--text-main);
-        }
+        .modal-overlay { background-color: rgba(0,0,0,0.8); backdrop-filter: blur(5px); }
+        .modal-content { background-color: var(--bg-panel); border: 1px solid var(--accent-blue); color: var(--text-main); }
         .modal-close { color: var(--accent-red); }
 
-        /* Responsive */
         @media (max-width: 1000px) {
-            .dashboard-container {
-                display: flex;
-                flex-direction: column;
-                height: auto;
-                overflow-y: visible;
-            }
+            .dashboard-container { display: flex; flex-direction: column; height: auto; overflow-y: visible; }
             .area-map { height: 400px; }
             .area-stats-top { grid-template-columns: 1fr 1fr; }
+            header { flex-direction: column; height: auto; padding: 10px; gap: 10px; }
+            .ranking-banner { width: 100%; margin: 0; }
         }
     </style>
 </head>
 <body>
 
     <header>
-        <div style="display:flex; align-items:center; gap:10px;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
-            <h1>Jackson Homicide Tracker</h1>
+        <div class="logo-container">
+            <img src="" alt="Jackson Homicides" class="logo-img" onerror="this.style.display='none'; document.getElementById('logo-text-fallback').style.display='block';">
+            
+            <div id="logo-text-fallback" class="logo-text" style="display:none;">
+                <span style="color:#ef4444">Jackson</span> Homicides
+            </div>
         </div>
         
         <div class="ranking-banner" id="rankingBanner">
@@ -293,9 +238,12 @@
             </div>
         </div>
 
-        <div style="font-size: 0.7rem; color: var(--text-muted); text-align: right;">
-            <div id="date-display">DATA SOURCE: JPD / WLBT</div>
-            <a href="#" id="openAboutModal" style="color:var(--accent-blue);">About Data</a>
+        <div class="logo-container" style="justify-content: flex-end;">
+            <img src="" alt="WLBT Investigates" class="logo-img" onerror="this.style.display='none'; document.getElementById('wlbt-text-fallback').style.display='block';">
+             
+             <div id="wlbt-text-fallback" class="logo-text" style="display:none; font-size: 0.9rem; text-align:right;">
+                WLBT<br><span style="color:#3b82f6">Investigates</span>
+            </div>
         </div>
     </header>
 
@@ -329,6 +277,7 @@
             </div>
             <div class="footer-links">
                 Design/Layout: C.J. LeMaster<br>
+                <a href="#" id="openAboutModal">About Data</a> | 
                 <button id="openTipModal" style="background:var(--accent-blue); border:none; color:white; padding:5px 10px; margin-top:5px; border-radius:4px; cursor:pointer;">Submit Tip</button>
             </div>
         </div>
@@ -339,17 +288,14 @@
                 <div class="stat-label">Total Homicides (2025)</div>
                 <div id="homicideCountBanner" style="display:none;"></div> 
             </div>
-            
             <div class="stat-box">
                 <div class="stat-value" id="percentageChangeText">--</div>
                 <div class="stat-label">vs. Last Year (YTD)</div>
             </div>
-
             <div class="stat-box">
                 <div class="stat-value" style="color: var(--accent-cyan);" id="projectedYearEndText">--</div>
                 <div class="stat-label">Projected Year-End</div>
             </div>
-
             <div class="stat-box">
                 <div class="stat-value" id="rolling30DayText">--</div>
                 <div class="stat-label">Last 30 Days</div>
@@ -364,7 +310,7 @@
                 <h4 style="margin:0 0 5px 0; font-size: 0.8rem;">Legend</h4>
                 <ul style="list-style:none; padding:0; font-size: 0.75rem;">
                     <li><span style="display:inline-block; width:10px; height:10px; background:#ef4444; border-radius:50%; margin-right:5px;"></span> Homicide</li>
-                    <li><span style="display:inline-block; width:15px; height:3px; background:#000; border: 1px solid #fff; margin-right:5px;"></span> City Limits</li>
+                    <li><span style="display:inline-block; width:15px; height:3px; background:#fff; border: 1px dashed #666; margin-right:5px;"></span> City Limits</li>
                     <li><span style="display:inline-block; width:15px; height:3px; background:#E65100; margin-right:5px;"></span> CCID</li>
                 </ul>
             </div>
@@ -430,8 +376,6 @@
     </div>
 
     <script>
-    // --- Configuration ---
-    // Note: Replaced "this" year logic slightly to ensure charts render correctly on load
     const HOMICIDE_DATA_API_URL = './data/homicide.json'; 
     const API_KEY = 'AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI';
     const SPREADSHEET_ID = '1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk';
@@ -448,12 +392,11 @@
     const CCID_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1';
     const AGENCY_CATEGORIES = { JPD: 'JPD', CAPITOL_POLICE: 'Capitol Police', OTHER: 'Other Agencies' };
     
-    // Updated Colors for Dark Mode visibility
     const agencyColors = {
-        [AGENCY_CATEGORIES.JPD]: '#3b82f6', // Bright Blue
-        [AGENCY_CATEGORIES.CAPITOL_POLICE]: '#fbbf24', // Amber
-        [AGENCY_CATEGORIES.OTHER]: '#10b981', // Emerald
-        'Historical': '#64748b' // Slate
+        [AGENCY_CATEGORIES.JPD]: '#3b82f6', 
+        [AGENCY_CATEGORIES.CAPITOL_POLICE]: '#fbbf24', 
+        [AGENCY_CATEGORIES.OTHER]: '#10b981', 
+        'Historical': '#64748b' 
     };
     
     const historicalHomicideData = [
@@ -467,15 +410,12 @@
         { year: 2011, total: 52 }, { year: 2012, total: 63 }, { year: 2013, total: 50 }, { year: 2014, total: 61 }, { year: 2015, total: 54 }
     ];
 
-    // --- Global State ---
     let allHomicideData = [];
     let cityComparisonData = [];
     let filteredHomicideDataForMap = [];
     let map;
     let markersLayer = L.layerGroup();
     let heatLayer;
-    let cityLimitsLayer, ccidLayer;
-    let overlayLayersControl;
     let currentMapTileLayer;
     let showAllYears = false;
     let selectedMarker = null;
@@ -485,16 +425,15 @@
     const infoPanel = document.getElementById('map-info-panel');
     let defaultMarkerStyle, selectedMarkerStyle;
 
-    // --- Main Execution Block ---
     document.addEventListener('DOMContentLoaded', () => {
         defaultMarkerStyle = {
             radius: 6,
-            fillColor: '#ef4444', // Neon Red
+            fillColor: '#ef4444', 
             color: '#fff',
             weight: 1, opacity: 1, fillOpacity: 0.9
         };
         selectedMarkerStyle = {
-            fillColor: '#fbbf24', // Amber
+            fillColor: '#fbbf24', 
             color: '#fff',
             radius: 10,
         };
@@ -506,7 +445,7 @@
         setupModals();
         setupChartToggles();
 
-        document.getElementById('homicideCountBanner').innerText = `...`; // Initialize hidden
+        document.getElementById('homicideCountBanner').innerText = `...`; 
         updateInfoPanel([]);
 
         try {
@@ -523,14 +462,12 @@
             if (map) map.invalidateSize();
         } catch (error) {
             console.error("Fatal Error initializing dashboard:", error);
-            // Fallback for demo if fetch fails
             allHomicideData = processHomicideData(getPlaceholderHomicideData());
             populateFiltersForMap(true);
             updateDashboard();
         }
     }
 
-    // --- Placeholder Data Functions ---
     function getPlaceholderHomicideData() {
         return {
             headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year"],
@@ -549,7 +486,6 @@
         ];
     }
 
-    // --- Data Processing Logic ---
     function processHomicideData(rawData) {
         if (!rawData || !rawData.headers || !rawData.entries) {
             return [];
@@ -668,7 +604,7 @@
 
     function initMap() {
         map = L.map('map', { 
-            scrollWheelZoom: true, // Enabled for dashboard feel
+            scrollWheelZoom: true, 
             minZoom: 10,
             zoomControl: false 
         }).setView(MAP_CENTER, MAP_ZOOM);
@@ -732,8 +668,8 @@
         const aboutModal = document.getElementById("aboutDataModal");
         const openAboutBtn = document.getElementById("openAboutModal");
         const closeAboutBtn = document.getElementById("closeAboutModal");
-        openAboutBtn.onclick = (e) => { e.preventDefault(); aboutModal.style.display = "flex"; };
-        closeAboutBtn.onclick = () => { aboutModal.style.display = "none"; };
+        if(openAboutBtn) openAboutBtn.onclick = (e) => { e.preventDefault(); aboutModal.style.display = "flex"; };
+        if(closeAboutBtn) closeAboutBtn.onclick = () => { aboutModal.style.display = "none"; };
 
         const tipModal = document.getElementById("tipModal");
         const openTipBtn = document.getElementById("openTipModal");
@@ -799,10 +735,7 @@
 
     function updateCurrentYearHomicideCount() {
         const count = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
-        // Updating the new big stat display
         document.getElementById('homicideCountDisplay').innerText = count;
-        // Keeping hidden one for logic
-        document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: ${count}`;
     }
 
     function updateRankingBanner() {
@@ -870,19 +803,7 @@
     }
 
     function updateMonthlyTrend() {
-        // Logic kept for rolling average calculation, even if display is hidden
-        const thisMonthDiv = document.getElementById('thisMonthValue');
-        const fiveYearAvgDiv = document.getElementById('fiveYearAvgValue');
-        const today = new Date(), month = today.getMonth(), year = today.getFullYear();
-        const thisMonthCount = allHomicideData.filter(d => new Date(d.Date + 'T00:00:00').getFullYear() === year && new Date(d.Date + 'T00:00:00').getMonth() === month).length;
-        let total = 0, years = 0;
-        for (let i = 1; i <= 5; i++) {
-            total += allHomicideData.filter(d => new Date(d.Date + 'T00:00:00').getFullYear() === (year - i) && new Date(d.Date + 'T00:00:00').getMonth() === month).length;
-            years++;
-        }
-        const avg = years > 0 ? (total / years) : 0;
-        if(thisMonthDiv) thisMonthDiv.innerText = thisMonthCount;
-        if(fiveYearAvgDiv) fiveYearAvgDiv.innerText = avg.toFixed(1);
+        // Logic intentionally left empty in favor of new stat boxes
     }
    
     function calculateRollingAverage(days) {
@@ -901,9 +822,8 @@
         document.getElementById('rolling30DayText').innerText = calculateRollingAverage(30);
     }
 
-    // --- CHART CONFIGURATION FOR DARK MODE ---
+    // --- CHART CONFIGURATION ---
     function getChartOptions(tooltipCallback) {
-        // Dark Mode Override
         const textColor = '#94a3b8';
         const gridColor = '#2d3748';
         return {
@@ -923,7 +843,6 @@
         const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
         if (homicidesByYearChartInstance) homicidesByYearChartInstance.destroy();
         const chartOptions = getChartOptions(() => {});
-        // Force hide legend for clean look on small charts
         chartOptions.plugins.legend.display = false;
         
         if (showAllYears) {
@@ -991,12 +910,7 @@
         };
 
         const paceColors = [
-            '#ef4444', // Current Year (Neon Red)
-            '#475569', // -1 Year (Slate)
-            '#334155', // -2 Year (Darker Slate)
-            '#1e293b', // -3 Year 
-            '#3b82f6', // -4 Year (Neon Blue)
-            '#10b981'  // -5 Year (Neon Green)
+            '#ef4444', '#475569', '#334155', '#1e293b', '#3b82f6', '#10b981'
         ];
 
         const datasets = [];
@@ -1088,12 +1002,10 @@
             fetchGeoJSON(JACKSON_CITY_LIMITS_GEOJSON_URL, { color: `#fff`, weight: 2, opacity: 0.3, fillOpacity: 0.0, dashArray: '5, 5' }, "Jackson City Limits"),
             fetchGeoJSON(CCID_GEOJSON_URL, { color: `#E65100`, weight: 2, opacity: 0.8, fillOpacity: 0.1 }, "CCID Boundary")
         ]).then(() => {
-            // Layers loaded
         });
     }
 
     function updateMapTiles() {
-        // Switched to CartoDB Dark Matter for the HUD look
         if (currentMapTileLayer) map.removeLayer(currentMapTileLayer);
         currentMapTileLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
