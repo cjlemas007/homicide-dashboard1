@@ -46,7 +46,7 @@
             overflow: hidden; 
         }
 
-        /* --- UPDATED HEADER LAYOUT --- */
+        /* --- HEADER --- */
         header {
             background-color: var(--bg-panel);
             border-bottom: 1px solid var(--border);
@@ -54,11 +54,10 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            height: 70px; /* Slightly taller for logos */
+            height: 70px;
             gap: 20px;
         }
 
-        /* Logo Containers */
         .logo-container {
             display: flex;
             align-items: center;
@@ -66,12 +65,11 @@
         }
         
         .logo-img {
-            max-height: 50px; /* Limits logo height */
+            max-height: 50px;
             width: auto;
             display: block;
         }
 
-        /* Fallback text if no logo image is present */
         .logo-text {
             font-family: 'Orbitron', sans-serif;
             font-size: 1.2rem;
@@ -81,7 +79,7 @@
             font-weight: 700;
         }
 
-        /* --- UPDATED TICKER (SLOWER) --- */
+        /* --- TICKER --- */
         .ranking-banner {
             flex-grow: 1;
             background: rgba(0,0,0,0.3);
@@ -99,7 +97,6 @@
 
         .ticker-wrap {
             white-space: nowrap;
-            /* CHANGED: 30s -> 90s for slower scroll */
             animation: ticker 90s linear infinite; 
             padding-left: 100%; 
             display: inline-block;
@@ -119,7 +116,7 @@
             grid-template-rows: 100px 1fr 220px;    
             gap: 10px;
             padding: 10px;
-            height: calc(100vh - 70px); /* Adjusted for new header height */
+            height: calc(100vh - 70px);
             overflow-y: auto;
         }
 
@@ -178,16 +175,15 @@
         .stat-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-top: 5px; }
 
         /* --- Map & Overlays --- */
-        .area-map { grid-column: 2 / 3; grid-row: 2 / 3; position: relative; } /* Ensure relative positioning */
+        .area-map { grid-column: 2 / 3; grid-row: 2 / 3; position: relative; } 
         #map { width: 100%; height: 100%; background: #000; z-index: 0; }
         
-        /* UPDATED: Z-Index Fix */
         .map-overlay {
             background-color: rgba(11, 14, 20, 0.9) !important;
             border: 1px solid var(--border);
             color: var(--text-main);
             backdrop-filter: blur(4px);
-            z-index: 2000; /* Forces it above Leaflet map tiles */
+            z-index: 2000; 
         }
         .map-overlay h4 { color: var(--accent-cyan); border-bottom: 1px solid var(--border); }
         .map-overlay ul { color: var(--text-muted); }
@@ -217,7 +213,6 @@
     <header>
         <div class="logo-container">
             <img src="" alt="Jackson Homicides" class="logo-img" onerror="this.style.display='none'; document.getElementById('logo-text-fallback').style.display='block';">
-            
             <div id="logo-text-fallback" class="logo-text" style="display:none;">
                 <span style="color:#ef4444">Jackson</span> Homicides
             </div>
@@ -231,8 +226,7 @@
 
         <div class="logo-container" style="justify-content: flex-end;">
             <img src="" alt="WLBT Investigates" class="logo-img" onerror="this.style.display='none'; document.getElementById('wlbt-text-fallback').style.display='block';">
-             
-             <div id="wlbt-text-fallback" class="logo-text" style="display:none; font-size: 0.9rem; text-align:right;">
+            <div id="wlbt-text-fallback" class="logo-text" style="display:none; font-size: 0.9rem; text-align:right;">
                 WLBT<br><span style="color:#3b82f6">Investigates</span>
             </div>
         </div>
@@ -406,7 +400,7 @@
     let filteredHomicideDataForMap = [];
     let map;
     let markersLayer = L.layerGroup();
-    let heatLayer;
+    let heatLayer; // HEATMAP RESTORED
     let currentMapTileLayer;
     let showAllYears = false;
     let selectedMarker = null;
@@ -604,6 +598,11 @@
 
         updateMapTiles();
         markersLayer.addTo(map);
+        
+        // --- RESTORED HEATMAP INIT ---
+        // Added blur/gradient tweak for dark mode
+        heatLayer = L.heatLayer([], { radius: 25, blur: 15, maxZoom: 17 }).addTo(map);
+        
         loadBoundaryLayers();
         
         map.on('click', (e) => {
@@ -627,9 +626,11 @@
         );
         markersLayer.clearLayers();
         const visibleMarkers = [];
+        const heatPoints = []; // RESTORED DATA ARRAY
         
         filteredHomicideDataForMap.forEach(d => {
             const latLng = [d.Latitude, d.Longitude];
+            heatPoints.push(latLng); // RESTORED PUSH
             
             const marker = L.circleMarker(latLng, { ...defaultMarkerStyle, bubblingMouseEvents: false });
             
@@ -646,6 +647,10 @@
             markersLayer.addLayer(marker);
             visibleMarkers.push(marker);
         });
+        
+        // --- RESTORED UPDATE CALL ---
+        heatLayer.setLatLngs(heatPoints);
+        
         updateInfoPanel(filteredHomicideDataForMap);
 
         if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
