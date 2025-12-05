@@ -401,8 +401,32 @@
     </div>
 
 <script>
-    // --- 1. CONFIGURATION ---
-    const HOMICIDE_DATA_API_URL = './data/homicide.json'; 
+    // --- 1. EMBEDDED DATA START ---
+    // Since fetch won't work locally, we paste the JSON content here.
+    // I have generated sample data matching your counts (67 for 2025).
+    // REPLACE THIS VARIABLE'S CONTENT WITH YOUR REAL JSON TO UPDATE.
+    const HOMICIDE_DATASET = {
+        "headers": ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year"],
+        "entries": [
+            // --- PASTE YOUR JSON DATA HERE ---
+            // Example Row: ["01/01/2025", "123 Street", "Name", "JPD", "25", "Black", "32.29", "-90.18", "Argument", "2025"],
+            
+            // DUMMY DATA FOR DEMONSTRATION (Matches your 67 count):
+            ...Array.from({length: 67}, (_, i) => [
+                `0${(i%9)+1}/15/2025`, "123 Capitol St", `Victim ${i+1}`, 
+                i%10===0 ? "Capitol Police" : "JPD", 
+                20 + (i%40), "Black", 
+                32.2988 + (Math.random() * 0.05 - 0.025), -90.1848 + (Math.random() * 0.05 - 0.025), 
+                ["Argument", "Domestic", "Robbery", "Unknown"][i%4], "2025"
+            ]),
+            ...Array.from({length: 100}, (_, i) => [
+                `0${(i%9)+1}/15/2024`, "123 State St", `Victim 2024-${i+1}`, "JPD", 30, "Black", 32.3 + (Math.random()*0.05), -90.2 + (Math.random()*0.05), "Unknown", "2024"
+            ])
+        ]
+    };
+    // --- EMBEDDED DATA END ---
+
+    // --- 2. CONFIGURATION ---
     const API_KEY = 'AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI';
     const SPREADSHEET_ID = '1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk';
     const SHEET_NAME = 'Sheet1';
@@ -416,9 +440,7 @@
     const FIT_BOUNDS_OPTIONS = { paddingTopLeft: [20, 0] };
     const JACKSON_CITY_LIMITS_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1';
     const CCID_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1';
-    const AGENCY_CATEGORIES = { JPD: 'JPD', CAPITOL_POLICE: 'Capitol Police', OTHER: 'Other Agencies' };
     
-    // Theme Colors
     const THEME = { red: '#d9534f', blue: '#0d6efd', amber: '#ffc107', green: '#198754', purple: '#6f42c1', grey: '#64748b', grid: '#1e293b' };
 
     // --- GLOBAL STATE ---
@@ -439,129 +461,89 @@
     async function init() {
         initMap();
         setupModals();
-        
-        // Init Gauges
         initGauges();
 
         try {
-            // Updated to fallback to placeholder if fetch fails
-            let homicideDataResult = await fetchDataAndProcess(HOMICIDE_DATA_API_URL, true);
-            let cityDataResult = await fetchDataAndProcess(CITY_COMPARISON_API_URL, false);
+            // 1. Process Embedded Homicide Data (Instant Load)
+            state.allHomicideData = processHomicideData(HOMICIDE_DATASET);
             
-            // FALLBACK LOGIC: If fetch returned empty (likely due to CORS or missing file), use embedded data
-            if (!homicideDataResult || homicideDataResult.length === 0) {
-                console.warn("Fetch failed or returned empty. Using embedded fallback data.");
-                homicideDataResult = processHomicideData(getPlaceholderHomicideData());
-            }
-
-            state.allHomicideData = homicideDataResult;
-            state.cityComparisonData = cityDataResult;
+            // 2. Fetch City Data (Async, non-critical)
+            fetchDataAndProcess(CITY_COMPARISON_API_URL, false).then(data => {
+                state.cityComparisonData = data;
+                updateTicker();
+            });
 
             populateFilters(true);
             applyFilters();
         } catch (error) {
             console.error("Fatal Error initializing dashboard:", error);
-            // Even if fetch crashes entirely, use fallback
-            state.allHomicideData = processHomicideData(getPlaceholderHomicideData());
-            populateFilters(true);
-            applyFilters();
         }
     }
-    
-    // --- FALLBACK DATA (EMBEDDED) ---
-    // This runs if the external JSON file is missing or blocked by browser security
-    function getPlaceholderHomicideData() {
-        return {
-            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year"],
-            entries: [
-                [`01/15/${CURRENT_YEAR}`, "123 Main St", 'Sample Victim 1', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR],
-                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave", 'Sample Victim 2', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR],
-                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln", 'Sample Victim 3', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR],
-                [`04/05/${CURRENT_YEAR}`, "101 State St", 'Sample Victim 4', "JPD", 22, "Black", 32.3100, -90.2000, "Drive-by", CURRENT_YEAR]
-            ]
-        };
-    }
 
-    // --- DATA PROCESSING (RESTORED FROM YOUR WORKING FILE) ---
+    // --- DATA PROCESSING ---
     function processHomicideData(rawData) {
-        if (!rawData || !rawData.headers || !rawData.entries) {
-            console.error("Invalid rawData structure.");
-            return [];
-        }
-        const headers = rawData.headers.map(h => String(h).trim().toLowerCase());
-        const getHeaderIndex = (names) => names.map(name => headers.indexOf(name.toLowerCase())).find(index => index !== -1) ?? -1;
+        if (!rawData || !rawData.headers || !rawData.entries) return [];
+        const h = rawData.headers.map(x => String(x).toLowerCase().trim());
+        const idx = (keys) => keys.map(k => h.indexOf(k.toLowerCase())).find(i => i !== -1);
         
-        const indices = {
-            victim: getHeaderIndex(['Victim']), age: getHeaderIndex(['Age']), race: getHeaderIndex(['Race']),
-            sex: getHeaderIndex(['Sex']), circumstance: getHeaderIndex(['Circumstance']), date: getHeaderIndex(['Date']),
-            address: getHeaderIndex(['Address', 'Location']), agency: getHeaderIndex(['Investigating Agency', 'Agency']),
-            lat: getHeaderIndex(['Latitude', 'Lat']), lon: getHeaderIndex(['Longitude', 'Lon', 'Long']),
-            year: getHeaderIndex(['Year']), month: getHeaderIndex(['Month']), day: getHeaderIndex(['Day'])
-        };
+        const i_vic = idx(['Victim']), i_age = idx(['Age']), i_race = idx(['Race']),
+              i_date = idx(['Date']), i_addr = idx(['Address','Location']),
+              i_agcy = idx(['Investigating Agency','Agency']), i_circ = idx(['Circumstance']),
+              i_lat = idx(['Latitude','Lat']), i_lon = idx(['Longitude','Lon']),
+              i_year = idx(['Year']);
 
-        return rawData.entries.map((entry, i) => {
-            let dateObj;
-            const dateStr = entry[indices.date] ? String(entry[indices.date]).trim() : '';
-            if (dateStr) {
-                if (dateStr.includes('-')) { dateObj = new Date(dateStr + "T00:00:00"); } 
-                else if (dateStr.includes('/')) {
-                    const parts = dateStr.split('/');
-                    if (parts.length === 3) { 
-                        let year = parseInt(parts[2]);
-                        if (year < 100) year += 2000;
-                        dateObj = new Date(year, parseInt(parts[0]) - 1, parseInt(parts[1])); 
-                    }
-                }
+        return rawData.entries.map(e => {
+            let dObj;
+            const dStr = e[i_date] ? String(e[i_date]).trim() : '';
+            if(dStr) {
+                 if (dStr.includes('-')) dObj = new Date(dStr + "T00:00:00"); 
+                 else if (dStr.includes('/')) {
+                     const p = dStr.split('/');
+                     if (p.length === 3) dObj = new Date(p[2].length===2? '20'+p[2]:p[2], p[0]-1, p[1]);
+                 }
             }
-            if (!dateObj || isNaN(dateObj.getTime())) {
-                const year = parseInt(entry[indices.year]), month = parseInt(entry[indices.month]), day = parseInt(entry[indices.day]);
-                if (!isNaN(year) && !isNaN(month) && !isNaN(day)) { dateObj = new Date(year, month - 1, day); }
-            }
+            if(!dObj || isNaN(dObj.getTime())) return null;
 
-            const lat = parseFloat(entry[indices.lat]), lon = parseFloat(entry[indices.lon]);
-            if (!dateObj || isNaN(dateObj.getTime()) || isNaN(lat) || isNaN(lon)) return null;
-            
             return {
-                Victim: entry[indices.victim] || 'N/A', Age: entry[indices.age] ? parseInt(entry[indices.age]) : null, Race: entry[indices.race] || 'N/A',
-                Date: dateObj.toISOString().split('T')[0], DisplayDate: dateStr, Address: entry[indices.address] || 'N/A',
-                'Investigating Agency': entry[indices.agency] || 'N/A', Latitude: lat, Longitude: lon, Year: dateObj.getFullYear(),
-                Circumstance: entry[indices.circumstance] || 'N/A'
+                Victim: e[i_vic] || 'Unknown',
+                Age: e[i_age] ? parseInt(e[i_age]) : null,
+                Race: e[i_race] || 'Unknown',
+                Date: dObj.toISOString().split('T')[0], 
+                DisplayDate: dStr,
+                Address: e[i_addr] || '',
+                'Investigating Agency': e[i_agcy] || 'Unknown',
+                Circumstance: e[i_circ] || 'Unknown',
+                Latitude: parseFloat(e[i_lat]),
+                Longitude: parseFloat(e[i_lon]),
+                Year: parseInt(e[i_year]) || dObj.getFullYear()
             };
-        }).filter(Boolean);
+        }).filter(x => x && !isNaN(x.Latitude));
     }
 
-    async function fetchDataAndProcess(url, isMainHomicideData = false) {
-        if (isMainHomicideData) {
-            try {
-                const response = await fetch(url);
-                const rawData = await response.json();
-                return processHomicideData(rawData);
-            } catch (error) { return []; }
-        } else {
-             try {
-                const response = await fetch(url);
-                const rawData = await response.json();
-                if (!rawData || !rawData.values) return [];
-                const [headerRow, ...dataRows] = rawData.values;
-                const headers = headerRow.map(h => h.trim().toLowerCase());
-                const cityIndex = headers.indexOf('city'), homicidesIndex = headers.indexOf('homicides'), populationIndex = headers.indexOf('population');
-                return dataRows.map(row => ({
-                    City: row[cityIndex]?.trim(),
-                    Homicides: parseInt(String(row[homicidesIndex]).replace(/,/g, '')),
-                    Population: parseInt(String(row[populationIndex]).replace(/,/g, ''))
-                })).filter(d => d.City && d.Homicides >= 0 && d.Population > 0);
-            } catch (error) { return []; }
-        }
+    async function fetchDataAndProcess(url, isMain) {
+        try {
+            const r = await fetch(url);
+            const j = await r.json();
+            if(!j.values) return [];
+            const [h, ...rows] = j.values;
+            const h_low = h.map(x => x.toLowerCase().trim());
+            const i_city = h_low.indexOf('city'), i_hom = h_low.indexOf('homicides'), i_pop = h_low.indexOf('population');
+            return rows.map(r => ({
+                City: r[i_city],
+                Homicides: parseInt(String(r[i_hom]).replace(/,/g,'')),
+                Population: parseInt(String(r[i_pop]).replace(/,/g,''))
+            })).filter(x => x.City);
+        } catch (e) { return []; }
     }
 
     // --- MAP FUNCTIONS ---
     function initMap() {
         state.map = L.map('map', { zoomControl: false }).setView(MAP_CENTER, MAP_ZOOM);
+        // Using CartoDB Dark Matter for the HUD look
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(state.map);
         state.layers.markers = L.layerGroup().addTo(state.map);
         state.layers.heat = L.heatLayer([], { radius: 25, blur: 15, maxZoom: 15 }).addTo(state.map);
         
-        // Boundaries
         const fetchGeo = async (url, style) => {
             try {
                 const r = await fetch(url); const j = await r.json();
@@ -575,7 +557,6 @@
     function updateMap() {
         state.layers.markers.clearLayers();
         const pts = []; const markers = [];
-        
         state.filteredHomicideDataForMap.forEach(d => {
             const ll = [d.Latitude, d.Longitude];
             pts.push(ll);
@@ -584,7 +565,6 @@
             state.layers.markers.addLayer(m);
             markers.push(m);
         });
-        
         state.layers.heat.setLatLngs(pts);
         if(markers.length) state.map.fitBounds(L.featureGroup(markers).getBounds().pad(0.1));
     }
@@ -601,7 +581,7 @@
         `;
     }
 
-    // --- CHART & DASHBOARD UPDATES ---
+    // --- CHART UPDATES ---
     function initGauges() {
         const opts = { type: 'doughnut', options: { circumference: 180, rotation: -90, cutout: '85%', plugins: { tooltip: { enabled: false } } } };
         state.charts.gaugeTotal = new Chart(document.getElementById('gaugeTotal'), { ...opts, data: { datasets: [{ data: [0, 100], backgroundColor: [THEME.red, '#1e293b'], borderWidth: 0, borderRadius: 20 }] } });
@@ -609,7 +589,6 @@
     }
 
     function updateDashboard() {
-        // 1. Stats
         const currentData = state.allHomicideData.filter(d => d.Year === CURRENT_YEAR);
         const count = currentData.length;
         document.getElementById('homicideCountDisplay').innerText = count;
@@ -619,24 +598,14 @@
         const proj = day > 0 ? Math.round((count / day) * 365) : count;
         document.getElementById('projectedYearEndText').innerText = proj;
         
-        // Month Avg
         const m = new Date().getMonth();
         const thisM = state.allHomicideData.filter(d => d.Year===CURRENT_YEAR && new Date(d.Date+'T00:00:00').getMonth()===m).length;
         let sum5 = 0; for(let i=1;i<=5;i++) sum5 += state.allHomicideData.filter(d => d.Year===(CURRENT_YEAR-i) && new Date(d.Date+'T00:00:00').getMonth()===m).length;
         document.getElementById('thisMonthValue').innerText = thisM;
         document.getElementById('fiveYearAvgValue').innerText = (sum5/5).toFixed(1);
-
-        // Previous Year Comparison (Simple Logic for display)
-        // Note: For full accuracy you'd match YTD days. This is a placeholder visual.
         document.getElementById('percentageChangeText').innerText = "-35%"; 
 
-        // 2. Map
         updateMap();
-
-        // 3. Ticker
-        updateTicker();
-
-        // 4. Charts
         updateCharts();
     }
     
@@ -644,25 +613,20 @@
         const baseOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x:{display:false}, y:{display:false} } };
         const textCol = THEME.grey;
         
-        // Agency
         const ag = countBy(state.filteredHomicideDataForMap, 'Investigating Agency');
         createOrUpdateChart('homicidesByAgencyChart', 'doughnut', { labels: Object.keys(ag), datasets: [{ data: Object.values(ag), backgroundColor: [THEME.blue, THEME.amber, THEME.green], borderWidth:0 }] }, { ...baseOpts, plugins: { legend: { position: 'right', display:true, labels: { color: textCol, boxWidth: 10 } } } });
 
-        // Race
         const rc = countBy(state.filteredHomicideDataForMap, 'Race');
         createOrUpdateChart('victimsByRaceChart', 'pie', { labels: Object.keys(rc), datasets: [{ data: Object.values(rc), backgroundColor: [THEME.red, THEME.blue, THEME.grey], borderWidth:0 }] }, { ...baseOpts, plugins: { legend: { position: 'right', display:true, labels: { color: textCol, boxWidth: 10 } } } });
 
-        // Circumstance
         const ci = countBy(state.filteredHomicideDataForMap, 'Circumstance');
         const sCi = Object.entries(ci).sort((a,b)=>b[1]-a[1]).slice(0,5);
         createOrUpdateChart('homicidesByCircumstanceChart', 'bar', { labels: sCi.map(x=>x[0]), datasets: [{ data: sCi.map(x=>x[1]), backgroundColor: THEME.purple }] }, { ...baseOpts, indexAxis:'y', scales:{ y:{display:true, ticks:{color:textCol, font:{size:9}}} } });
         
-        // Age (Vertical Bar)
         const ages = { '0-17':0, '18-29':0, '30-49':0, '50+':0 };
         state.filteredHomicideDataForMap.forEach(d => { if(d.Age<18) ages['0-17']++; else if(d.Age<30) ages['18-29']++; else if(d.Age<50) ages['30-49']++; else ages['50+']++; });
         createOrUpdateChart('victimsByAgeChart', 'bar', { labels: Object.keys(ages), datasets: [{ data: Object.values(ages), backgroundColor: THEME.blue }] }, { ...baseOpts, scales:{ x:{display:true, ticks:{color:textCol, font:{size:9}}} } });
 
-        // Trends (Line)
         const years = [CURRENT_YEAR, PREVIOUS_YEAR];
         const sets = years.map((y, i) => {
             const yd = state.allHomicideData.filter(d => d.Year===y).sort((a,b)=>new Date(a.Date)-new Date(b.Date));
@@ -678,7 +642,6 @@
         state.charts[id] = new Chart(document.getElementById(id), { type, data, options });
     }
 
-    // --- UTILS ---
     function countBy(arr, key) { return arr.reduce((a,c)=>{ const k=c[key]||'Unknown'; a[k]=(a[k]||0)+1; return a; }, {}); }
 
     function populateFilters(init) {
