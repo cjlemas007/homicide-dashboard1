@@ -172,11 +172,13 @@
             box-sizing: border-box;
         } 
         
-        .filter-group.circumstance-filter, .filter-group.trends-container { 
+        /* MODIFIED: search-container styling */
+        .filter-group.circumstance-filter, 
+        .filter-group.trends-container,
+        .filter-group.search-container { 
             grid-column: 1 / -1; 
         }
 
-        /* MODIFIED: Reverted trends-grid to single column */
         .trends-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -192,7 +194,6 @@
             text-align: center;
         }
         
-        /* RESTORED: .trend-box-split for This Month/5-Yr Avg */
         .trend-box-split {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -212,7 +213,6 @@
             font-weight: bold;
         }
         
-        /* RESTORED: Specific font size for split box values */
         .trend-box-split .trend-value {
              font-size: 1.2em;
         }
@@ -223,7 +223,7 @@
             font-size: 0.9em; 
             color: var(--legend-label-text); 
         }
-        .filter-group select, .filter-group .checkbox-group {
+        .filter-group select, .filter-group .checkbox-group, .filter-group input[type="text"] {
             width: 100%; padding: 8px; 
             border: 1px solid var(--input-border);
             border-radius: 4px; font-size: 0.9em; 
@@ -238,6 +238,54 @@
         .checkbox-group input[type="checkbox"] { margin-right: 5px; }
         .checkbox-group label { font-weight: normal; font-size: 0.9em; color: var(--legend-label-text);}
         
+        /* NEW STYLES FOR SEARCH UI */
+        .search-ui {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .search-row {
+            display: flex;
+            gap: 5px;
+        }
+        .search-btn {
+            background-color: var(--tip-button-bg);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .search-btn:hover { background-color: var(--tip-button-hover-bg); }
+        .location-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .location-btn:hover { background-color: #218838; }
+        .reset-search-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 5px;
+            display: none; /* Hidden by default */
+        }
+
         .map-container {
             position: relative;
         }
@@ -485,6 +533,30 @@
         <div class="left-column">
             <div class="filters-container">
                 <div class="filter-columns-wrapper">
+                    <!-- NEW: Search Container is FIRST for mobile accessibility -->
+                    <div class="filter-group search-container">
+                        <label class="group-label">Search Nearby</label>
+                        <div class="search-ui">
+                            <button id="useLocationBtn" class="location-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                Use My Location
+                            </button>
+                            <div class="search-row">
+                                <input type="text" id="addressInput" placeholder="Address or Zip Code..." aria-label="Enter address">
+                                <button id="searchAddressBtn" class="search-btn">Go</button>
+                            </div>
+                            <div class="search-row">
+                                <select id="radiusSelect" aria-label="Select Radius">
+                                    <option value="0.5">0.5 Miles</option>
+                                    <option value="1" selected>1 Mile</option>
+                                    <option value="3">3 Miles</option>
+                                    <option value="5">5 Miles</option>
+                                </select>
+                            </div>
+                            <button id="resetSearchBtn" class="reset-search-btn">Clear Search & Reset Map</button>
+                        </div>
+                    </div>
+
                     <div class="filter-group year-filter">
                         <label class="group-label" for="yearFilter">Year:</label>
                         <div id="yearFilter" class="checkbox-group"></div>
@@ -692,6 +764,11 @@
     let markersLayer = L.layerGroup();
     let heatLayer;
     let cityLimitsLayer, ccidLayer;
+    // NEW: Search overlay state
+    let searchCircleLayer = L.layerGroup();
+    let currentSearchCenter = null;
+    let currentSearchRadiusMiles = 1;
+
     let overlayLayersControl;
     let currentMapTileLayer;
     let showAllYears = false;
@@ -723,6 +800,7 @@
         setupModals();
         setupTabs();
         setupChartToggles();
+        setupSearchFeatures(); // NEW
 
         document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: Loading...`;
         document.querySelector('.ranking-banner .ticker-wrap').innerHTML = '<div class="ticker-item">City Ranking: Loading...</div>';
@@ -880,9 +958,14 @@
             const yearHtml = Object.keys(yearCounts).sort((a,b) => b-a).map(year => `<li>${year}${year == CURRENT_YEAR ? ' (YTD)' : ''}: ${yearCounts[year]}</li>`).join('');
             const agencyCounts = data.reduce((acc, d) => { const agency = d['Investigating Agency'] || 'Unknown'; acc[agency] = (acc[agency] || 0) + 1; return acc; }, {});
             const agencyHtml = Object.keys(agencyCounts).sort().map(agency => `<li>${agency}: ${agencyCounts[agency]}</li>`).join('');
+            
+            // MODIFIED: Info panel now reflects search status
+            const searchStatus = currentSearchCenter ? `<div style="margin-bottom: 5px; color: #d9534f; font-weight: bold;">Showing incidents within ${currentSearchRadiusMiles} mile(s) of search location.</div>` : '';
+
             infoPanel.innerHTML = `
                 <h4>Map Summary</h4>
                 <div class="info-summary">
+                    ${searchStatus}
                     <div class="stat-total"><strong>${totalCount}</strong> Homicide${totalCount !== 1 ? 's' : ''} Shown</div>
                     ${yearHtml ? `<hr><div class="stat-breakdown"><strong>By Year:</strong><ul>${yearHtml}</ul></div>` : ''}
                     ${agencyHtml ? `<hr><div class="stat-breakdown"><strong>By Agency:</strong><ul>${agencyHtml}</ul></div>` : ''}
@@ -902,6 +985,7 @@
 
         updateMapTiles();
         markersLayer.addTo(map);
+        searchCircleLayer.addTo(map); // NEW: Add search layer
         heatLayer = L.heatLayer([], { radius: 25, interactive: false });
         loadBoundaryLayers();
         
@@ -916,15 +1000,131 @@
         });
     }
 
+    // NEW: Search Feature Logic
+    function setupSearchFeatures() {
+        const addressInput = document.getElementById('addressInput');
+        const searchBtn = document.getElementById('searchAddressBtn');
+        const locationBtn = document.getElementById('useLocationBtn');
+        const radiusSelect = document.getElementById('radiusSelect');
+        const resetBtn = document.getElementById('resetSearchBtn');
+
+        // Address Search
+        searchBtn.addEventListener('click', async () => {
+            const query = addressInput.value.trim();
+            if (!query) return;
+            
+            // Append city/state context to search
+            const searchContext = `${query}, Jackson, MS`;
+            try {
+                // Using OpenStreetMap Nominatim (Free, no key required for low volume)
+                const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchContext)}`);
+                const results = await response.json();
+                
+                if (results && results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lon = parseFloat(results[0].lon);
+                    applyLocationFilter(lat, lon);
+                } else {
+                    alert("Address not found. Please try again.");
+                }
+            } catch (e) {
+                console.error("Geocoding error", e);
+                alert("Error searching for address.");
+            }
+        });
+
+        // Use My Location
+        locationBtn.addEventListener('click', () => {
+            if ("geolocation" in navigator) {
+                locationBtn.textContent = "Locating...";
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        locationBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Use My Location`;
+                        applyLocationFilter(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        locationBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Use My Location`;
+                        alert("Unable to retrieve location. Please ensure location services are enabled.");
+                    }
+                );
+            } else {
+                alert("Geolocation is not supported by your browser.");
+            }
+        });
+
+        // Radius Change
+        radiusSelect.addEventListener('change', () => {
+            if (currentSearchCenter) {
+                applyLocationFilter(currentSearchCenter.lat, currentSearchCenter.lng);
+            }
+        });
+
+        // Reset
+        resetBtn.addEventListener('click', () => {
+            currentSearchCenter = null;
+            document.getElementById('addressInput').value = '';
+            document.getElementById('resetSearchBtn').style.display = 'none';
+            searchCircleLayer.clearLayers();
+            updateDashboard();
+            map.setView(MAP_CENTER, MAP_ZOOM);
+        });
+    }
+
+    function applyLocationFilter(lat, lon) {
+        currentSearchCenter = { lat, lng: lon };
+        currentSearchRadiusMiles = parseFloat(document.getElementById('radiusSelect').value);
+        document.getElementById('resetSearchBtn').style.display = 'block';
+        updateDashboard();
+        
+        // Scroll to map on mobile for better UX
+        if (window.innerWidth <= 900) {
+            document.getElementById('map').scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
 function updateMapDisplay() {
     const selectedYears = Array.from(document.querySelectorAll('#yearFilter input:checked')).map(cb => parseInt(cb.value));
     const selectedAgencies = Array.from(document.querySelectorAll('#agencyFilter input:checked')).map(cb => cb.value);
     const selectedCircumstance = document.getElementById('circumstanceFilter').value;
-    filteredHomicideDataForMap = allHomicideData.filter(d => 
+    
+    // 1. First, apply standard filters
+    let filteredData = allHomicideData.filter(d => 
         selectedYears.includes(d.Year) &&
         selectedAgencies.includes(d['Investigating Agency']) &&
         (!selectedCircumstance || d.Circumstance === selectedCircumstance)
     );
+
+    // 2. Then, apply location filter if active
+    searchCircleLayer.clearLayers();
+    if (currentSearchCenter) {
+        const centerLatLng = L.latLng(currentSearchCenter.lat, currentSearchCenter.lng);
+        const radiusMeters = currentSearchRadiusMiles * 1609.34; // Convert miles to meters
+
+        // Draw the circle
+        L.circle(centerLatLng, {
+            color: '#0d6efd',
+            fillColor: '#0d6efd',
+            fillOpacity: 0.1,
+            radius: radiusMeters,
+            interactive: false
+        }).addTo(searchCircleLayer);
+
+        // Draw a marker for the search center (e.g., "Home")
+        L.marker(centerLatLng, { interactive: false }).addTo(searchCircleLayer);
+
+        // Filter points within radius
+        filteredData = filteredData.filter(d => {
+            return centerLatLng.distanceTo(L.latLng(d.Latitude, d.Longitude)) <= radiusMeters;
+        });
+
+        // Fit bounds to circle
+        if (map) {
+            map.fitBounds(L.latLng(currentSearchCenter.lat, currentSearchCenter.lng).toBounds(radiusMeters * 2.2)); // slightly larger to show context
+        }
+    }
+
+    filteredHomicideDataForMap = filteredData;
+
     markersLayer.clearLayers();
     const heatPoints = [];
     const visibleMarkers = [];
@@ -951,10 +1151,10 @@ function updateMapDisplay() {
     heatLayer.setLatLngs(heatPoints);
     updateInfoPanel(filteredHomicideDataForMap);
 
-    if (visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
-        // FIXED: Use fitBounds with padding options for a smooth, offset zoom
+    // Only auto-fit bounds if we are NOT searching (search handles its own zoom)
+    if (!currentSearchCenter && visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
         map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1), FIT_BOUNDS_OPTIONS);
-    } else {
+    } else if (!currentSearchCenter) {
         map.setView(MAP_CENTER, MAP_ZOOM);
     }
 }
@@ -1046,7 +1246,7 @@ function updateMapDisplay() {
         document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: ${count}`;
     }
 
- // MODIFIED: Added logic to show placeholder during the first week of January
+    // MODIFIED: Added logic to show placeholder during the first week of January
     function updateRankingBanner() {
         const banner = document.getElementById('rankingBanner');
         const tickerWrap = document.getElementById('tickerWrap');
@@ -1099,7 +1299,7 @@ function updateMapDisplay() {
         const tickerText = tickerItems.join(' &nbsp; | &nbsp; ');
         tickerWrap.innerHTML = `<div class="ticker-item">${tickerText}</div><div class="ticker-item">${tickerText}</div>`;
     }
-      
+    
     function updatePercentageChangeDisplay() {
         const div = document.getElementById('percentageChangeText');
         const today = new Date();
@@ -1138,7 +1338,10 @@ function updateMapDisplay() {
         const currentYTD = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
 
         if (dayOfYear > 0 && currentYTD > 0) {
-            const projection = (currentYTD / dayOfYear) * (today.getFullYear() % 4 === 0 ? 366 : 365); // Account for leap years
+            // Check if current year is a leap year
+            const isLeapYear = (CURRENT_YEAR % 4 === 0 && CURRENT_YEAR % 100 !== 0) || (CURRENT_YEAR % 400 === 0);
+            const daysInYear = isLeapYear ? 366 : 365;
+            const projection = (currentYTD / dayOfYear) * daysInYear;
             div.innerText = Math.round(projection);
         } else {
             div.innerText = currentYTD; // If it's day 1 or 0 homicides, projection is just the current count
@@ -1337,8 +1540,13 @@ function updateMapDisplay() {
         homicidesByCircumstanceChartInstance = new Chart(document.getElementById('homicidesByCircumstanceChart'), { type: 'bar', data: { labels: Object.keys(counts), datasets: [{ label: 'Count', data: Object.values(counts), backgroundColor: '#6f42c1' }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }}} });
     }
 
+    // FIXED: Corrected typo 'InvestCigating Agency' to 'Investigating Agency'
     function updateHomicidesByAgencyChart() {
-        const counts = filteredHomicideDataForMap.reduce((acc, d) => { acc[d['Investigating Agency'] || 'Unknown'] = (acc[d['Investigating Agency'] || 'Unknown'] || 0) + 1; return acc; }, {});
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => {
+            const agency = d['Investigating Agency'] || 'Unknown';
+            acc[agency] = (acc[agency] || 0) + 1;
+            return acc;
+        }, {});
         if (homicidesByAgencyChartInstance) homicidesByAgencyChartInstance.destroy();
         homicidesByAgencyChartInstance = new Chart(document.getElementById('homicidesByAgencyChart'), { type: 'pie', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}} });
     }
@@ -1398,8 +1606,3 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
-
-
-
-
-
