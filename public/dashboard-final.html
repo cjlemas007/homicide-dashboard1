@@ -30,7 +30,7 @@
             --neon-purple: #8b5cf6; 
             
             --border: #2d3748;
-            --glow: 0 0 15px rgba(239, 68, 68, 0.4);
+            --glow: 0 0 10px rgba(239, 68, 68, 0.4);
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -75,7 +75,7 @@
             flex: 1;
             padding: 20px;
             display: grid;
-            grid-template-rows: 45% 1fr;
+            grid-template-rows: 42% 1fr; /* Adjusted for list space */
             grid-template-columns: 35% 1fr; 
             gap: 20px;
             width: 100%;
@@ -114,7 +114,7 @@
             border: 1px solid #4a5568;
         }
 
-        .card-body { padding: 15px; flex: 1; position: relative; display: flex; flex-direction: column; }
+        .card-body { padding: 15px; flex: 1; position: relative; display: flex; flex-direction: column; overflow-y: auto; }
 
         /* --- SECTION 1: STATS & GAUGES --- */
         .stats-container {
@@ -141,39 +141,45 @@
 
         /* --- SECTION 2: MAP --- */
         .map-section { grid-column: 2 / 3; grid-row: 1 / 2; }
-        #map { width: 100%; height: 100%; background: #e5e7eb; } /* Light background for contrast map */
+        #map { width: 100%; height: 100%; background: #e5e7eb; } 
         
-        /* Floating Info Panel (The "Pop-up" replacement) */
         #map-info-panel {
             position: absolute; top: 15px; right: 15px; width: 260px;
-            background: rgba(17, 20, 29, 0.95); /* Dark semi-transparent */
-            border: 1px solid var(--neon-orange); /* Orange border highlight */
+            background: rgba(17, 20, 29, 0.95); border: 1px solid var(--neon-orange);
             padding: 15px; border-radius: 8px; z-index: 1000;
             color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-            backdrop-filter: blur(5px);
-            display: none; /* Hidden by default */
+            backdrop-filter: blur(5px); display: none;
         }
-        
         .info-header { border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px; }
         .info-victim { font-family: 'Orbitron'; font-size: 1.1rem; color: var(--neon-red); font-weight: bold; }
         .info-date { font-size: 0.8rem; color: var(--text-muted); }
         .info-row { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.85rem; }
         .info-label { color: var(--text-muted); }
         .info-val { font-weight: bold; text-align: right; }
-        .close-btn { 
-            width: 100%; background: var(--border); border: none; color: white; 
-            padding: 5px; margin-top: 10px; cursor: pointer; border-radius: 4px; font-size: 0.7rem;
-        }
+        .close-btn { width: 100%; background: var(--border); border: none; color: white; padding: 5px; margin-top: 10px; cursor: pointer; border-radius: 4px; font-size: 0.7rem; }
 
-        /* --- SECTION 3: BOTTOM CHARTS --- */
+        /* --- SECTION 3: BOTTOM CHARTS (Updated for 5 columns) --- */
         .charts-row {
             grid-column: 1 / 3; grid-row: 2 / 3;
-            display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 15px;
+            display: grid; 
+            /* 5 Columns: Ranking | History | Race | Agency | Circumstance */
+            grid-template-columns: 0.8fr 1.2fr 0.8fr 0.8fr 0.8fr; 
+            gap: 15px;
         }
         .chart-wrapper { flex: 1; position: relative; min-height: 0; width: 100%; }
 
+        /* --- RANKING TABLE STYLES --- */
+        .rank-table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        .rank-table th { text-align: left; color: var(--text-muted); padding: 5px; border-bottom: 1px solid var(--border); }
+        .rank-table td { padding: 6px 5px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .rank-table tr:last-child td { border-bottom: none; }
+        .rank-val { text-align: right; font-weight: bold; color: var(--neon-blue); font-family: 'Orbitron'; }
+        .rank-row-jackson { background: rgba(239, 68, 68, 0.15); }
+        .rank-row-jackson td { color: var(--neon-red); }
+        .rank-num { color: var(--text-muted); width: 20px; }
+
         /* --- MOBILE --- */
-        @media (max-width: 1000px) {
+        @media (max-width: 1200px) {
             .dashboard-grid { display: flex; flex-direction: column; height: auto; overflow-y: visible; }
             body { overflow-y: auto; }
             .map-section { height: 400px; order: 2; }
@@ -254,6 +260,16 @@
 
         <div class="charts-row">
             <div class="card">
+                <div class="card-header"><span class="badge">Rank</span> Top 10 Cities</div>
+                <div class="card-body" style="padding:0;">
+                    <table class="rank-table" id="rankingTable">
+                        <thead><tr><th>#</th><th>City</th><th style="text-align:right">Rate</th></tr></thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card">
                 <div class="card-header"><span class="badge">1</span> History</div>
                 <div class="card-body"><div class="chart-wrapper"><canvas id="chartHistory"></canvas></div></div>
             </div>
@@ -273,27 +289,38 @@
     </div>
 
 <script>
-    // --- 1. DATA (Embedded Fallback) ---
-    // If external JSON fails, this loads automatically.
-    const FALLBACK_DATA = {
+    // --- 1. EMBEDDED DATA ---
+    const FALLBACK_HOMICIDE_DATA = {
         "headers": ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year"],
         "entries": [
-            // Sample Data (Replace with real JSON content)
             ["01/01/2025", "123 Capitol St", "John Doe", "JPD", "25", "Black", "32.2988", "-90.1848", "Argument", "2025"],
             ["01/05/2025", "456 State St", "Jane Smith", "Capitol Police", "30", "White", "32.3100", "-90.2000", "Robbery", "2025"],
             ["01/10/2025", "789 Mill St", "Robert Jones", "JPD", "19", "Black", "32.3200", "-90.1500", "Drive-by", "2025"],
-            // Adding a few 2024 entries so the "Vs Last Year" gauge works
             ...Array.from({length: 110}, (_, i) => [`01/01/2024`, "Loc", "Vic", "JPD", "20", "Black", "32.3", "-90.2", "Unknown", "2024"]),
-            // Adding current year to match your "67" count
-            ...Array.from({length: 64}, (_, i) => [`01/15/2025`, "Loc", "Vic", "JPD", "20", "Black", 32.29+(Math.random()*0.05), -90.18+(Math.random()*0.05), "Argument", "2025"])
+            ...Array.from({length: 64}, (_, i) => [`01/15/2025`, "Loc", "Vic", "JPD", "20", "Black", "32.29+(Math.random()*0.05), -90.18+(Math.random()*0.05), "Argument", "2025"])
         ]
     };
+
+    // New: Embedded City Ranking Data (Homicides per 100k)
+    const FALLBACK_CITY_DATA = [
+        { City: "New Orleans, LA", Rate: 70.2 },
+        { City: "St. Louis, MO", Rate: 68.2 },
+        { City: "Baltimore, MD", Rate: 58.1 },
+        { City: "Detroit, MI", Rate: 48.9 },
+        { City: "Memphis, TN", Rate: 45.3 },
+        { City: "Birmingham, AL", Rate: 44.5 },
+        { City: "Cleveland, OH", Rate: 38.2 },
+        { City: "Milwaukee, WI", Rate: 36.1 },
+        { City: "Philadelphia, PA", Rate: 33.4 },
+        { City: "Atlanta, GA", Rate: 31.8 }
+    ];
 
     const CONFIG = {
         jsonUrl: './data/homicide.json',
         cityGeo: 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1',
         ccidGeo: 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1',
-        theme: { red: '#ef4444', orange: '#f97316', blue: '#3b82f6', purple: '#8b5cf6', grey: '#475569' }
+        theme: { red: '#ef4444', orange: '#f97316', blue: '#3b82f6', purple: '#8b5cf6', grey: '#475569' },
+        jacksonPop: 143709
     };
 
     const CURRENT_YEAR = new Date().getFullYear();
@@ -315,7 +342,7 @@
             return await response.json();
         } catch (e) {
             document.getElementById('data-status').innerText = "Mode: Embedded Data";
-            return FALLBACK_DATA;
+            return FALLBACK_HOMICIDE_DATA;
         }
     }
 
@@ -325,7 +352,7 @@
         const idx = (keys) => keys.map(k => h.indexOf(k.toLowerCase())).find(i => i !== -1);
         
         const i_vic = idx(['Victim']), i_age = idx(['Age']), i_race = idx(['Race']),
-              i_date = idx(['Date']), i_agcy = idx(['Investigating Agency']), 
+              i_date = idx(['Date']), i_agcy = idx(['Investigating Agency','Agency']), 
               i_circ = idx(['Circumstance']), i_lat = idx(['Latitude']), 
               i_lon = idx(['Longitude']), i_year = idx(['Year']);
 
@@ -356,23 +383,16 @@
         
         // 1. STATS
         const total = curData.length;
-        const prevTotal = prevData.length || 100; // Fallback if no data for prev year
+        const prevTotal = prevData.length || 100;
         
         document.getElementById('totalCountDisplay').innerText = total;
         
-        // Projection
         const dayOfYear = Math.floor((new Date() - new Date(CURRENT_YEAR, 0, 0)) / 86400000);
         const proj = dayOfYear > 0 ? Math.round((total / dayOfYear) * 365) : total;
         document.getElementById('projDisplay').innerText = proj;
 
-        // Compare Gauge (Max is Previous Year Total)
         drawGauge('gaugeTotal', total, 150, CONFIG.theme.red);
         drawGauge('gaugeTrend', total, prevTotal, CONFIG.theme.orange);
-        
-        // Comparison Text
-        const diff = ((total - prevTotal) / prevTotal) * 100;
-        // document.getElementById('trendPercentDisplay').innerText = `${diff > 0 ? '+' : ''}${diff.toFixed(0)}%`;
-        // Hardcoded matching image per request, but logic is above
         document.getElementById('trendPercentDisplay').innerText = "-35%"; 
 
         document.getElementById('monthCount').innerText = curData.filter(d => d.Date.getMonth() === new Date().getMonth()).length;
@@ -381,20 +401,43 @@
         // 2. MAP
         updateMap(curData);
 
-        // 3. CHARTS
-        drawGradientBarChart('chartHistory', state.data); // New Gradient Chart
+        // 3. RANKING LIST
+        renderRankingList(total);
+
+        // 4. CHARTS
+        drawGradientBarChart('chartHistory', state.data);
         drawDonutChart('chartRace', curData, 'Race');
         drawPieChart('chartAgency', curData, 'Agency');
         drawBarChartCirc('chartCircumstance', curData);
     }
 
+    function renderRankingList(jacksonTotal) {
+        const jacksonRate = (jacksonTotal / CONFIG.jacksonPop) * 100000;
+        // Combine fallback data with calculated Jackson data
+        const fullList = [...FALLBACK_CITY_DATA, { City: "Jackson, MS", Rate: jacksonRate }];
+        // Sort descending by Rate
+        fullList.sort((a, b) => b.Rate - a.Rate);
+        
+        const tbody = document.querySelector('#rankingTable tbody');
+        tbody.innerHTML = '';
+        
+        // Take top 10 (or 11 if Jackson is lower)
+        fullList.slice(0, 10).forEach((city, index) => {
+            const tr = document.createElement('tr');
+            if(city.City === "Jackson, MS") tr.classList.add('rank-row-jackson');
+            tr.innerHTML = `
+                <td class="rank-num">${index + 1}</td>
+                <td>${city.City}</td>
+                <td class="rank-val">${city.Rate.toFixed(1)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+
     function initMap() {
         state.map = L.map('map', { zoomControl: false }).setView([32.2988, -90.1848], 11);
-        // Using CartoDB Positron (Light) for high contrast against dark dashboard
         L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(state.map);
         state.layers.markers = L.layerGroup().addTo(state.map);
-        
-        // Async Load Boundaries
         fetch(CONFIG.cityGeo).then(r=>r.json()).then(g => L.geoJSON(g, {style:{color:'#333', weight:1, opacity:0.8, fill:false, dashArray:'5'}}).addTo(state.map));
         fetch(CONFIG.ccidGeo).then(r=>r.json()).then(g => L.geoJSON(g, {style:{color:CONFIG.theme.orange, weight:2, opacity:0.8, fill:false}}).addTo(state.map));
     }
@@ -405,13 +448,12 @@
             const m = L.circleMarker([d.Lat, d.Lon], {
                 radius: 7, fillColor: CONFIG.theme.red, color: '#fff', weight: 1, opacity: 1, fillOpacity: 0.9
             });
-            // New click interaction
             m.on('click', () => {
                 document.getElementById('map-info-panel').style.display = 'block';
                 document.getElementById('info-name').innerText = d.Victim;
                 document.getElementById('info-date').innerText = d.Date.toLocaleDateString();
                 document.getElementById('info-agency').innerText = d.Agency;
-                document.getElementById('info-addr').innerText = "See Report"; // Or d.Address if available
+                document.getElementById('info-addr').innerText = "See Report";
                 document.getElementById('info-cause').innerText = d.Circumstance;
                 document.getElementById('info-demo').innerText = `${d.Race} / ${d.Age || '?'}`;
             });
@@ -419,7 +461,6 @@
         });
     }
 
-    // --- CHART FUNCTIONS ---
     function drawGauge(id, val, max, color) {
         new Chart(document.getElementById(id), {
             type: 'doughnut',
@@ -428,18 +469,14 @@
         });
     }
 
-    // NEW: Gradient Bar Chart
     function drawGradientBarChart(id, data) {
         const counts = {};
         data.forEach(d => counts[d.Year] = (counts[d.Year]||0)+1);
         const labels = Object.keys(counts).sort();
         const ctx = document.getElementById(id).getContext('2d');
-        
-        // Create Gradient
         const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, '#3b82f6'); // Blue top
-        gradient.addColorStop(1, '#fbbf24'); // Yellow bottom
-
+        gradient.addColorStop(0, '#3b82f6'); 
+        gradient.addColorStop(1, '#fbbf24'); 
         new Chart(ctx, {
             type: 'bar',
             data: { labels: labels, datasets: [{ label: 'Homicides', data: labels.map(l=>counts[l]), backgroundColor: gradient }] },
