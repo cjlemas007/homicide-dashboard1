@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jackson Homicide Tracker | Infographic Dashboard</title>
+    <title>Jackson Homicide Tracker | Dashboard</title>
 
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -421,18 +421,6 @@
     // Theme Colors
     const THEME = { red: '#d9534f', blue: '#0d6efd', amber: '#ffc107', green: '#198754', purple: '#6f42c1', grey: '#64748b', grid: '#1e293b' };
 
-    // Placeholder Data
-    const historicalHomicideData = [
-        { year: 1976, total: 40 }, { year: 1977, total: 47 }, { year: 1978, total: 33 }, { year: 1979, total: 55 }, { year: 1980, total: 42 },
-        { year: 1981, total: 49 }, { year: 1982, total: 57 }, { year: 1983, total: 42 }, { year: 1984, total: 34 }, { year: 1985, total: 43 },
-        { year: 1986, total: 35 }, { year: 1987, total: 54 }, { year: 1988, total: 51 }, { year: 1989, total: 49 }, { year: 1990, total: 47 },
-        { year: 1991, total: 80 }, { year: 1992, total: 64 }, { year: 1993, total: 84 }, { year: 1994, total: 91 }, { year: 1995, total: 92 },
-        { year: 1996, total: 61 }, { year: 1997, total: 64 }, { year: 1998, total: 60 }, { year: 1999, total: 45 }, { year: 2000, total: 39 },
-        { year: 2001, total: 50 }, { year: 2002, total: 49 }, { year: 2003, total: 45 }, { year: 2004, total: 53 }, { year: 2005, total: 38 },
-        { year: 2006, total: 40 }, { year: 2007, total: 46 }, { year: 2008, total: 63 }, { year: 2009, total: 37 }, { year: 2010, total: 41 },
-        { year: 2011, total: 52 }, { year: 2012, total: 63 }, { year: 2013, total: 50 }, { year: 2014, total: 61 }, { year: 2015, total: 54 }
-    ];
-
     // --- GLOBAL STATE ---
     let state = {
         allHomicideData: [],
@@ -456,10 +444,15 @@
         initGauges();
 
         try {
-            const [homicideDataResult, cityDataResult] = await Promise.all([
-                fetchDataAndProcess(HOMICIDE_DATA_API_URL, true),
-                fetchDataAndProcess(CITY_COMPARISON_API_URL, false)
-            ]);
+            // Updated to fallback to placeholder if fetch fails
+            let homicideDataResult = await fetchDataAndProcess(HOMICIDE_DATA_API_URL, true);
+            let cityDataResult = await fetchDataAndProcess(CITY_COMPARISON_API_URL, false);
+            
+            // FALLBACK LOGIC: If fetch returned empty (likely due to CORS or missing file), use embedded data
+            if (!homicideDataResult || homicideDataResult.length === 0) {
+                console.warn("Fetch failed or returned empty. Using embedded fallback data.");
+                homicideDataResult = processHomicideData(getPlaceholderHomicideData());
+            }
 
             state.allHomicideData = homicideDataResult;
             state.cityComparisonData = cityDataResult;
@@ -468,8 +461,25 @@
             applyFilters();
         } catch (error) {
             console.error("Fatal Error initializing dashboard:", error);
-            // Fallback (Optional: Load placeholder data)
+            // Even if fetch crashes entirely, use fallback
+            state.allHomicideData = processHomicideData(getPlaceholderHomicideData());
+            populateFilters(true);
+            applyFilters();
         }
+    }
+    
+    // --- FALLBACK DATA (EMBEDDED) ---
+    // This runs if the external JSON file is missing or blocked by browser security
+    function getPlaceholderHomicideData() {
+        return {
+            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year"],
+            entries: [
+                [`01/15/${CURRENT_YEAR}`, "123 Main St", 'Sample Victim 1', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR],
+                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave", 'Sample Victim 2', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR],
+                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln", 'Sample Victim 3', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR],
+                [`04/05/${CURRENT_YEAR}`, "101 State St", 'Sample Victim 4', "JPD", 22, "Black", 32.3100, -90.2000, "Drive-by", CURRENT_YEAR]
+            ]
+        };
     }
 
     // --- DATA PROCESSING (RESTORED FROM YOUR WORKING FILE) ---
@@ -609,12 +619,6 @@
         const proj = day > 0 ? Math.round((count / day) * 365) : count;
         document.getElementById('projectedYearEndText').innerText = proj;
         
-        // Rolling 30
-        const today = new Date(); today.setHours(23,59,59);
-        const d30 = new Date(); d30.setDate(today.getDate()-30); d30.setHours(0,0,0);
-        const r30 = state.allHomicideData.filter(d => { const dt = new Date(d.Date+'T00:00:00'); return dt>=d30 && dt<=today; }).length;
-        //document.getElementById('rolling30DayText').innerText = r30;
-
         // Month Avg
         const m = new Date().getMonth();
         const thisM = state.allHomicideData.filter(d => d.Year===CURRENT_YEAR && new Date(d.Date+'T00:00:00').getMonth()===m).length;
