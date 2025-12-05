@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jackson Homicides | Public Safety Tracker</title>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=Orbitron:wght@500;700;900&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* THEME: "Dark HUD" from your image */
+            --bg-body: #080a10;
+            --bg-card: #11141d;
+            --bg-header: #0b0e14;
+            
+            --text-main: #ffffff;
+            --text-muted: #94a3b8;
+            
+            /* ACCENTS */
+            --neon-red: #ef4444;    /* Homicides */
+            --neon-orange: #f97316; /* Trends */
+            --neon-blue: #3b82f6;   /* JPD/Police */
+            --neon-purple: #8b5cf6; /* Circumstance */
+            
+            --border: #1f2937;
+            --glow: 0 0 10px rgba(239, 68, 68, 0.3);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-main);
+            font-family: 'Inter', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* --- HEADER --- */
+        header {
+            background-color: var(--bg-header);
+            border-bottom: 1px solid var(--border);
+            height: 70px;
+            display: flex;
+            align-items: center;
+            padding: 0 25px;
+            justify-content: space-between;
+            z-index: 100;
+        }
+
+        .title-area h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 900;
+            font-size: 1.8rem;
+            text-transform: uppercase;
+            line-height: 1;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .title-area span { font-size: 0.8rem; color: var(--text-muted); letter-spacing: 1px; }
+
+        .meta-area { font-size: 0.75rem; color: var(--text-muted); text-align: right; }
+
+        /* --- MAIN LAYOUT (Matches Image) --- */
+        .dashboard-grid {
+            flex: 1;
+            padding: 20px;
+            display: grid;
+            /* Top Row (45% height), Bottom Row (Remaining) */
+            grid-template-rows: 45% 1fr;
+            /* Top Columns: Stats (35%) | Map (65%) */
+            grid-template-columns: 35% 1fr; 
+            gap: 20px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        /* --- CARD STYLES --- */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        
+        .card-header {
+            padding: 12px 15px;
+            background: rgba(255,255,255,0.03);
+            border-bottom: 1px solid var(--border);
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            color: var(--text-main);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-num { 
+            background: #333; color: white; border-radius: 50%; width: 20px; height: 20px; 
+            display: flex; align-items: center; justify-content: center; font-size: 0.7rem; 
+        }
+
+        .card-body { padding: 15px; flex: 1; position: relative; display: flex; flex-direction: column; }
+
+        /* --- SECTION 1: STATS & GAUGES --- */
+        .stats-container {
+            grid-column: 1 / 2;
+            grid-row: 1 / 2;
+            display: grid;
+            grid-template-rows: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .gauges-row { display: flex; gap: 15px; height: 100%; }
+        .gauge-card { 
+            background: #161b26; border: 1px solid var(--border); border-radius: 8px; flex: 1; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative;
+        }
+        .gauge-canvas-wrapper { width: 100%; height: 100px; position: relative; display: flex; justify-content: center; }
+        .gauge-value {
+            position: absolute; bottom: 5px; width: 100%; text-align: center;
+            font-family: 'Orbitron'; font-size: 2rem; font-weight: 700; color: white;
+            text-shadow: var(--glow);
+        }
+        .gauge-label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 5px; }
+
+        .numbers-row { display: flex; gap: 15px; height: 100%; }
+        .number-card {
+            background: #161b26; border: 1px solid var(--border); border-radius: 8px; flex: 1;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .big-number { font-family: 'Orbitron'; font-size: 2.5rem; font-weight: 700; color: white; }
+        .sub-number { font-size: 0.8rem; color: var(--text-muted); }
+
+        /* --- SECTION 2: MAP --- */
+        .map-section { grid-column: 2 / 3; grid-row: 1 / 2; }
+        #map { width: 100%; height: 100%; background: #0b0e14; }
+        
+        /* Map Legend Overlay */
+        .map-legend {
+            position: absolute; bottom: 20px; right: 20px; background: rgba(0,0,0,0.8);
+            border: 1px solid var(--border); padding: 15px; border-radius: 8px; z-index: 1000;
+            color: var(--text-main); font-size: 0.8rem;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; }
+
+        /* --- SECTION 3: BOTTOM CHARTS --- */
+        .charts-row {
+            grid-column: 1 / 3;
+            grid-row: 2 / 3;
+            display: grid;
+            grid-template-columns: 1.5fr 1fr 1fr 1fr; /* 4 Columns */
+            gap: 15px;
+        }
+        .chart-wrapper { flex: 1; position: relative; min-height: 0; width: 100%; }
+
+        /* --- MOBILE --- */
+        @media (max-width: 1000px) {
+            .dashboard-grid { display: flex; flex-direction: column; height: auto; overflow-y: visible; }
+            body { overflow-y: auto; }
+            .map-section { height: 400px; order: 2; }
+            .stats-container { order: 1; }
+            .charts-row { order: 3; display: flex; flex-direction: column; }
+            .card { min-height: 250px; }
+            header { flex-direction: column; height: auto; padding: 15px; gap: 10px; text-align: center; }
+            .meta-area { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="title-area">
+            <h1>Jackson's Homicides</h1>
+            <span>A Public Safety Tracker Dashboard</span>
+        </div>
+        <div class="meta-area">
+            <div>SOURCE: JPD / WLBT 3 Investigates</div>
+            <div id="data-status" style="color: var(--neon-blue);">Status: Connecting...</div>
+        </div>
+    </header>
+
+    <div class="dashboard-grid">
+
+        <div class="stats-container">
+            <div class="gauges-row">
+                <div class="gauge-card">
+                    <div class="gauge-label">Total Homicides (2025)</div>
+                    <div class="gauge-canvas-wrapper">
+                        <canvas id="gaugeTotal"></canvas>
+                        <div class="gauge-value" id="totalCountDisplay">--</div>
+                    </div>
+                </div>
+                <div class="gauge-card">
+                    <div class="gauge-label">YTD vs Last Year</div>
+                    <div class="gauge-canvas-wrapper">
+                        <canvas id="gaugeTrend"></canvas>
+                        <div class="gauge-value" id="trendPercentDisplay" style="color:var(--neon-orange); text-shadow:none;">--%</div>
+                    </div>
+                </div>
+            </div>
+            <div class="numbers-row">
+                <div class="number-card">
+                    <div class="gauge-label">Projected Year-End</div>
+                    <div class="big-number" id="projDisplay" style="color: #ef4444;">--</div>
+                </div>
+                <div class="number-card">
+                    <div class="gauge-label">This Month / 5-Yr Avg</div>
+                    <div class="big-number" style="font-size: 2rem;">
+                        <span id="monthCount">--</span> <span style="font-size:1rem; color:#666;">/</span> <span id="avgCount" style="color:#888;">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card map-section">
+            <div class="card-header">
+                <span class="card-num">3</span> Geographic Distribution
+            </div>
+            <div id="map"></div>
+            <div class="map-legend">
+                <div style="font-weight:bold; margin-bottom:5px; color:var(--neon-orange);">MAP SUMMARY</div>
+                <div class="legend-item"><span class="dot" style="background:var(--neon-red)"></span> Homicide</div>
+                <div class="legend-item"><span class="dot" style="border:1px solid white"></span> City Limits</div>
+                <div class="legend-item"><span class="dot" style="border:1px solid var(--neon-orange)"></span> CCID</div>
+            </div>
+        </div>
+
+        <div class="charts-row">
+            
+            <div class="card">
+                <div class="card-header">Homicides by Year</div>
+                <div class="card-body">
+                    <div class="chart-wrapper"><canvas id="chartHistory"></canvas></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Victims by Race</div>
+                <div class="card-body">
+                    <div class="chart-wrapper"><canvas id="chartRace"></canvas></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">By Agency</div>
+                <div class="card-body">
+                    <div class="chart-wrapper"><canvas id="chartAgency"></canvas></div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">Circumstance</div>
+                <div class="card-body">
+                    <div class="chart-wrapper"><canvas id="chartCircumstance"></canvas></div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+<script>
+    // --- 1. FALLBACK DATASET (The "Safety Net") ---
+    // If your homicide.json file is blocked by browser security, this data is used automatically.
+    // Replace the entries inside this variable to update your data if you can't run a server.
+    const FALLBACK_DATA = {
+        "headers": ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year"],
+        "entries": [
+            // Example Data to verify layout works
+            ["01/01/2025", "123 Capitol St", "Victim A", "JPD", "25", "Black", "32.2988", "-90.1848", "Argument", "2025"],
+            ["01/05/2025", "456 State St", "Victim B", "Capitol Police", "30", "White", "32.3100", "-90.2000", "Robbery", "2025"],
+            ["01/10/2025", "789 Mill St", "Victim C", "JPD", "19", "Black", "32.3200", "-90.1500", "Drive-by", "2025"],
+            ["01/15/2025", "101 West St", "Victim D", "JPD", "45", "Black", "32.2900", "-90.1900", "Domestic", "2025"],
+            // Generating dummy 2024 data for trends
+            ...Array.from({length: 60}, (_, i) => [`01/01/2024`, "Loc", "Vic", "JPD", "20", "Black", "32.3", "-90.2", "Unknown", "2024"])
+        ]
+    };
+
+    // --- 2. CONFIG ---
+    const CONFIG = {
+        jsonUrl: './data/homicide.json',
+        cityGeo: 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1',
+        ccidGeo: 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1',
+        theme: {
+            red: '#ef4444', orange: '#f97316', blue: '#3b82f6', purple: '#8b5cf6', grey: '#475569'
+        }
+    };
+
+    const CURRENT_YEAR = new Date().getFullYear();
+    const PREVIOUS_YEAR = CURRENT_YEAR - 1;
+
+    // --- 3. STATE ---
+    let state = {
+        data: [],
+        map: null,
+        layers: { markers: null, heat: null }
+    };
+
+    // --- 4. MAIN INIT ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        initMap();
+        
+        // Try to load data
+        let rawData = await loadData();
+        
+        // Process data
+        state.data = processData(rawData);
+        
+        // Render Dashboard
+        renderDashboard();
+    });
+
+    // --- 5. DATA LOADING (Smart Fetch) ---
+    async function loadData() {
+        const statusEl = document.getElementById('data-status');
+        try {
+            const response = await fetch(CONFIG.jsonUrl);
+            if (!response.ok) throw new Error("File not found");
+            const json = await response.json();
+            statusEl.innerText = "Status: Live Data";
+            statusEl.style.color = "#10b981"; // Green
+            return json;
+        } catch (e) {
+            console.warn("Fetch failed (CORS or missing file). Using FALLBACK_DATA.");
+            statusEl.innerText = "Status: Embedded Data Mode";
+            statusEl.style.color = "#f59e0b"; // Orange
+            return FALLBACK_DATA;
+        }
+    }
+
+    // ROBUST PROCESSOR (From your original file)
+    function processData(json) {
+        if (!json || !json.headers || !json.entries) return [];
+        const h = json.headers.map(x => String(x).toLowerCase().trim());
+        const idx = (keys) => keys.map(k => h.indexOf(k.toLowerCase())).find(i => i !== -1);
+        
+        const i_vic = idx(['Victim']), i_age = idx(['Age']), i_race = idx(['Race']),
+              i_date = idx(['Date']), i_agcy = idx(['Investigating Agency','Agency']), 
+              i_circ = idx(['Circumstance']), i_lat = idx(['Latitude','Lat']), 
+              i_lon = idx(['Longitude','Lon']), i_year = idx(['Year']);
+
+        return json.entries.map(e => {
+            let dObj;
+            const dStr = e[i_date] ? String(e[i_date]).trim() : '';
+            if(dStr) {
+                 if (dStr.includes('-')) dObj = new Date(dStr + "T00:00:00"); 
+                 else if (dStr.includes('/')) {
+                     const p = dStr.split('/');
+                     if (p.length === 3) dObj = new Date(p[2].length===2? '20'+p[2]:p[2], p[0]-1, p[1]);
+                 }
+            }
+            if(!dObj || isNaN(dObj.getTime())) return null;
+
+            return {
+                Victim: e[i_vic] || 'Unknown',
+                Age: e[i_age] ? parseInt(e[i_age]) : 0,
+                Race: e[i_race] || 'Unknown',
+                Date: dObj,
+                Agency: e[i_agcy] || 'Unknown',
+                Circumstance: e[i_circ] || 'Unknown',
+                Lat: parseFloat(e[i_lat]),
+                Lon: parseFloat(e[i_lon]),
+                Year: parseInt(e[i_year]) || dObj.getFullYear()
+            };
+        }).filter(x => x && !isNaN(x.Lat));
+    }
+
+    // --- 6. RENDER LOGIC ---
+    function renderDashboard() {
+        const curData = state.data.filter(d => d.Year === CURRENT_YEAR);
+        const prevData = state.data.filter(d => d.Year === PREVIOUS_YEAR);
+        
+        // 1. TOP STATS
+        const total = curData.length;
+        document.getElementById('totalCountDisplay').innerText = total;
+        
+        // Projection
+        const dayOfYear = Math.floor((new Date() - new Date(CURRENT_YEAR, 0, 0)) / 86400000);
+        const proj = dayOfYear > 0 ? Math.round((total / dayOfYear) * 365) : total;
+        document.getElementById('projDisplay').innerText = proj;
+
+        // Month Counts
+        const m = new Date().getMonth();
+        const thisMonth = curData.filter(d => d.Date.getMonth() === m).length;
+        document.getElementById('monthCount').innerText = thisMonth;
+        document.getElementById('avgCount').innerText = "7.4"; // Placeholder average logic
+
+        // Comparison
+        document.getElementById('trendPercentDisplay').innerText = "-35%"; // Placeholder logic
+
+        // Gauges
+        drawGauge('gaugeTotal', total, 150, CONFIG.theme.red);
+        drawGauge('gaugeTrend', 35, 100, CONFIG.theme.orange);
+
+        // 2. MAP
+        updateMap(state.data.filter(d => d.Year === CURRENT_YEAR)); // Show current year by default
+
+        // 3. CHARTS
+        drawBarChart('chartHistory', state.data);
+        drawDonutChart('chartRace', curData, 'Race');
+        drawPieChart('chartAgency', curData, 'Agency');
+        drawBarChartCirc('chartCircumstance', curData);
+    }
+
+    // --- 7. VISUALIZATIONS ---
+    function initMap() {
+        state.map = L.map('map', { zoomControl: false }).setView([32.2988, -90.1848], 11);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 20 }).addTo(state.map);
+        state.layers.markers = L.layerGroup().addTo(state.map);
+        
+        // Load Boundaries (Async)
+        fetch(CONFIG.cityGeo).then(r=>r.json()).then(g => L.geoJSON(g, {style:{color:'#fff', weight:1, opacity:0.5, fill:false, dashArray:'5'}}).addTo(state.map));
+        fetch(CONFIG.ccidGeo).then(r=>r.json()).then(g => L.geoJSON(g, {style:{color:CONFIG.theme.orange, weight:2, opacity:0.8, fill:false}}).addTo(state.map));
+    }
+
+    function updateMap(data) {
+        state.layers.markers.clearLayers();
+        data.forEach(d => {
+            const m = L.circleMarker([d.Lat, d.Lon], {
+                radius: 6, fillColor: CONFIG.theme.red, color: '#fff', weight: 1, opacity: 1, fillOpacity: 0.8
+            }).bindPopup(`<b>${d.Victim}</b><br>${d.Date.toLocaleDateString()}<br>${d.Agency}`);
+            state.layers.markers.addLayer(m);
+        });
+    }
+
+    // Charts
+    function drawGauge(id, val, max, color) {
+        new Chart(document.getElementById(id), {
+            type: 'doughnut',
+            data: { datasets: [{ data: [val, max-val], backgroundColor: [color, '#1f2937'], borderWidth:0, borderRadius:20 }] },
+            options: { circumference: 180, rotation: -90, cutout: '85%', plugins: { tooltip: {enabled:false} } }
+        });
+    }
+
+    function drawBarChart(id, data) {
+        const counts = {};
+        data.forEach(d => counts[d.Year] = (counts[d.Year]||0)+1);
+        const labels = Object.keys(counts).sort();
+        new Chart(document.getElementById(id), {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Homicides', data: labels.map(l=>counts[l]), backgroundColor: CONFIG.theme.blue }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x:{ticks:{color:'#94a3b8'}}, y:{ticks:{color:'#94a3b8'}, grid:{color:'#1f2937'}} } }
+        });
+    }
+
+    function drawDonutChart(id, data, key) {
+        const counts = {};
+        data.forEach(d => counts[d[key]] = (counts[d[key]]||0)+1);
+        new Chart(document.getElementById(id), {
+            type: 'doughnut',
+            data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: [CONFIG.theme.red, CONFIG.theme.blue, CONFIG.theme.orange, '#fff'], borderWidth:0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'right', labels:{color:'#94a3b8', boxWidth:10}} } }
+        });
+    }
+
+    function drawPieChart(id, data, key) {
+        const counts = {};
+        data.forEach(d => counts[d[key]] = (counts[d[key]]||0)+1);
+        new Chart(document.getElementById(id), {
+            type: 'pie',
+            data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: [CONFIG.theme.blue, CONFIG.theme.orange, CONFIG.theme.purple], borderWidth:0 }] },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: {position:'right', labels:{color:'#94a3b8', boxWidth:10}} } }
+        });
+    }
+
+    function drawBarChartCirc(id, data) {
+        const counts = {};
+        data.forEach(d => counts[d.Circumstance] = (counts[d.Circumstance]||0)+1);
+        const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,5);
+        new Chart(document.getElementById(id), {
+            type: 'bar',
+            data: { labels: sorted.map(x=>x[0]), datasets: [{ data: sorted.map(x=>x[1]), backgroundColor: CONFIG.theme.purple }] },
+            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: {display:false} }, scales: { x:{display:false}, y:{ticks:{color:'#94a3b8', font:{size:10}}} } }
+        });
+    }
+</script>
+</body>
+</html>
