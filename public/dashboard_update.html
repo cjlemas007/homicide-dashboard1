@@ -1731,12 +1731,13 @@ function updateMapDisplay() {
                             (Past 12mo: ${p.countCurrent} vs ${p.countPrev})
                         `);
                     },
-                    interactive: false // Keep non-interactive for clicks to pass through to markers if needed? 
-                                       // Actually, if we want tooltips, interactive must be true.
-                                       // But we want markers on top.
+                    interactive: true // Changed to true so tooltips work
                 });
                 
-                // Add to overlays (but don't add to map by default)
+                wardsLayer.addTo(map); // Add to map by default
+                wardsLayer.bringToBack(); // Ensure it's behind markers
+
+                // Add to overlays
                 overlayMaps["Ward Trends (Velocity)"] = wardsLayer;
                 
                 // Re-add control
