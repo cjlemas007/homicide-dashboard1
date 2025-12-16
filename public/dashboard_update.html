@@ -1001,6 +1001,11 @@
         
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+        // NEW: Create custom pane for markers to ensure they are always on top
+        map.createPane('homicideMarkersPane');
+        // zIndex 650 is higher than default overlayPane (400) and markerPane (600)
+        map.getPane('homicideMarkersPane').style.zIndex = 650; 
+
         updateMapTiles();
         markersLayer.addTo(map);
         searchCircleLayer.addTo(map); // NEW: Add search layer
@@ -1163,7 +1168,12 @@ function updateMapDisplay() {
         const latLng = [d.Latitude, d.Longitude];
         heatPoints.push(latLng);
         
-        const marker = L.circleMarker(latLng, { ...defaultMarkerStyle, bubblingMouseEvents: false });
+        // MODIFIED: Use custom pane for markers
+        const marker = L.circleMarker(latLng, { 
+            ...defaultMarkerStyle, 
+            bubblingMouseEvents: false,
+            pane: 'homicideMarkersPane' // Ensure markers are always on top
+        });
         
         marker.on('click', (e) => {
             if (e.originalEvent) L.DomEvent.stop(e.originalEvent); else L.DomEvent.stop(e);
@@ -1751,6 +1761,9 @@ function updateMapDisplay() {
                 
                 wardsLayer.addTo(map); // Add to map by default
                 wardsLayer.bringToBack(); // Ensure it's behind markers
+
+                // MODIFIED: Explicitly show legend since the layer is added by default
+                document.getElementById('ward-legend-content').style.display = 'block';
 
                 // Add to overlays
                 overlayMaps["Ward Trends (Velocity)"] = wardsLayer;
