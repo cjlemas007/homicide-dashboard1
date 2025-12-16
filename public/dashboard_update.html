@@ -737,16 +737,9 @@
 <script>
     // --- Configuration ---
     const HOMICIDE_DATA_API_URL = './data/homicide.json';
-    // MODIFIED: Replaced single URL with array for 7 separate Ward files
-    const WARD_URLS = [
-        'https://dl.dropbox.com/scl/fi/tbixi29kjq4f4swujlbwr/Ward1.geojson?rlkey=35c2g4uip9oxrjzlu7gyq91eq&st=5n61m0qd&dl=1', // Ward 1
-        'https://dl.dropbox.com/scl/fi/zxvrbihj8nf6i500eqv0c/Ward2.geojson?rlkey=04rzq6fw0mfh3jafzrrsk5kt8&st=i2b5gxiv&dl=1', // Ward 2
-        'https://dl.dropbox.com/scl/fi/ytuqas0sd5anecjnof46p/Ward3.geojson?rlkey=itl0dtz7l59b5wh8dnnlny5x8&st=13ww7xeh&dl=1', // Ward 3
-        'https://dl.dropbox.com/scl/fi/5nvabtonys1xin28eltet/Ward4.geojson?rlkey=7sy9ss2bwgaouivpikkfk8hyt&st=x27hrvau&dl=1', // Ward 4
-        'https://dl.dropbox.com/scl/fi/n8dc14spj9e2afn4vzlcr/Ward5.geojson?rlkey=bjy09aspmkdwfvwigvi6mo2dt&st=oj42aq4v&dl=1', // Ward 5
-        'https://dl.dropbox.com/scl/fi/p208vk2mqmeso0cuooe4f/Ward6.geojson?rlkey=ojaqqf5u9fexz8ee0ef3lm3gv&st=i25osujo&dl=1', // Ward 6
-        'https://dl.dropbox.com/scl/fi/193xu1jg5ke6mklxzduff/Ward7.geojson?rlkey=31jzrg22jafna89hayt25f8go&st=4da8p88e&dl=1'  // Ward 7
-    ];
+    // MODIFIED: Replaced array of URLs with single combined GeoJSON URL
+    const WARD_DATA_URL = 'https://dl.dropbox.com/scl/fi/g8y0ecap7g4tug8t2b8ww/CombinedWards2024.geojson?rlkey=t3i2oicns2f5t7rb5fm70ukyk&st=wpaxqdg0&raw=1';
+
     const API_KEY = 'AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI';
     const SPREADSHEET_ID = '1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk';
     const SHEET_NAME = 'Sheet1';
@@ -1637,6 +1630,14 @@ function updateMapDisplay() {
         return inside;
     }
 
+    // --- Helper: Format Label ---
+    // Inserts space between letter and digit (e.g., "WARD1" -> "WARD 1")
+    function formatLabel(value) {
+        if (value === null || value === undefined) return "";
+        const str = String(value);
+        return str.replace(/([a-zA-Z])(\d)/g, '$1 $2');
+    }
+
     // NEW: Process Wards and Calculate Velocity
     function processWardsData(wardsGeoJSON) {
         const today = new Date();
@@ -1717,51 +1718,30 @@ function updateMapDisplay() {
         const baseLayers = { "Markers": markersLayer, "Heatmap": heatLayer };
         const overlayMaps = {};
         
-        // MODIFIED: Fetch multiple ward files and combine them
+        // MODIFIED: Fetch single combined Ward file
         const fetchWards = async () => {
             try {
-                // Fetch all configured Ward URLs in parallel
-                const responses = await Promise.all(WARD_URLS.map(url => fetch(url)));
+                const response = await fetch(WARD_DATA_URL);
+                if (!response.ok) throw new Error("Failed to fetch wards");
+                const data = await response.json();
                 
-                // Parse JSON from all responses
-                const jsons = await Promise.all(responses.map(r => {
-                    if (!r.ok) throw new Error(`Failed to load ward file: ${r.url}`);
-                    return r.json();
-                }));
-
-                // Combine features from all files into one FeatureCollection
-                const combinedFeatures = jsons.flatMap((json, index) => {
-                    // Force Ward Name property based on index to ensure correct labelling
-                    const features = json.type === 'FeatureCollection' ? json.features : [json];
-                    features.forEach(f => {
-                        f.properties = f.properties || {};
-                        // Ensure we have a consistent name property for the tooltip
-                        // Use index + 1 since array is 0-indexed but wards are 1-7
-                        f.properties.wardName = `Ward ${index + 1}`; 
-                    });
-                    return features;
-                });
-
-                const combinedGeoJSON = {
-                    type: "FeatureCollection",
-                    features: combinedFeatures
-                };
+                // Process data (Spatial Join)
+                const processedData = processWardsData(data);
                 
-                // Process data (Spatial Join) using the combined collection
-                const processedData = processWardsData(combinedGeoJSON);
-                
-                // Create Layer
                 wardsLayer = L.geoJSON(processedData, {
                     style: wardStyle,
                     onEachFeature: (feature, layer) => {
                         const p = feature.properties;
-                        // Use our injected wardName property
-                        const wardName = p.wardName || p.Name || p.NAME || `Ward`;
+                        // Prioritize "District" or Name fields
+                        const rawLabel = p.District || p.Name || p.NAME || p.wardName || "Ward";
+                        // Apply formatting (e.g., "WARD 1")
+                        const labelText = formatLabel(rawLabel);
+
                         const sign = p.velocity > 0 ? '+' : '';
                         const trendText = `${sign}${p.velocity.toFixed(0)}%`;
                         
                         layer.bindTooltip(`
-                            <strong>${wardName}</strong><br>
+                            <strong>${labelText}</strong><br>
                             Trend: ${trendText}<br>
                             (Past 12mo: ${p.countCurrent} vs ${p.countPrev})
                         `);
