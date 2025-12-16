@@ -1750,11 +1750,12 @@ function updateMapDisplay() {
                         const sign = p.velocity > 0 ? '+' : '';
                         const trendText = `${sign}${p.velocity.toFixed(0)}%`;
                         
+                        // Modified to include sticky: true
                         layer.bindTooltip(`
                             <strong>${labelText}</strong><br>
                             Trend: ${trendText}<br>
                             (Past 12mo: ${p.countCurrent} vs ${p.countPrev})
-                        `);
+                        `, { sticky: true });
                     },
                     interactive: true 
                 });
