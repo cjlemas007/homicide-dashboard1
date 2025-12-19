@@ -1663,8 +1663,9 @@ function updateMapDisplay() {
             
             // Check for Solved status
             const arrestVal = String(d['Arrest Made'] || '').toLowerCase();
-            // Treat "Yes", "Y", "Arrest", "Closed", "Cleared" as solved
-            if (['yes', 'y', 'arrest', 'closed', 'cleared'].some(term => arrestVal.includes(term))) {
+            // Treat "true", "Yes", "Y", "Arrest", "Closed", "Cleared" as solved
+            // User confirmed field contains boolean values (true/false)
+            if (['true', 'yes', 'y', 'arrest', 'closed', 'cleared'].some(term => arrestVal.includes(term))) {
                 agencyStats[agency].solved++;
             }
         });
