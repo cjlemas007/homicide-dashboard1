@@ -180,7 +180,8 @@
         /* MODIFIED: search-container styling */
         .filter-group.circumstance-filter, 
         .filter-group.trends-container,
-        .filter-group.search-container { 
+        .filter-group.search-container,
+        .filter-group.clearance-container { /* NEW */
             grid-column: 1 / -1; 
         }
 
@@ -221,6 +222,21 @@
         .trend-box-split .trend-value {
              font-size: 1.2em;
         }
+
+        /* NEW: Clearance Rate Styles */
+        .clearance-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+        .clearance-table td, .clearance-table th {
+            padding: 4px;
+            border-bottom: 1px solid var(--input-border);
+            text-align: left;
+        }
+        .clearance-table th { font-weight: bold; color: var(--legend-label-text); }
+        .clearance-table td:last-child { text-align: right; font-weight: bold; }
         
         .filter-group label.group-label { 
             display: block; margin-bottom: 5px; 
@@ -413,10 +429,25 @@
         #main-trends-content .chart-box { width: 50%; }
         #main-trends-content .chart-box:first-child { border-right: 1px solid var(--legend-border); }
        
-        #details-content .chart-box { width: 25%; }
-        #details-content .chart-box:not(:last-child) {
-            border-right: 1px solid var(--legend-border);
+        /* MODIFIED: Use Grid for Details Content to fit 5 charts */
+        #details-content {
+            display: none; /* Controlled by tabs */
+            display: grid; /* When active, override with JS or class */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
         }
+        /* Only apply grid when active */
+        #details-content.active { display: grid; }
+        
+        #details-content .chart-box { 
+            width: 100%; 
+            border-right: 1px solid var(--legend-border);
+            border-bottom: 1px solid var(--legend-border);
+        }
+        /* Remove right border for every 3rd item */
+        #details-content .chart-box:nth-child(3n) { border-right: none; }
+        /* Remove bottom border for items in last row */
+        #details-content .chart-box:nth-last-child(-n+3) { border-bottom: 1px solid var(--legend-border); } /* Keep bottom for now to be safe */
 
         .chart-box h4 { text-align: center; margin-top: 0; margin-bottom: 10px; font-size: 1em; color: var(--chart-title-text); }
         .chart-canvas-container { flex-grow: 1; position: relative; min-height: 250px; } 
@@ -508,11 +539,13 @@
             .chart-tab-content {
                 flex-direction: column;
             }
+            #details-content.active {
+                display: flex; /* Revert to flex col for mobile */
+                flex-direction: column;
+            }
             #main-trends-content .chart-box, #details-content .chart-box {
                 width: 100%;
                 border-right: none;
-            }
-            #main-trends-content .chart-box:first-child, #details-content .chart-box:not(:last-child) {
                 border-bottom: 1px solid var(--legend-border);
             }
         }
@@ -604,6 +637,16 @@
                             </div>
                         </div>
                     </div>
+                    <!-- NEW: Clearance Rates Container -->
+                    <div class="filter-group clearance-container">
+                        <label class="group-label">Clearance Rates (Selected Data)</label>
+                        <div class="trend-box" style="padding: 5px;">
+                            <table class="clearance-table" id="clearanceRateTable">
+                                <!-- Populated by JS -->
+                                <tr><td>Loading...</td></tr>
+                            </table>
+                        </div>
+                    </div>
                     <!-- END MODIFICATION -->
                 </div> 
             </div>
@@ -683,6 +726,13 @@
                     <h4>Homicides by Agency</h4>
                     <div class="chart-canvas-container">
                         <canvas id="homicidesByAgencyChart"></canvas>
+                    </div>
+                </div>
+                <!-- NEW CHART -->
+                <div class="chart-box">
+                    <h4>Clearance Rate by Agency</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="clearanceRateChart"></canvas>
                     </div>
                 </div>
             </div>
@@ -792,6 +842,9 @@
     let selectedMarker = null;
     let homicidesByYearChartInstance, homicideTrendsChartInstance, victimsByAgeChartInstance,
         victimsByRaceChartInstance, homicidesByCircumstanceChartInstance, homicidesByAgencyChartInstance;
+    
+    // NEW: Clearance Rate Chart Instance
+    let clearanceRateChartInstance;
 
     const infoPanel = document.getElementById('map-info-panel');
     let defaultMarkerStyle, selectedMarkerStyle;
@@ -845,11 +898,11 @@
     function getPlaceholderHomicideData() {
         console.warn("Using placeholder homicide data due to fetch error.");
         return {
-            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year"],
+            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year", "Arrest Made"],
             entries: [
-                [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR],
-                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR],
-                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln, Jackson, MS", 'Jim Brown', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR]
+                [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR, "Yes"],
+                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR, "No"],
+                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln, Jackson, MS", 'Jim Brown', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR, "Yes"]
             ]
         };
     }
@@ -876,7 +929,9 @@
             sex: getHeaderIndex(['Sex']), circumstance: getHeaderIndex(['Circumstance']), date: getHeaderIndex(['Date']),
             address: getHeaderIndex(['Address', 'Location']), agency: getHeaderIndex(['Investigating Agency', 'Agency']),
             lat: getHeaderIndex(['Latitude', 'Lat']), lon: getHeaderIndex(['Longitude', 'Lon', 'Long']),
-            year: getHeaderIndex(['Year']), month: getHeaderIndex(['Month']), day: getHeaderIndex(['Day'])
+            year: getHeaderIndex(['Year']), month: getHeaderIndex(['Month']), day: getHeaderIndex(['Day']),
+            // NEW: Add Arrest Made index
+            arrest: getHeaderIndex(['Arrest Made', 'Arrest', 'Solved', 'Clearance'])
         };
 
         return rawData.entries.map((entry, i) => {
@@ -906,7 +961,9 @@
                 Victim: entry[indices.victim] || 'N/A', Age: entry[indices.age] ? parseInt(entry[indices.age]) : null, Race: entry[indices.race] || 'N/A',
                 Date: dateObj.toISOString().split('T')[0], DisplayDate: dateStr, Address: entry[indices.address] || 'N/A',
                 'Investigating Agency': entry[indices.agency] || 'N/A', Latitude: lat, Longitude: lon, Year: dateObj.getFullYear(),
-                Circumstance: entry[indices.circumstance] || 'N/A'
+                Circumstance: entry[indices.circumstance] || 'N/A',
+                // NEW: Capture Arrest Status
+                'Arrest Made': entry[indices.arrest] || 'No'
             };
         }).filter(Boolean);
     }
@@ -958,6 +1015,7 @@
                         ${d.Address ? `<li><strong>Address:</strong> ${d.Address}</li>` : ''}
                         ${d['Investigating Agency'] ? `<li><strong>Agency:</strong> ${d['Investigating Agency']}</li>` : ''}
                         ${d.Circumstance ? `<li><strong>Circumstance:</strong> ${d.Circumstance}</li>` : ''}
+                        ${d['Arrest Made'] ? `<li><strong>Arrest Made:</strong> ${d['Arrest Made']}</li>` : ''}
                     </ul>
                     <button id="back-to-summary-btn">Back to Summary</button>
                 </div>`;
@@ -1590,6 +1648,97 @@ function updateMapDisplay() {
         if (homicidesByAgencyChartInstance) homicidesByAgencyChartInstance.destroy();
         homicidesByAgencyChartInstance = new Chart(document.getElementById('homicidesByAgencyChart'), { type: 'pie', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}} });
     }
+
+    // NEW: Clearance Rate Logic and Charts
+    function updateClearanceRateChart() {
+        const agencyStats = {};
+        
+        // Use filtered data (obeys Year/Agency/Filter selection)
+        filteredHomicideDataForMap.forEach(d => {
+            const agency = d['Investigating Agency'] || 'Unknown';
+            if (!agencyStats[agency]) {
+                agencyStats[agency] = { total: 0, solved: 0 };
+            }
+            agencyStats[agency].total++;
+            
+            // Check for Solved status
+            const arrestVal = String(d['Arrest Made'] || '').toLowerCase();
+            // Treat "Yes", "Y", "Arrest", "Closed", "Cleared" as solved
+            if (['yes', 'y', 'arrest', 'closed', 'cleared'].some(term => arrestVal.includes(term))) {
+                agencyStats[agency].solved++;
+            }
+        });
+
+        // --- Update Sidebar Table ---
+        const table = document.getElementById('clearanceRateTable');
+        table.innerHTML = `<tr><th>Agency</th><th>Rate (Count)</th></tr>`;
+        
+        const sortedAgencies = Object.keys(agencyStats).sort();
+        if (sortedAgencies.length === 0) {
+             table.innerHTML += `<tr><td colspan="2" style="text-align:center; color: #777;">No data available</td></tr>`;
+        }
+
+        // --- Prepare Chart Data ---
+        const chartLabels = [];
+        const chartData = [];
+        const backgroundColors = [];
+
+        sortedAgencies.forEach(agency => {
+            const stats = agencyStats[agency];
+            const rate = stats.total > 0 ? (stats.solved / stats.total) * 100 : 0;
+            
+            // Add row to table
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${agency}</td>
+                <td>${rate.toFixed(1)}% <span style="font-weight:normal; color:#666; font-size:0.9em;">(${stats.solved}/${stats.total})</span></td>
+            `;
+            table.appendChild(row);
+
+            // Add to chart arrays
+            chartLabels.push(agency);
+            chartData.push(rate.toFixed(1));
+            // Use existing agency color map or default grey
+            backgroundColors.push(agencyColors[agency] || '#6c757d');
+        });
+
+        // --- Update/Create Chart ---
+        const ctx = document.getElementById('clearanceRateChart').getContext('2d');
+        if (clearanceRateChartInstance) clearanceRateChartInstance.destroy();
+
+        clearanceRateChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Clearance Rate (%)',
+                    data: chartData,
+                    backgroundColor: backgroundColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...getChartOptions(() => {}),
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100, // Percentage is always 0-100
+                        title: { display: true, text: 'Percentage Solved' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
     
     // MODIFIED: This function calls the restored/updated trend functions
     function updateDashboard() {
@@ -1609,6 +1758,9 @@ function updateMapDisplay() {
         updateVictimsByRaceChart();
         updateHomicidesByCircumstanceChart();
         updateHomicidesByAgencyChart();
+        
+        // NEW: Update Clearance Rate logic
+        updateClearanceRateChart();
     }
 
     // NEW: Helper function to determine if point is inside polygon (Ray Casting Algorithm)
