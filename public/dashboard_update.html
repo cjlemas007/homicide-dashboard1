@@ -898,11 +898,11 @@
     function getPlaceholderHomicideData() {
         console.warn("Using placeholder homicide data due to fetch error.");
         return {
-            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year", "Arrest Made"],
+            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year", "Case Status"],
             entries: [
-                [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR, "Yes"],
-                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR, "No"],
-                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln, Jackson, MS", 'Jim Brown', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR, "Yes"]
+                [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR, "Solved"],
+                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR, "Unsolved"],
+                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln, Jackson, MS", 'Jim Brown', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR, "Solved"]
             ]
         };
     }
@@ -930,8 +930,8 @@
             address: getHeaderIndex(['Address', 'Location']), agency: getHeaderIndex(['Investigating Agency', 'Agency']),
             lat: getHeaderIndex(['Latitude', 'Lat']), lon: getHeaderIndex(['Longitude', 'Lon', 'Long']),
             year: getHeaderIndex(['Year']), month: getHeaderIndex(['Month']), day: getHeaderIndex(['Day']),
-            // NEW: Add Arrest Made index
-            arrest: getHeaderIndex(['Arrest Made', 'Arrest', 'Solved', 'Clearance'])
+            // NEW: Add Case Status index
+            status: getHeaderIndex(['Case Status', 'Status'])
         };
 
         return rawData.entries.map((entry, i) => {
@@ -962,8 +962,8 @@
                 Date: dateObj.toISOString().split('T')[0], DisplayDate: dateStr, Address: entry[indices.address] || 'N/A',
                 'Investigating Agency': entry[indices.agency] || 'N/A', Latitude: lat, Longitude: lon, Year: dateObj.getFullYear(),
                 Circumstance: entry[indices.circumstance] || 'N/A',
-                // NEW: Capture Arrest Status
-                'Arrest Made': entry[indices.arrest] || 'No'
+                // NEW: Capture Case Status
+                'Case Status': entry[indices.status] || 'Unknown'
             };
         }).filter(Boolean);
     }
@@ -1015,7 +1015,7 @@
                         ${d.Address ? `<li><strong>Address:</strong> ${d.Address}</li>` : ''}
                         ${d['Investigating Agency'] ? `<li><strong>Agency:</strong> ${d['Investigating Agency']}</li>` : ''}
                         ${d.Circumstance ? `<li><strong>Circumstance:</strong> ${d.Circumstance}</li>` : ''}
-                        ${d['Arrest Made'] ? `<li><strong>Arrest Made:</strong> ${d['Arrest Made']}</li>` : ''}
+                        ${d['Case Status'] ? `<li><strong>Case Status:</strong> ${d['Case Status']}</li>` : ''}
                     </ul>
                     <button id="back-to-summary-btn">Back to Summary</button>
                 </div>`;
@@ -1662,10 +1662,9 @@ function updateMapDisplay() {
             agencyStats[agency].total++;
             
             // Check for Solved status
-            const arrestVal = String(d['Arrest Made'] || '').toLowerCase();
-            // Treat "true", "Yes", "Y", "Arrest", "Closed", "Cleared" as solved
-            // User confirmed field contains boolean values (true/false)
-            if (['true', 'yes', 'y', 'arrest', 'closed', 'cleared'].some(term => arrestVal.includes(term))) {
+            const statusVal = String(d['Case Status'] || '').trim().toLowerCase();
+            // Treat "Solved" as solved
+            if (statusVal === 'solved') {
                 agencyStats[agency].solved++;
             }
         });
