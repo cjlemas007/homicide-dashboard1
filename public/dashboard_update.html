@@ -954,13 +954,21 @@
                 if (!isNaN(year) && !isNaN(month) && !isNaN(day)) { dateObj = new Date(year, month - 1, day); }
             }
 
-            const lat = parseFloat(entry[indices.lat]), lon = parseFloat(entry[indices.lon]);
-            if (!dateObj || isNaN(dateObj.getTime()) || isNaN(lat) || isNaN(lon)) return null;
+            // MODIFIED: Allow missing coordinates to exist so they appear in stats
+            const lat = parseFloat(entry[indices.lat]);
+            const lon = parseFloat(entry[indices.lon]);
+            const hasCoords = !isNaN(lat) && !isNaN(lon);
+
+            // Only Date is strictly required for year filtering
+            if (!dateObj || isNaN(dateObj.getTime())) return null;
             
             return {
                 Victim: entry[indices.victim] || 'N/A', Age: entry[indices.age] ? parseInt(entry[indices.age]) : null, Race: entry[indices.race] || 'N/A',
                 Date: dateObj.toISOString().split('T')[0], DisplayDate: dateStr, Address: entry[indices.address] || 'N/A',
-                'Investigating Agency': entry[indices.agency] || 'N/A', Latitude: lat, Longitude: lon, Year: dateObj.getFullYear(),
+                'Investigating Agency': entry[indices.agency] || 'N/A', 
+                Latitude: hasCoords ? lat : null, 
+                Longitude: hasCoords ? lon : null, 
+                Year: dateObj.getFullYear(),
                 Circumstance: entry[indices.circumstance] || 'N/A',
                 // NEW: Capture Case Status
                 'Case Status': entry[indices.status] || 'Unknown'
@@ -1205,8 +1213,10 @@ function updateMapDisplay() {
         // Draw a marker for the search center (e.g., "Home")
         L.marker(centerLatLng, { interactive: false }).addTo(searchCircleLayer);
 
-        // Filter points within radius
+        // Filter points within radius. Crucial: Only filter items that HAVE coordinates.
+        // Items without coordinates are removed from search results because they can't be "nearby".
         filteredData = filteredData.filter(d => {
+            if (d.Latitude === null || d.Longitude === null) return false;
             return centerLatLng.distanceTo(L.latLng(d.Latitude, d.Longitude)) <= radiusMeters;
         });
 
@@ -1223,6 +1233,9 @@ function updateMapDisplay() {
     const visibleMarkers = [];
     
     filteredHomicideDataForMap.forEach(d => {
+        // MODIFIED: Skip mapping for items with no coordinates, but they remain in stats above
+        if (d.Latitude === null || d.Longitude === null) return;
+
         const latLng = [d.Latitude, d.Longitude];
         heatPoints.push(latLng);
         
