@@ -645,6 +645,10 @@
                                 <!-- Populated by JS -->
                                 <tr><td>Loading...</td></tr>
                             </table>
+                            <!-- Added Disclaimer Link -->
+                            <div style="text-align: right; margin-top: 5px;">
+                                <a href="#" id="openClearanceModal" style="font-size: 0.8em; color: var(--footer-link); text-decoration: none;">* Data Accuracy Note</a>
+                            </div>
                         </div>
                     </div>
                     <!-- END MODIFICATION -->
@@ -776,6 +780,16 @@
                     Call <a href="tel:601-355-8477">601-355-TIPS (8477)</a> or submit a tip online through <a href="https://www.p3tips.com/TipForm.aspx?ID=116&C=&T=" target="_blank" rel="noopener noreferrer">P3 Tips</a>. You may be eligible for a cash reward.
                 </li>
             </ul>
+        </div>
+    </div>
+    <!-- NEW: Clearance Rate Disclaimer Modal -->
+    <div id="clearanceModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" id="closeClearanceModal">&times;</span>
+            <h2>Data Accuracy & Clearance Rates</h2>
+            <p>The clearance rates displayed on this dashboard are calculated based on the individual case status ("Solved" vs. "Unsolved") provided in daily reports and press releases by the Jackson Police Department.</p>
+            <p><strong>Note:</strong> We have formally requested official, aggregated clearance rate data for multiple years from JPD to ensure maximum precision. However, the department has not yet produced this data despite our requests.</p>
+            <p>Until official aggregate data is released, the figures shown here represent the most accurate analysis possible based on the case-by-case information currently provided to the public.</p>
         </div>
     </div>
 </div>
@@ -1274,16 +1288,34 @@ function updateMapDisplay() {
         const aboutModal = document.getElementById("aboutDataModal");
         const openAboutBtn = document.getElementById("openAboutModal");
         const closeAboutBtn = document.getElementById("closeAboutModal");
-        openAboutBtn.onclick = (e) => { e.preventDefault(); aboutModal.style.display = "flex"; };
-        closeAboutBtn.onclick = () => { aboutModal.style.display = "none"; };
+        
+        // --- NEW: Clearance Modal Logic ---
+        const clearanceModal = document.getElementById("clearanceModal");
+        const openClearanceBtn = document.getElementById("openClearanceModal");
+        const closeClearanceBtn = document.getElementById("closeClearanceModal");
+
+        if (openAboutBtn) {
+            openAboutBtn.onclick = (e) => { e.preventDefault(); aboutModal.style.display = "flex"; };
+            closeAboutBtn.onclick = () => { aboutModal.style.display = "none"; };
+        }
+        
         const tipModal = document.getElementById("tipModal");
         const openTipBtn = document.getElementById("openTipModal");
         const closeTipBtn = document.getElementById("closeTipModal");
-        openTipBtn.onclick = () => { tipModal.style.display = "flex"; };
-        closeTipBtn.onclick = () => { tipModal.style.display = "none"; };
+        if (openTipBtn) {
+            openTipBtn.onclick = () => { tipModal.style.display = "flex"; };
+            closeTipBtn.onclick = () => { tipModal.style.display = "none"; };
+        }
+
+        if (openClearanceBtn && clearanceModal && closeClearanceBtn) {
+             openClearanceBtn.onclick = (e) => { e.preventDefault(); clearanceModal.style.display = "flex"; };
+             closeClearanceBtn.onclick = () => { clearanceModal.style.display = "none"; };
+        }
+
         window.onclick = (event) => {
-            if (event.target == aboutModal) aboutModal.style.display = "none";
-            if (event.target == tipModal) tipModal.style.display = "none";
+            if (aboutModal && event.target == aboutModal) aboutModal.style.display = "none";
+            if (tipModal && event.target == tipModal) tipModal.style.display = "none";
+            if (clearanceModal && event.target == clearanceModal) clearanceModal.style.display = "none";
         };
     }
 
