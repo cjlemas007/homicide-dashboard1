@@ -24837,7 +24837,21 @@
       "Unknown",
       "Shooting",
       "100 block of Lynn Avenue",
-      "Lynn Avenue"
+      "Lynn Avenue",
+      "",
+      "32.325558",
+      "-90.230365",
+      "2",
+      "FALSE",
+      "MS",
+      "Jackson",
+      "2025",
+      "12",
+      "24",
+      "1",
+      "",
+      "JPD",
+      "Unsolved"
     ],
     [
       "12/24/2025",
@@ -24847,7 +24861,21 @@
       "Unknown",
       "Shooting",
       "100 block of Lynn Avenue",
-      "Lynn Avenue"
+      "Lynn Avenue",
+      "",
+      "32.325616",
+      "-90.230294",
+      "2",
+      "FALSE",
+      "MS",
+      "Jackson",
+      "2025",
+      "12",
+      "24",
+      "1",
+      "",
+      "JPD",
+      "Unsolved"
     ]
   ]
 }
