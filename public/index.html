@@ -975,8 +975,12 @@
             // Only Date is strictly required for year filtering
             if (!dateObj || isNaN(dateObj.getTime())) return null;
             
+     // FIX: Robust Age Parsing. If "N/A" or text, convert to null so it goes to "Unknown" category
+            let ageVal = parseInt(entry[indices.age]);
+            if (isNaN(ageVal)) ageVal = null;
+
             return {
-                Victim: entry[indices.victim] || 'N/A', Age: entry[indices.age] ? parseInt(entry[indices.age]) : null, Race: entry[indices.race] || 'N/A',
+                Victim: entry[indices.victim] || 'N/A', Age: ageVal, Race: entry[indices.race] || 'N/A',
                 Date: dateObj.toISOString().split('T')[0], DisplayDate: dateStr, Address: entry[indices.address] || 'N/A',
                 'Investigating Agency': entry[indices.agency] || 'N/A', 
                 Latitude: hasCoords ? lat : null, 
@@ -2012,3 +2016,4 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
