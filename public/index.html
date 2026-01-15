@@ -5,6 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracking Jackson's Homicides</title>
 
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62CFDPFQH"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-Q62CFDPFQH');
+</script>
+
     <!-- Leaflet and Chart.js Libraries -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
@@ -799,6 +809,12 @@
 </button>
 
 <script>
+        // --- Analytics Utility ---
+    function trackInteraction(eventName, params) {
+        if (typeof gtag === 'function') {
+            gtag('event', eventName, params);
+        }
+    }
     // --- Configuration ---
     const HOMICIDE_DATA_API_URL = './data/homicide.json';
     // MODIFIED: Replaced array of URLs with single combined GeoJSON URL
@@ -2017,6 +2033,7 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
 
 
