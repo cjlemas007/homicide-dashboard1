@@ -748,6 +748,12 @@
                         <canvas id="clearanceRateChart"></canvas>
                     </div>
                 </div>
+                <!-- NEW CHART: Ward Distribution -->
+                <div class="chart-box">
+                    <h4>Homicides by Ward</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="homicidesByWardChart"></canvas>
+                    </div>
             </div>
         </div>
         <div class="footer">
@@ -875,6 +881,9 @@
     
     // NEW: Clearance Rate Chart Instance
     let clearanceRateChartInstance;
+    // NEW: Ward Pie Chart Instance & Global Data
+    let homicidesByWardChartInstance;
+    let wardsGeoJsonData = null;
 
     const infoPanel = document.getElementById('map-info-panel');
     let defaultMarkerStyle, selectedMarkerStyle;
@@ -1804,6 +1813,96 @@ function updateMapDisplay() {
             }
         });
     }
+    // NEW: Homicides by Ward Chart Logic
+    function updateHomicidesByWardChart() {
+        // Must wait for Ward GeoJSON to be loaded
+        if (!wardsGeoJsonData) return;
+
+        const wardCounts = {};
+        
+        // Iterate through all filtered homicides
+        filteredHomicideDataForMap.forEach(d => {
+            // Must have coordinates
+            if (d.Latitude === null || d.Longitude === null) {
+                wardCounts['Unknown/Outside'] = (wardCounts['Unknown/Outside'] || 0) + 1;
+                return;
+            }
+
+            const pt = [d.Longitude, d.Latitude]; // GeoJSON standard [lng, lat]
+            let matchedWard = null;
+
+            // Iterate features to find polygon match
+            for (const feature of wardsGeoJsonData.features) {
+                const geom = feature.geometry;
+                const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+                
+                // Prioritize "District" or Name fields
+                const p = feature.properties;
+                const rawLabel = p.District || p.Name || p.NAME || p.wardName || "Ward";
+                const labelText = formatLabel(rawLabel);
+
+                for (const poly of polys) {
+                    const outerRing = (geom.type === 'Polygon') ? poly[0] : poly[0];
+                    if (isPointInPolygon(pt, outerRing)) {
+                        matchedWard = labelText;
+                        break;
+                    }
+                }
+                if (matchedWard) break;
+            }
+
+            if (matchedWard) {
+                wardCounts[matchedWard] = (wardCounts[matchedWard] || 0) + 1;
+            } else {
+                wardCounts['Unknown/Outside'] = (wardCounts['Unknown/Outside'] || 0) + 1;
+            }
+        });
+
+        // Prepare Chart Data
+        // Sort keys naturally: Ward 1, Ward 2, ... Unknown
+        const labels = Object.keys(wardCounts).sort(); 
+        const data = labels.map(l => wardCounts[l]);
+        
+        // Simple color palette generator
+        const bgColors = [
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'
+        ];
+
+        const ctx = document.getElementById('homicidesByWardChart').getContext('2d');
+        if (homicidesByWardChartInstance) homicidesByWardChartInstance.destroy();
+
+        homicidesByWardChartInstance = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: data,
+                    backgroundColor: bgColors.slice(0, labels.length)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'right' },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.label || '';
+                                if (label) {
+                                    label += ': ';
+                                }
+                                const value = context.parsed;
+                                const total = context.chart._metasets[context.datasetIndex].total;
+                                const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                return label + value + ' (' + percentage + ')';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
     
     // MODIFIED: This function calls the restored/updated trend functions
     function updateDashboard() {
@@ -1952,6 +2051,9 @@ function updateMapDisplay() {
                 if (!response.ok) throw new Error("Failed to fetch wards");
                 const data = await response.json();
                 
+                 // Store global data for chart use
+                wardsGeoJsonData = data; 
+                
                 // Process data (Spatial Join)
                 const processedData = processWardsData(data);
                 
@@ -1989,7 +2091,10 @@ function updateMapDisplay() {
                 // Re-add control
                 if (overlayLayersControl) map.removeControl(overlayLayersControl);
                 overlayLayersControl = L.control.layers(baseLayers, overlayMaps, { position: 'bottomleft' }).addTo(map);
-                
+
+                // NEW: Trigger chart update now that ward data is available
+                updateHomicidesByWardChart();
+
             } catch (e) {
                 console.log("Could not load wards.", e);
                 // Fallback to just existing layers
@@ -2033,6 +2138,7 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
 
 
