@@ -1960,8 +1960,8 @@ function updateMapDisplay() {
     // Inserts space between letter and digit (e.g., "WARD1" -> "WARD 1")
     function formatLabel(value) {
         if (value === null || value === undefined) return "";
-        const str = String(value);
-        return str.replace(/([a-zA-Z])(\d)/g, '$1 $2');
+        let str = String(value);
+        str = str.replace(/([a-zA-Z])(\d)/g, '$1 $2');
         // Convert to Title Case
         return str.replace(/\w\S*/g, function(txt){
             return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
@@ -2142,6 +2142,7 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
 
 
