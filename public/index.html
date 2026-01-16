@@ -15,7 +15,7 @@
   gtag('config', 'G-Q62CFDPFQH');
 </script>
 
-    <!-- Leaflet and Chart.js Libraries -->
+  <!-- Leaflet and Chart.js Libraries -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -577,7 +577,7 @@
         </div>
    </div>
 
-    <div class="main-content-area">
+   <div class="main-content-area">
         <div class="left-column">
             <div class="filters-container">
                 <div class="filter-columns-wrapper">
@@ -754,6 +754,7 @@
                     <div class="chart-canvas-container">
                         <canvas id="homicidesByWardChart"></canvas>
                     </div>
+                </div>
             </div>
         </div>
         <div class="footer">
@@ -802,9 +803,8 @@
         <div class="modal-content">
             <span class="modal-close" id="closeClearanceModal">&times;</span>
             <h2>Data Accuracy & Clearance Rates</h2>
-            <p>For the purposes of this dashboard, the Jackson Police Department defines a “solved” or “cleared” case as one in which an arrest has been made. A solved case does not necessarily mean a conviction has occurred—only that a suspect has been arrested and charged.</p>
-            <p>The clearance rates displayed here are calculated using the individual case status (“Solved” vs. “Unsolved”) as reported in daily reports and press releases issued by the Jackson Police Department.</p>
-            <p><strong>Note:</strong> We have formally requested official, aggregated clearance rate data for multiple years from JPD to ensure maximum precision. However, the department has not yet produced this data despite our requests and decided to charge hundreds of dollars for this information.</p>
+            <p>The clearance rates displayed on this dashboard are calculated based on the individual case status ("Solved" vs. "Unsolved") provided in daily reports and press releases by the Jackson Police Department.</p>
+            <p><strong>Note:</strong> We have formally requested official, aggregated clearance rate data for multiple years from JPD to ensure maximum precision. However, the department has not yet produced this data despite our requests.</p>
             <p>Until official aggregate data is released, the figures shown here represent the most accurate analysis possible based on the case-by-case information currently provided to the public.</p>
         </div>
     </div>
@@ -815,12 +815,6 @@
 </button>
 
 <script>
-        // --- Analytics Utility ---
-    function trackInteraction(eventName, params) {
-        if (typeof gtag === 'function') {
-            gtag('event', eventName, params);
-        }
-    }
     // --- Configuration ---
     const HOMICIDE_DATA_API_URL = './data/homicide.json';
     // MODIFIED: Replaced array of URLs with single combined GeoJSON URL
@@ -830,7 +824,7 @@
     const SPREADSHEET_ID = '1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk';
     const SHEET_NAME = 'Sheet1';
     const CITY_COMPARISON_API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
-    const JACKSON_POPULATION = 141449;
+    const JACKSON_POPULATION = 143709;
     const CURRENT_YEAR = new Date().getFullYear();
     const PREVIOUS_YEAR = CURRENT_YEAR - 1;
     const START_YEAR_DATA = 2016;
@@ -1001,7 +995,7 @@
             // Only Date is strictly required for year filtering
             if (!dateObj || isNaN(dateObj.getTime())) return null;
             
-     // FIX: Robust Age Parsing. If "N/A" or text, convert to null so it goes to "Unknown" category
+            // FIX: Robust Age Parsing. If "N/A" or text, convert to null so it goes to "Unknown" category
             let ageVal = parseInt(entry[indices.age]);
             if (isNaN(ageVal)) ageVal = null;
 
@@ -1275,11 +1269,31 @@ function updateMapDisplay() {
     const heatPoints = [];
     const visibleMarkers = [];
     
+    // MODIFIED: Jitter logic to handle overlapping markers
+    const coordMap = new Map(); // Track coordinates to handle overlaps
+
     filteredHomicideDataForMap.forEach(d => {
         // MODIFIED: Skip mapping for items with no coordinates, but they remain in stats above
         if (d.Latitude === null || d.Longitude === null) return;
 
-        const latLng = [d.Latitude, d.Longitude];
+        let lat = d.Latitude;
+        let lng = d.Longitude;
+        const coordKey = `${lat},${lng}`;
+
+        // If duplicate found, apply slight offset
+        if (coordMap.has(coordKey)) {
+            const count = coordMap.get(coordKey);
+            // Spiral/Circle offset logic
+            const angle = count * (Math.PI * 2 / 5); // Spread 5 around a circle roughly
+            const offset = 0.0003; // Approx 30 meters
+            lat = lat + Math.sin(angle) * offset;
+            lng = lng + Math.cos(angle) * offset;
+            coordMap.set(coordKey, count + 1);
+        } else {
+            coordMap.set(coordKey, 1);
+        }
+
+        const latLng = [lat, lng];
         heatPoints.push(latLng);
         
         // MODIFIED: Use custom pane for markers
@@ -1501,6 +1515,16 @@ function updateMapDisplay() {
     function updateProjectedYearEndTotal() {
         const div = document.getElementById('projectedYearEndText');
         const today = new Date();
+        const month = today.getMonth(); // 0 = January
+
+        // NEW: Disable projection during January (Month 0) to avoid volatile small-sample extrapolation
+        if (month === 0) {
+            div.innerText = "Pending";
+            div.style.color = "var(--chart-axis-text)"; // Neutral color
+            div.title = "Projections will become available in February after sufficient data is collected.";
+            return; 
+        }
+
         // Calculate the day of the year (1-366)
         const start = new Date(today.getFullYear(), 0, 0);
         const diff = today - start;
@@ -1515,6 +1539,7 @@ function updateMapDisplay() {
             const daysInYear = isLeapYear ? 366 : 365;
             const projection = (currentYTD / dayOfYear) * daysInYear;
             div.innerText = Math.round(projection);
+            div.style.color = ""; // Reset color if it was set to neutral previously
         } else {
             div.innerText = currentYTD; // If it's day 1 or 0 homicides, projection is just the current count
         }
@@ -1813,6 +1838,7 @@ function updateMapDisplay() {
             }
         });
     }
+
     // NEW: Homicides by Ward Chart Logic
     function updateHomicidesByWardChart() {
         // Must wait for Ward GeoJSON to be loaded
@@ -1863,45 +1889,55 @@ function updateMapDisplay() {
         const labels = Object.keys(wardCounts).sort(); 
         const data = labels.map(l => wardCounts[l]);
         
-        // Simple color palette generator
+        // Extended color palette generator to ensure all slices have color
         const bgColors = [
-            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF'
+            '#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', 
+            '#C9CBCF', '#E7E9ED', '#71B37C', '#EC932F', '#52514F'
         ];
 
         const ctx = document.getElementById('homicidesByWardChart').getContext('2d');
-        if (homicidesByWardChartInstance) homicidesByWardChartInstance.destroy();
-
-        homicidesByWardChartInstance = new Chart(ctx, {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: bgColors.slice(0, labels.length)
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { position: 'right' },
-                    tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                let label = context.label || '';
-                                if (label) {
-                                    label += ': ';
+        
+        // IMPROVED: Update existing chart instance if possible for smoother transitions
+        if (homicidesByWardChartInstance) {
+            homicidesByWardChartInstance.data.labels = labels;
+            homicidesByWardChartInstance.data.datasets[0].data = data;
+            // Ensure enough colors
+            homicidesByWardChartInstance.data.datasets[0].backgroundColor = bgColors.slice(0, Math.max(labels.length, bgColors.length));
+            homicidesByWardChartInstance.update();
+        } else {
+            // First time creation
+            homicidesByWardChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: bgColors.slice(0, labels.length)
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'right' },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.label || '';
+                                    if (label) {
+                                        label += ': ';
+                                    }
+                                    const value = context.parsed;
+                                    const total = context.chart._metasets[context.datasetIndex].total;
+                                    const percentage = ((value / total) * 100).toFixed(1) + '%';
+                                    return label + value + ' (' + percentage + ')';
                                 }
-                                const value = context.parsed;
-                                const total = context.chart._metasets[context.datasetIndex].total;
-                                const percentage = ((value / total) * 100).toFixed(1) + '%';
-                                return label + value + ' (' + percentage + ')';
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
     }
     
     // MODIFIED: This function calls the restored/updated trend functions
@@ -1925,6 +1961,8 @@ function updateMapDisplay() {
         
         // NEW: Update Clearance Rate logic
         updateClearanceRateChart();
+        // NEW: Update Ward Pie Chart
+        updateHomicidesByWardChart();
     }
 
     // NEW: Helper function to determine if point is inside polygon (Ray Casting Algorithm)
@@ -1933,20 +1971,6 @@ function updateMapDisplay() {
         var x = point[0], y = point[1];
         var inside = false;
         for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
-            var xi = vs[i][1], yi = vs[i][0]; // Note: GeoJSON often is [lng, lat], Leaflet is [lat, lng]. Check order. 
-            // In GeoJSON coords are [long, lat]. Leaflet geoJSON handles this.
-            // But raw coordinates here: we pass lat, lng.
-            // Let's assume standard GeoJSON input to this function: coords are [lng, lat]
-            // Point we pass in: [lat, lng].
-            // So x=lng, y=lat.
-            // Wait, standard ray casting usually x, y. 
-            // Let's stick to x = lat, y = lng for simplicity or map convention.
-            // Actually, for GeoJSON [lng, lat]:
-            // point = [lng, lat]
-            
-            // Re-implementing robustly:
-            // Input point: [lng, lat]
-            // Polygon vertices: [[lng, lat], ...]
             var xi = vs[i][0], yi = vs[i][1];
             var xj = vs[j][0], yj = vs[j][1];
             
@@ -1961,6 +1985,7 @@ function updateMapDisplay() {
     function formatLabel(value) {
         if (value === null || value === undefined) return "";
         let str = String(value);
+        // Insert space between letter and digit (e.g., "WARD1" -> "WARD 1")
         str = str.replace(/([a-zA-Z])(\d)/g, '$1 $2');
         // Convert to Title Case
         return str.replace(/\w\S*/g, function(txt){
@@ -2055,10 +2080,10 @@ function updateMapDisplay() {
                 if (!response.ok) throw new Error("Failed to fetch wards");
                 const data = await response.json();
                 
-                 // Store global data for chart use
+                // Store global data for chart use
                 wardsGeoJsonData = data; 
-                
-                // Process data (Spatial Join)
+
+                // Process data (Spatial Join) for Map Velocity
                 const processedData = processWardsData(data);
                 
                 wardsLayer = L.geoJSON(processedData, {
@@ -2095,7 +2120,7 @@ function updateMapDisplay() {
                 // Re-add control
                 if (overlayLayersControl) map.removeControl(overlayLayersControl);
                 overlayLayersControl = L.control.layers(baseLayers, overlayMaps, { position: 'bottomleft' }).addTo(map);
-
+                
                 // NEW: Trigger chart update now that ward data is available
                 updateHomicidesByWardChart();
 
@@ -2142,10 +2167,3 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
