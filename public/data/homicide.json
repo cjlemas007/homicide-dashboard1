@@ -10529,30 +10529,6 @@
       "Unsolved"
     ],
     [
-      "December 2020",
-      "Unknown",
-      "N/A",
-      "N/A",
-      "Unknown",
-      "Unknown",
-      "Unknown",
-      "",
-      "",
-      "32.316741",
-      "-90.256283",
-      "",
-      "UNKNOWN",
-      "MS",
-      "Jackson",
-      "2020",
-      "12",
-      "1",
-      "1",
-      "",
-      "JPD",
-      "Unsolved"
-    ],
-    [
       "12/2/2020",
       "Brianna Branson",
       "22",
@@ -10578,6 +10554,31 @@
       "Domestic"
     ],
     [
+      "12/5/2020",
+      "Nako Gardner",
+      "N/A",
+      "N/A",
+      "Unknown",
+      "Unknown",
+      "Unknown",
+      "",
+      "",
+      "32.316741",
+      "-90.256283",
+      "",
+      "UNKNOWN",
+      "MS",
+      "Jackson",
+      "2020",
+      "12",
+      "5",
+      "1",
+      "",
+      "JPD",
+      "Solved",
+      "Unknown"
+    ],
+    [
       "12/9/2020",
       "Oren Anderson",
       "22",
@@ -10601,6 +10602,31 @@
       "JPD",
       "Unsolved",
       "Unknown"
+    ],
+    [
+      "12/21/2020",
+      "Bridget Harkings",
+      "N/A",
+      "N/A",
+      "Unknown",
+      "Unknown",
+      "Unknown",
+      "",
+      "",
+      "32.316741",
+      "-90.256283",
+      "",
+      "UNKNOWN",
+      "MS",
+      "Jackson",
+      "2020",
+      "12",
+      "21",
+      "1",
+      "",
+      "JPD",
+      "Unsolved",
+      "Argument"
     ],
     [
       "12/22/2020",
@@ -10726,30 +10752,6 @@
       "JPD",
       "Solved",
       "Argument"
-    ],
-    [
-      "December 2020",
-      "Unknown",
-      "N/A",
-      "N/A",
-      "Unknown",
-      "Unknown",
-      "Unknown",
-      "",
-      "",
-      "32.316741",
-      "-90.256283",
-      "",
-      "UNKNOWN",
-      "MS",
-      "Jackson",
-      "2020",
-      "12",
-      "31",
-      "1",
-      "",
-      "JPD",
-      "Unsolved"
     ],
     [
       "1/1/2021",
@@ -11079,7 +11081,7 @@
     [
       "2/5/2021",
       "Trishawn Ferguson",
-      "N/A",
+      "24",
       "M",
       "Unknown",
       "Shooting",
@@ -11379,7 +11381,7 @@
     [
       "3/14/2021",
       "Krishna Vattikuti",
-      "N/A",
+      "64",
       "M",
       "Unknown",
       "Unknown",
@@ -11577,8 +11579,8 @@
     ],
     [
       "3/10/2021",
-      "Dennis Williams",
-      "N/A",
+      "Dennis Williams Sr.",
+      "60",
       "M",
       "Unknown",
       "Unknown ",
@@ -11628,7 +11630,7 @@
     [
       "3/30/2021",
       "Dennis Ford",
-      "N/A",
+      "27",
       "M",
       "White",
       "Shooting",
@@ -12003,7 +12005,7 @@
     [
       "5/14/2021",
       "Ricky Archie",
-      "N/A",
+      "33",
       "M",
       "Unknown ",
       "Shooting",
@@ -12078,7 +12080,7 @@
     [
       "5/19/2021",
       "Unborn Child",
-      "N/A",
+      "0",
       "N/A",
       "Unknown",
       "Assault",
@@ -12577,7 +12579,7 @@
     ],
     [
       "June 2021",
-      "Unknown",
+      "Unidentified Victim",
       "N/A",
       "N/A",
       "Unknown",
@@ -12602,7 +12604,7 @@
     [
       "7/5/2021",
       "Larry Brown",
-      "N/A",
+      "61",
       "M",
       "Unknown",
       "Shooting",
@@ -12852,7 +12854,7 @@
     [
       "7/23/2021",
       "Antonio Harris",
-      "N/A",
+      "35",
       "M",
       "Unknown",
       "Shooting",
@@ -12877,7 +12879,7 @@
     [
       "7/30/2021",
       "Darius D. Stevenson",
-      "N/A",
+      "31",
       "N/A",
       "Unknown",
       "Unknown",
@@ -12902,7 +12904,7 @@
     [
       "7/30/2021",
       "Jeremy Green",
-      "N/A",
+      "31",
       "M",
       "Unknown",
       "Shooting",
@@ -13002,7 +13004,7 @@
     [
       "8/11/2021",
       "Robert Williams",
-      "N/A",
+      "39",
       "M",
       "Unknown",
       "Shooting",
@@ -13427,7 +13429,7 @@
     [
       "9/19/2021",
       "Josh Casaus",
-      "N/A",
+      "39",
       "M",
       "Unknown",
       "Shooting",
@@ -13452,7 +13454,7 @@
     [
       "9/19/2021",
       "Dishawn Sanders",
-      "N/A",
+      "41",
       "M",
       "Unknown",
       "Shooting",
@@ -13527,7 +13529,7 @@
     [
       "9/28/2021",
       "Teishun Norwood",
-      "N/A",
+      "19",
       "M",
       "Unknown",
       "Shooting",
@@ -13651,7 +13653,7 @@
     [
       "10/12/2021",
       "Herbert Thomas",
-      "N/A",
+      "41",
       "M",
       "Unknown",
       "Shooting",
@@ -13701,7 +13703,7 @@
     [
       "10/15/2021",
       "Drarous Moore",
-      "N/A",
+      "33",
       "M",
       "Unknown",
       "Shooting",
@@ -13826,7 +13828,7 @@
     [
       "10/14/2021",
       "Mario Swanagan",
-      "N/A",
+      "41",
       "M",
       "Unknown",
       "Shooting",
@@ -14025,7 +14027,7 @@
     [
       "11/24/2021",
       "Laramie Collins",
-      "N/A",
+      "34",
       "N/A",
       "Unknown",
       "Unknown",
@@ -14300,7 +14302,7 @@
     [
       "12/11/2021",
       "Antoinette Robinson",
-      "N/A",
+      "37",
       "F",
       "Unknown",
       "Shooting",
@@ -14744,7 +14746,7 @@
     [
       "1/4/2022",
       "Diamond Graham",
-      "N/A",
+      "20",
       "F",
       "Unknown",
       "Shooting",
@@ -14994,7 +14996,7 @@
     [
       "1/30/2022",
       "Michael Graise",
-      "N/A",
+      "28",
       "M",
       "Unknown",
       "Shooting",
@@ -15117,7 +15119,7 @@
     [
       "2/11/2022",
       "Matthew Black",
-      "N/A",
+      "29",
       "M",
       "Unknown",
       "Shooting",
@@ -15267,7 +15269,7 @@
     [
       "2/25/2022",
       "Ryan Richardson",
-      "N/A",
+      "41",
       "M",
       "Unknown",
       "Shooting",
@@ -15342,7 +15344,7 @@
     [
       "3/9/2022",
       "Chaz Porter",
-      "N/A",
+      "27",
       "M",
       "Black",
       "Shooting",
@@ -15467,7 +15469,7 @@
     [
       "3/15/2022",
       "Angie Smith",
-      "N/A",
+      "30",
       "F",
       "Unknown",
       "Shooting",
@@ -15615,6 +15617,31 @@
       "Unknown"
     ],
     [
+      "4/16/2022",
+      "Melvin McClain",
+      "50",
+      "N/A",
+      "Unknown",
+      "Unknown",
+      "Unknown",
+      "",
+      "",
+      "32.316741",
+      "-90.256283",
+      "N/A",
+      "UNKNOWN",
+      "MS",
+      "Jackson",
+      "2022",
+      "4",
+      "16",
+      "1",
+      "",
+      "JPD",
+      "Unsolved",
+      "Unknown"
+    ],
+    [
       "4/18/2022",
       "Patrice Harley",
       "31",
@@ -15741,6 +15768,31 @@
     ],
     [
       "4/26/2022",
+      "Edrick Adams",
+      "20",
+      "N/A",
+      "Unknown",
+      "Unknown",
+      "Unknown",
+      "",
+      "",
+      "32.316741",
+      "-90.256283",
+      "N/A",
+      "UNKNOWN",
+      "MS",
+      "Jackson",
+      "2022",
+      "4",
+      "26",
+      "1",
+      "",
+      "JPD",
+      "Unsolved",
+      "Unknown"
+    ],
+    [
+      "4/26/2022",
       "Kevin Edwards",
       "18",
       "M",
@@ -15788,54 +15840,6 @@
       "HCSO",
       "Solved",
       "Unknown"
-    ],
-    [
-      "April 2022",
-      "Unknown",
-      "N/A",
-      "N/A",
-      "Unknown",
-      "Unknown",
-      "Unknown",
-      "",
-      "",
-      "32.316741",
-      "-90.256283",
-      "N/A",
-      "UNKNOWN",
-      "MS",
-      "Jackson",
-      "2022",
-      "4",
-      "30",
-      "1",
-      "",
-      "JPD",
-      "Unsolved"
-    ],
-    [
-      "April 2022",
-      "Unknown",
-      "N/A",
-      "N/A",
-      "Unknown",
-      "Unknown",
-      "Unknown",
-      "",
-      "",
-      "32.316741",
-      "-90.256283",
-      "N/A",
-      "UNKNOWN",
-      "MS",
-      "Jackson",
-      "2022",
-      "4",
-      "30",
-      "1",
-      "",
-      "JPD",
-      "Unsolved"
     ],
     [
       "April 2022",
@@ -16214,7 +16218,7 @@
     [
       "5/31/2022",
       "Abdullah Mohammad",
-      "N/A",
+      "37",
       "M",
       "Unknown",
       "Unknown",
@@ -16288,7 +16292,7 @@
     [
       "6/6/2022",
       "Steffon Williams",
-      "N/A",
+      "28",
       "M",
       "Unknown",
       "Shooting",
@@ -16363,7 +16367,7 @@
     [
       "6/11/2022",
       "Brianna Winters",
-      "N/A",
+      "21",
       "F",
       "Unknown",
       "Shooting",
@@ -16536,6 +16540,31 @@
       "Unknown"
     ],
     [
+      "7/8/2022",
+      "Unidentified Victim",
+      "72",
+      "N/A",
+      "Unknown",
+      "Unknown",
+      "Unknown",
+      "",
+      "",
+      "32.316741",
+      "-90.256283",
+      "N/A",
+      "UNKNOWN",
+      "MS",
+      "Jackson",
+      "2022",
+      "7",
+      "8",
+      "1",
+      "",
+      "JPD",
+      "Unsolved",
+      "Unknown"
+    ],
+    [
       "7/9/2022",
       "Jesse Ragsdale",
       "36",
@@ -16561,9 +16590,34 @@
       "Unknown"
     ],
     [
+      "7/16/2022",
+      "Robert Nelson Jr.",
+      "39",
+      "N/A",
+      "Unknown",
+      "Unknown",
+      "Unknown",
+      "",
+      "",
+      "32.316741",
+      "-90.256283",
+      "N/A",
+      "UNKNOWN",
+      "MS",
+      "Jackson",
+      "2022",
+      "7",
+      "16",
+      "1",
+      "",
+      "JPD",
+      "Unsolved",
+      "Unknown"
+    ],
+    [
       "7/17/2022",
       "Jamal Carter",
-      "N/A",
+      "21",
       "N/A",
       "Unknown",
       "Shooting",
@@ -16588,7 +16642,7 @@
     [
       "7/17/2022",
       "Kenneth Beale",
-      "N/A",
+      "47",
       "N/A",
       "Unknown",
       "Shooting",
@@ -16736,6 +16790,31 @@
       "Argument"
     ],
     [
+      "7/29/2022",
+      "Willie Moore",
+      "53",
+      "N/A",
+      "Unknown",
+      "Unknown",
+      "Unknown",
+      "",
+      "",
+      "32.316741",
+      "-90.256283",
+      "N/A",
+      "UNKNOWN",
+      "MS",
+      "Jackson",
+      "2022",
+      "7",
+      "29",
+      "1",
+      "",
+      "JPD",
+      "Unsolved",
+      "Unknown"
+    ],
+    [
       "7/30/2022",
       "London Lyles",
       "23",
@@ -16761,33 +16840,9 @@
       "Robbery"
     ],
     [
-      "July 2022",
-      "Unknown",
-      "N/A",
-      "N/A",
-      "Unknown",
-      "Unknown",
-      "Unknown",
-      "",
-      "",
-      "32.316741",
-      "-90.256283",
-      "N/A",
-      "UNKNOWN",
-      "MS",
-      "Jackson",
-      "2022",
-      "7",
-      "30",
-      "1",
-      "",
-      "JPD",
-      "Unsolved"
-    ],
-    [
-      "July 2022",
-      "Unknown",
-      "N/A",
+      "7/31/2022",
+      "Morris Stamps",
+      "35",
       "N/A",
       "Unknown",
       "Unknown",
@@ -16802,59 +16857,12 @@
       "Jackson",
       "2022",
       "7",
-      "30",
+      "31",
       "1",
       "",
       "JPD",
-      "Unsolved"
-    ],
-    [
-      "July 2022",
-      "Unknown",
-      "N/A",
-      "N/A",
-      "Unknown",
-      "Unknown",
-      "Unknown",
-      "",
-      "",
-      "32.316741",
-      "-90.256283",
-      "N/A",
-      "UNKNOWN",
-      "MS",
-      "Jackson",
-      "2022",
-      "7",
-      "30",
-      "1",
-      "",
-      "JPD",
-      "Unsolved"
-    ],
-    [
-      "July 2022",
-      "Unknown",
-      "N/A",
-      "N/A",
-      "Unknown",
-      "Unknown",
-      "Unknown",
-      "",
-      "",
-      "32.316741",
-      "-90.256283",
-      "N/A",
-      "UNKNOWN",
-      "MS",
-      "Jackson",
-      "2022",
-      "7",
-      "30",
-      "1",
-      "",
-      "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "8/8/2022",
@@ -16957,9 +16965,9 @@
       "Unknown"
     ],
     [
-      "August 2022",
-      "Unknown",
-      "N/A",
+      "8/17/2022",
+      "Willie Graise",
+      "54",
       "N/A",
       "Unknown",
       "Unknown",
@@ -16974,16 +16982,17 @@
       "Jackson",
       "2022",
       "8",
-      "31",
+      "17",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
-      "August 2022",
-      "Unknown",
-      "N/A",
+      "8/19/2022",
+      "Laura Lumpkin",
+      "64",
       "N/A",
       "Unknown",
       "Unknown",
@@ -16998,11 +17007,12 @@
       "Jackson",
       "2022",
       "8",
-      "31",
+      "19",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Domestic"
     ],
     [
       "9/9/2022",
@@ -17406,7 +17416,7 @@
     [
       "10/13/2022",
       "Leonard Mahone",
-      "N/A",
+      "39",
       "N/A",
       "Unknown",
       "Shooting",
@@ -17481,7 +17491,7 @@
     [
       "10/23/2022",
       "Kajarvis Amos",
-      "N/A",
+      "23",
       "M",
       "Unknown",
       "Unknown",
@@ -17603,9 +17613,9 @@
       "Unknown"
     ],
     [
-      "October 2022",
-      "Unknown",
-      "N/A",
+      "10/4/2022",
+      "Monique Martinez",
+      "23",
       "N/A",
       "Unknown",
       "Unknown",
@@ -17620,16 +17630,17 @@
       "Jackson",
       "2022",
       "10",
-      "31",
+      "4",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Domestic"
     ],
     [
-      "October 2022",
-      "Unknown",
-      "N/A",
+      "10/25/2022",
+      "Leslie Brooks",
+      "48",
       "N/A",
       "Unknown",
       "Unknown",
@@ -17644,16 +17655,17 @@
       "Jackson",
       "2022",
       "10",
-      "31",
+      "25",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Domestic"
     ],
     [
-      "October 2022",
-      "Unknown",
-      "N/A",
+      "10/26/2022",
+      "Keshawn Boone",
+      "21",
       "N/A",
       "Unknown",
       "Unknown",
@@ -17668,16 +17680,17 @@
       "Jackson",
       "2022",
       "10",
-      "31",
+      "26",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
-      "October 2022",
-      "Unknown",
-      "N/A",
+      "10/30/2022",
+      "Larry Lumpkin",
+      "62",
       "N/A",
       "Unknown",
       "Unknown",
@@ -17696,7 +17709,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "11/3/2022",
@@ -17749,7 +17763,7 @@
     [
       "11/7/2022",
       "Lucie Tanner",
-      "N/A",
+      "49",
       "F",
       "Unknown",
       "Shooting",
@@ -17922,7 +17936,7 @@
     [
       "11/30/2022",
       "Kenneth BoClair",
-      "N/A",
+      "60",
       "M",
       "Unknown",
       "Stabbing",
@@ -17965,7 +17979,7 @@
       "2",
       "1",
       "",
-      "JPD",
+      "JSUPD",
       "Solved"
     ],
     [
@@ -18020,8 +18034,8 @@
     ],
     [
       "12/23/2022",
-      "Unidentified Victim",
-      "N/A",
+      "Willie Bass",
+      "58",
       "M",
       "Unknown",
       "Shooting",
@@ -18068,9 +18082,9 @@
       "Argument"
     ],
     [
-      "December 2022",
-      "Unknown",
-      "N/A",
+      "12/22/2022",
+      "Montreal Scott",
+      "21",
       "N/A",
       "Unknown",
       "Unknown",
@@ -18085,16 +18099,17 @@
       "Jackson",
       "2022",
       "12",
-      "31",
+      "22",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
-      "December 2022",
-      "Unknown",
-      "N/A",
+      "12/24/2022",
+      "Marty Bracey",
+      "54",
       "N/A",
       "Unknown",
       "Unknown",
@@ -18109,16 +18124,17 @@
       "Jackson",
       "2022",
       "12",
-      "31",
+      "24",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Bystander"
     ],
     [
-      "December 2022",
-      "Unknown",
-      "N/A",
+      "12/27/2022",
+      "Robert Beckwith",
+      "36",
       "N/A",
       "Unknown",
       "Unknown",
@@ -18133,16 +18149,17 @@
       "Jackson",
       "2022",
       "12",
-      "31",
+      "27",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
-      "December 2022",
-      "Unknown",
-      "N/A",
+      "12/30/2022",
+      "Ricardo Chacon",
+      "46",
       "N/A",
       "Unknown",
       "Unknown",
@@ -18157,11 +18174,12 @@
       "Jackson",
       "2022",
       "12",
-      "31",
+      "30",
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "1/3/2023",
@@ -18815,7 +18833,7 @@
       "Darryl Carr Jr.",
       "19",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "2400 block of Carter Circle",
       "Carter Circle",
@@ -19861,7 +19879,7 @@
       "Jaaziel Jones",
       "26",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Watkins Drive near Interstate 220",
       "Watkins Drive",
@@ -19911,7 +19929,7 @@
       "Melvin McNair",
       "58",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "653 West County Line Road",
       "West County Line Road",
@@ -19961,7 +19979,7 @@
       "Myriek Price",
       "22",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "4401 Wainwright Avenue",
       "Wainwright Avenue",
@@ -20585,7 +20603,7 @@
       "Dan Benton",
       "29",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Creek near Old Highway 49 East in Richland",
       "N/A",
@@ -20635,7 +20653,7 @@
       "Jaterio McKey",
       "30",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "3000 block of John R. Lynch Street (Metro 24 Bowling Center)",
       "John R. Lynch Street",
@@ -20660,7 +20678,7 @@
       "Patrick Townsend",
       "37",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Raymond Road near North Siwell Road",
       "Raymond Road",
@@ -20685,7 +20703,7 @@
       "Clarence Chatman",
       "41",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "620 Amite Street",
       "Amite Street",
@@ -20735,7 +20753,7 @@
       "Jaylen Burns",
       "N/A",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "1400 Valley Street (University Pointe apartment complex)",
       "Valley Street",
@@ -20809,7 +20827,7 @@
       "Quavious Banks",
       "22",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "1300 block of Hair Street",
       "Hair Street",
@@ -20834,7 +20852,7 @@
       "Markavius Carey",
       "22",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "100 block of Berryhill Place",
       "Berryhill Place",
@@ -20909,7 +20927,7 @@
       "Elisha Bridges",
       "25",
       "F",
-      "Unknown",
+      "Black",
       "Shooting",
       "Merit Health parking lot",
       "Unknown",
@@ -20933,8 +20951,8 @@
       "12/16/2023",
       "DeAsia Bracey",
       "20",
-      "NA",
-      "Unknown",
+      "F",
+      "Black",
       "Shooting",
       "Ellis Avenue and St. Charles Street",
       "Ellis Avenue",
@@ -20958,8 +20976,8 @@
       "12/17/2023",
       "Mario Moore",
       "37",
-      "N/A",
-      "Unknown",
+      "M",
+      "Black",
       "Shooting",
       "Wood Village Drive (Wood Village Apartments)",
       "Wood Village Drive",
@@ -20984,7 +21002,7 @@
       "Kevin Clay",
       "22",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Highway 18 (Waffle House)",
       "Highway 18",
@@ -21009,7 +21027,7 @@
       "Protege Hunter",
       "1",
       "N/A",
-      "Unknown",
+      "Black",
       "Blunt force trauma",
       "Sunset Drive (Sunset Apartments)",
       "Sunset Drive",
@@ -21034,7 +21052,7 @@
       "Qwanzarius Ward",
       "19",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Raymond Road",
       "Raymond Road",
@@ -21059,7 +21077,7 @@
       "Willie Earl Ford Jr.",
       "43",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "1000 block of West Ridgeway Street",
       "Ridgeway Street",
@@ -21308,7 +21326,7 @@
       "Devaun Johnson",
       "23",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Ellis Avenue near Highway 80",
       "Ellis Avenue",
@@ -21383,7 +21401,7 @@
       "Anthony Davis",
       "23",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "5400 block of North State Street",
       "North State Street",
@@ -21408,7 +21426,7 @@
       "Charles Brown",
       "15",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "300 block of Red Oak Drive",
       "Red Oak Drive",
@@ -21458,7 +21476,7 @@
       "Joshua Lindsay",
       "30",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "3400 block of Rosemary Avenue",
       "Rosemary Avenue",
@@ -21507,8 +21525,8 @@
       "3/2/2024",
       "Zowie King",
       "18",
-      "M",
-      "Unknown",
+      "F",
+      "White",
       "Blunt force trauma",
       "2000 block of Courtview Street",
       "Courtview Street",
@@ -21533,7 +21551,7 @@
       "Siris Catchings",
       "22",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Barrett Avenue and Washington Avenue",
       "Barrett Avenue",
@@ -21558,7 +21576,7 @@
       "Arthur Brown Jr.",
       "17",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Jayne Avenue and Lindsey Drive",
       "Jayne Avenue",
@@ -21608,7 +21626,7 @@
       "Javoris Gibson",
       "27",
       "M",
-      "Unknown",
+      "Black",
       "Unknown",
       "Near Clinton Boulevard and Westhaven Boulevard (Windsor Park Apartments)",
       "",
@@ -21633,7 +21651,7 @@
       "Michael Holmes",
       "49",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "4200 block of O'Bannon Drive",
       "O'Bannon Drive",
@@ -21658,7 +21676,7 @@
       "Christopher Patterson",
       "35",
       "M",
-      "Unknown",
+      "Black",
       "Unknown",
       "3400 block of Cardinal Street",
       "Cardinal Street",
@@ -21683,7 +21701,7 @@
       "Josiah Kelly",
       "34",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Suncrest Drive and McDowell Road Extension (Fish Supreme)",
       "Suncrest Drive",
@@ -21708,7 +21726,7 @@
       "Jadarrion Poole",
       "23",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "2500 block of Oak Grove Lane",
       "Oak Grove Lane",
@@ -21733,7 +21751,7 @@
       "Donald Hartwell Sr.",
       "67",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "4700 block of South McRaven Road",
       "McRaven Road",
@@ -21758,7 +21776,7 @@
       "Michael Thomas",
       "44",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "600 block of Road of Remembrance",
       "Road of Remembrance",
@@ -21808,7 +21826,7 @@
       "Rico Watts Jr.",
       "15",
       "M",
-      "Unknown",
+      "Black",
       "Unknown",
       "3200 block of Highway 80",
       "Highway 80",
@@ -21833,7 +21851,7 @@
       "Annie People",
       "80",
       "F",
-      "Unknown",
+      "Black",
       "Shooting",
       "3800 block of Nichols Boulevard",
       "Nichols Boulevard",
@@ -21858,7 +21876,7 @@
       "Glen Stevens",
       "45",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "1612 West Capitol Street (Food Mart)",
       "Capitol Street",
@@ -21881,9 +21899,9 @@
     [
       "4/4/2024",
       "Johnny Booker Jr.",
-      "N/A",
+      "44",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "1612 West Capitol Street (Food Mart)",
       "Capitol Street",
@@ -21908,7 +21926,7 @@
       "Jesua Chaves",
       "23",
       "M",
-      "Unknown",
+      "Hispanic",
       "Shooting",
       "State Street near Presto Lane",
       "State Street",
@@ -21958,7 +21976,7 @@
       "Lloyd Ashley",
       "40",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "2600 block of Cliffwood Drive",
       "Cliffwood Drive",
@@ -22008,7 +22026,7 @@
       "Cortez Travone Keith",
       "35",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Clinton Avenue near Fryant Avenue",
       "Clinton Avenue",
@@ -22033,7 +22051,7 @@
       "Charlie Thomas",
       "63",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "5700 block of Interstate 55 North Frontage Road",
       "Interstate 55 North Frontage Road",
@@ -22108,7 +22126,7 @@
       "Taboris Jefferson",
       "34",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Medgar Evers Boulevard near Coleman Avenue",
       "Medgar Evers Boulevard",
@@ -22133,7 +22151,7 @@
       "Taurniqwa McElvaine",
       "32",
       "F",
-      "Unknown",
+      "Black",
       "Blunt force trauma (run over by vehicle)",
       "300 block of Queen Alexandria Lane",
       "Queen Alexandria Lane",
@@ -22158,7 +22176,7 @@
       "Shavarion Ross",
       "19",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "300 block of North Flag Chapel Road",
       "Flag Chapel Road",
@@ -22207,7 +22225,7 @@
       "Ceasar Abrego",
       "57",
       "M",
-      "Unknown",
+      "Hispanic",
       "Shooting",
       "2100 block of Gordon Street",
       "Gordon Street",
@@ -22257,7 +22275,7 @@
       "Joshua Bennett",
       "30",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "3600 block of West Northside Drive (gas station)",
       "Northside Drive",
@@ -22282,7 +22300,7 @@
       "Juan Taylor",
       "39",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Medgar Evers Boulevard and Boling Street",
       "Medgar Evers Boulevard",
@@ -22307,7 +22325,7 @@
       "Larry Reynolds",
       "46",
       "M",
-      "Unknown",
+      "Black",
       "Unknown",
       "618 Campbell Street",
       "Campbell Street",
@@ -22330,9 +22348,9 @@
     [
       "5/28/2024",
       "Damien Johnson",
-      "N/A",
+      "36",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "300 block of Lindsey Drive",
       "Lindsey Drive",
@@ -22379,9 +22397,9 @@
     [
       "5/31/2024",
       "Frank Bozeman III",
-      "N/A",
+      "39",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Arbor Vista Boulevard near Robinson Street",
       "Arbor Vista Boulevard",
@@ -22406,7 +22424,7 @@
       "Robert Williams",
       "39",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "300 block of Northside Drive",
       "Northside Drive",
@@ -22429,9 +22447,9 @@
     [
       "6/9/2024",
       "Daivion Myles",
-      "N/A",
+      "18",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "1000 block of Marine Street",
       "Marine Street",
@@ -22454,9 +22472,9 @@
     [
       "6/9/2024",
       "Amarh Harper",
-      "N/A",
+      "25",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "3200 block of Lakewood Drive",
       "Lakewood Drive",
@@ -22504,9 +22522,9 @@
     [
       "6/11/2024",
       "Quintavious McCray",
-      "N/A",
+      "19",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "300 block of Flag Chapel Road",
       "Flag Chapel Road",
@@ -22580,7 +22598,7 @@
       "Daniel Ballard Jr.",
       "20",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "4600 block of Cedarhurst Drive",
       "Cedarhurst Drive",
@@ -22630,7 +22648,7 @@
       "Cortez Dunlap",
       "34",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Blenville Drive and Primrose Street",
       "Bienville Drive",
@@ -22653,9 +22671,9 @@
     [
       "6/30/2024",
       "Zedrick Warner",
-      "N/A",
+      "20",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "3100 block of Woodbine Street",
       "Woodbine Street",
@@ -22678,9 +22696,9 @@
     [
       "7/3/2024",
       "Roitavious Greenfield",
-      "N/A",
+      "19",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "5900 block of Lake Trace Circle",
       "Lake Trace Circle",
@@ -22705,7 +22723,7 @@
       "Willie Luckett",
       "N/A",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "3000 block of Livingston Road",
       "Livingston Road",
@@ -22722,14 +22740,15 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Unknown"
     ],
     [
       "7/8/2024",
       "Roy Love",
-      "N/A",
+      "60",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "Cooper Road (M&M Food Express)",
       "Cooper Road",
@@ -22746,7 +22765,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "7/11/2024",
@@ -22770,7 +22790,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "7/11/2024",
@@ -22794,12 +22815,13 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "7/11/2024",
       "Charles Rucker",
-      "N/A",
+      "54",
       "M",
       "Black",
       "Shooting",
@@ -22818,7 +22840,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "7/12/2024",
@@ -22847,7 +22870,7 @@
     [
       "7/17/2024",
       "Marvin Houck Jr.",
-      "N/A",
+      "55",
       "N/A",
       "White",
       "Shooting",
@@ -22866,14 +22889,15 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "7/20/2024",
       "Jacobi Austin",
-      "N/A",
+      "23",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "4400 block of Medgar Evers Boulevard",
       "Medgar Evers Boulevard",
@@ -22890,14 +22914,15 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "7/21/2024",
       "Jasvir Singh",
-      "N/A",
+      "37",
       "M",
-      "Unknown",
+      "Indian",
       "Shooting",
       "McDowell Road (Shell gas station)",
       "McDowell Road",
@@ -22914,12 +22939,13 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "7/21/2024",
       "Derrick Coleman",
-      "N/A",
+      "48",
       "M",
       "Black",
       "Shooting",
@@ -22938,14 +22964,15 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "7/22/2024",
       "Jerquarius Brown",
-      "N/A",
+      "28",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "1700 block of Robinson Street",
       "Robinson Street",
@@ -22962,14 +22989,15 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "8/1/2024",
       "Freddie Adams Jr.",
-      "N/A",
+      "48",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "500 block of Lawrence Road",
       "Lawrence Road",
@@ -22986,12 +23014,13 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Domestic"
     ],
     [
       "8/8/2024",
       "Fredrick Smith",
-      "N/A",
+      "30",
       "M",
       "Black",
       "Shooting",
@@ -23010,14 +23039,15 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Unknown"
     ],
     [
       "8/13/2024",
-      "Unidentified Victim",
-      "N/A",
+      "Miguel Angel Sepuveda Jimenez",
+      "2",
       "M",
-      "Unknown",
+      "Hispanic",
       "Shooting",
       "2600 block of Belvedere Drive",
       "Belvedere Drive",
@@ -23034,7 +23064,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "8/17/2024",
@@ -23063,9 +23094,9 @@
     [
       "8/26/2024",
       "Dennis Watson",
-      "N/A",
+      "33",
       "M",
-      "Unknown",
+      "Black",
       "Assault",
       "300 block of Northside Drive",
       "Northside Drive",
@@ -23082,7 +23113,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "8/31/2024",
@@ -23130,14 +23162,15 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "9/4/2024",
       "Carderius Hawthorne",
       "N/A",
       "M",
-      "Unknown",
+      "Black",
       "Shooting",
       "100 block of Cedars of Lebanon",
       "Cedars of Lebanon",
@@ -23154,14 +23187,15 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Unknown"
     ],
     [
       "9/4/2024",
       "Louise Banks Tornes",
       "63",
       "F",
-      "Unknown",
+      "Black",
       "Blunt force trauma",
       "Carver Street",
       "Carver Street",
@@ -23178,14 +23212,15 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Domestic"
     ],
     [
       "9/5/2024",
-      "Unidentified Victim",
+      "Kasim Hassan Turner",
       "N/A",
       "M",
-      "Unknown",
+      "Black",
       "Unknown",
       "TV Road near Maddox Road",
       "TV Road",
@@ -23202,11 +23237,12 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "9/9/2024",
-      "Susana Resendiz",
+      "Susana Resendiz Mendoza",
       "30",
       "F",
       "Hispanic",
@@ -23226,7 +23262,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "9/12/2024",
@@ -23250,7 +23287,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "9/13/2024",
@@ -23274,7 +23312,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Robbery"
     ],
     [
       "9/13/2024",
@@ -23298,7 +23337,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Robbery"
     ],
     [
       "9/15/2024",
@@ -23322,7 +23362,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "9/15/2024",
@@ -23346,7 +23387,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "9/16/2024",
@@ -23394,7 +23436,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Robbery"
     ],
     [
       "10/4/2024",
@@ -23418,7 +23461,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "10/4/2024",
@@ -23442,14 +23486,15 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "10/13/2024",
-      "Unidentified Victim",
-      "N/A",
+      "Christopher Borras",
+      "22",
       "M",
-      "Unknown",
+      "Hispanic",
       "Stabbing",
       "Hanging Moss Road and Northside Drive (McDonald's)",
       "Hanging Moss Road",
@@ -23466,11 +23511,12 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "10/24/2024",
-      "Unidentified Victim",
+      "Patrick Williams",
       "45",
       "M",
       "Unknown",
@@ -23490,7 +23536,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "10/29/2024",
@@ -23514,7 +23561,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "11/4/2024",
@@ -23538,7 +23586,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Robbery"
     ],
     [
       "11/7/2024",
@@ -23562,7 +23611,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "11/17/2024",
@@ -23586,7 +23636,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "11/20/2024",
@@ -23610,7 +23661,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "11/26/2024",
@@ -23658,7 +23710,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Robbery"
     ],
     [
       "11/29/2024",
@@ -23686,8 +23739,8 @@
     ],
     [
       "12/2/2024",
-      "Unidentified Victim",
-      "N/A",
+      "Jeremy Easterling",
+      "30",
       "M",
       "Unknown",
       "Shooting",
@@ -23706,7 +23759,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "12/6/2024",
@@ -23754,7 +23808,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "12/12/2024",
@@ -23778,7 +23833,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "12/14/2024",
@@ -23802,7 +23858,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "12/14/2024",
@@ -23826,7 +23883,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "1/4/2025",
@@ -23850,7 +23908,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "1/8/2025",
@@ -23922,7 +23981,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "1/29/2025",
@@ -23946,7 +24006,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "2/1/2025",
@@ -23970,7 +24031,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "2/4/2025",
@@ -23994,7 +24056,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "2/8/2025",
@@ -24018,7 +24081,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "2/10/2025",
@@ -24066,7 +24130,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "2/22/2025",
@@ -24090,7 +24155,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "2/23/2025",
@@ -24114,7 +24180,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "2/26/2025",
@@ -24138,7 +24205,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "2/27/2025",
@@ -24162,7 +24230,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "3/5/2025",
@@ -24186,7 +24255,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "3/5/2025",
@@ -24210,7 +24280,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Unknown"
     ],
     [
       "3/13/2025",
@@ -24234,7 +24305,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "3/15/2025",
@@ -24258,7 +24330,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "3/22/2025",
@@ -24306,7 +24379,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "3/30/2025",
@@ -24330,7 +24404,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "4/6/2025",
@@ -24354,7 +24429,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "4/6/2025",
@@ -24378,7 +24454,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "4/19/2025",
@@ -24402,7 +24479,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "4/21/2025",
@@ -24426,7 +24504,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "4/21/2025",
@@ -24474,7 +24553,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "5/19/2025",
@@ -24498,7 +24578,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "5/23/2025",
@@ -24522,7 +24603,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "5/24/2025",
@@ -24546,7 +24628,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "5/31/2025",
@@ -24570,7 +24653,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "6/10/2025",
@@ -24594,7 +24678,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "6/17/2025",
@@ -24618,7 +24703,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "6/18/2025",
@@ -24642,7 +24728,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Argument"
     ],
     [
       "6/19/2025",
@@ -24666,7 +24753,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "6/22/2025",
@@ -24714,7 +24802,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Burglary"
     ],
     [
       "7/04/2025",
@@ -24738,7 +24827,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "7/04/2025",
@@ -24762,7 +24852,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "7/06/2025",
@@ -24814,7 +24905,7 @@
     ],
     [
       "7/20/2025",
-      "Unidentified Victim",
+      "Jaylon Davis",
       "15",
       "M",
       "Black",
@@ -24834,7 +24925,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "7/31/2025",
@@ -24858,7 +24950,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "8/01/2025",
@@ -24882,7 +24975,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "8/16/2025",
@@ -24906,7 +25000,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "8/30/2025",
@@ -24930,7 +25025,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "8/30/2025",
@@ -24954,7 +25050,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "8/31/2025",
@@ -24978,7 +25075,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "9/9/2025",
@@ -25002,7 +25100,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "9/18/2025",
@@ -25026,7 +25125,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "9/19/2025",
@@ -25074,7 +25174,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "9/24/2025",
@@ -25098,11 +25199,12 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Unknown"
     ],
     [
       "9/30/2025",
-      "Unidentified Victim",
+      "Joshua Davis",
       "19",
       "M",
       "Unknown",
@@ -25122,7 +25224,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "10/2/2025",
@@ -25146,7 +25249,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "10/4/2025",
@@ -25170,7 +25274,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "10/8/2025",
@@ -25194,7 +25299,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Argument"
     ],
     [
       "10/13/2025",
@@ -25218,7 +25324,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Robbery"
     ],
     [
       "10/13/2025",
@@ -25242,7 +25349,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved",
+      "Unknown"
     ],
     [
       "10/19/2025",
@@ -25266,7 +25374,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "10/23/2025",
@@ -25290,7 +25399,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "10/26/2025",
@@ -25338,7 +25448,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Robbery"
     ],
     [
       "11/2/2025",
@@ -25362,7 +25473,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Unknown"
     ],
     [
       "11/9/2025",
@@ -25410,7 +25522,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "11/24/2025",
@@ -25434,7 +25547,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "12/1/2025",
@@ -25458,7 +25572,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Drive By"
     ],
     [
       "12/5/2025",
@@ -25482,7 +25597,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "12/5/2025",
@@ -25506,7 +25622,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "12/23/2025",
@@ -25530,7 +25647,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "12/24/2025",
@@ -25554,7 +25672,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "12/24/2025",
@@ -25578,7 +25697,8 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Unsolved",
+      "Unknown"
     ],
     [
       "12/25/2025",
@@ -25602,7 +25722,8 @@
       "1",
       "",
       "JPD",
-      "Solved"
+      "Solved",
+      "Argument"
     ],
     [
       "12/26/2025",
