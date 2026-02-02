@@ -5,17 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tracking Jackson's Homicides</title>
 
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-Q62CFDPFQH"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-Q62CFDPFQH');
-</script>
-
-  <!-- Leaflet and Chart.js Libraries -->
+    <!-- Leaflet and Chart.js Libraries -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -577,7 +567,7 @@
         </div>
    </div>
 
-   <div class="main-content-area">
+ <div class="main-content-area">
         <div class="left-column">
             <div class="filters-container">
                 <div class="filter-columns-wrapper">
@@ -810,9 +800,9 @@
         <div class="modal-content">
             <span class="modal-close" id="closeClearanceModal">&times;</span>
             <h2>Data Accuracy & Clearance Rates</h2>
-            <p>The clearance rates displayed on this dashboard are calculated based on two methods: for 2016 to 2018, the individual case status ("Solved" vs. "Unsolved") provided in daily reports and press releases by the Jackson Police Department.</p>
-            <p>For 2019 to the present, that clearance rate data comes directly from JPD to ensure updated solve rate numbers.</p>
-            <p>The figures shown here represent the most accurate analysis possible based on those two methods provided to WLBT.</p>
+            <p>The clearance rates displayed on this dashboard are calculated based on the individual case status ("Solved" vs. "Unsolved") provided in daily reports and press releases by the Jackson Police Department.</p>
+            <p><strong>Note:</strong> We have formally requested official, aggregated clearance rate data for multiple years from JPD to ensure maximum precision. However, the department has not yet produced this data despite our requests.</p>
+            <p>Until official aggregate data is released, the figures shown here represent the most accurate analysis possible based on the case-by-case information currently provided to the public.</p>
         </div>
     </div>
 </div>
@@ -884,7 +874,7 @@
     let clearanceRateChartInstance;
     // NEW: Ward Pie Chart Instance & Global Data
     let homicidesByWardChartInstance;
-        // NEW: Contributing Factor Chart Instance
+    // NEW: Contributing Factor Chart Instance
     let homicidesByFactorChartInstance;
     
     let wardsGeoJsonData = null;
@@ -941,11 +931,11 @@
     function getPlaceholderHomicideData() {
         console.warn("Using placeholder homicide data due to fetch error.");
         return {
-            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year", "Case Status"],
+            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year", "Case Status", "Contributing Factor"],
             entries: [
-                [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR, "Solved"],
-                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR, "Unsolved"],
-                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln, Jackson, MS", 'Jim Brown', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR, "Solved"]
+                [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR, "Solved", "Drugs"],
+                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR, "Unsolved", "Domestic"],
+                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln, Jackson, MS", 'Jim Brown', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR, "Solved", "Gang Related"]
             ]
         };
     }
@@ -1094,7 +1084,7 @@
             const yearHtml = Object.keys(yearCounts).sort((a,b) => b-a).map(year => `<li>${year}${year == CURRENT_YEAR ? ' (YTD)' : ''}: ${yearCounts[year]}</li>`).join('');
             const agencyCounts = data.reduce((acc, d) => { const agency = d['Investigating Agency'] || 'Unknown'; acc[agency] = (acc[agency] || 0) + 1; return acc; }, {});
             const agencyHtml = Object.keys(agencyCounts).sort().map(agency => `<li>${agency}: ${agencyCounts[agency]}</li>`).join('');
-          
+            
             // MODIFIED: Info panel now reflects search status
             const searchStatus = currentSearchCenter ? `<div style="margin-bottom: 5px; color: #d9534f; font-weight: bold;">Showing incidents within ${currentSearchRadiusMiles} mile(s) of search location.</div>` : '';
 
@@ -2015,6 +2005,8 @@ function updateMapDisplay() {
         updateClearanceRateChart();
         // NEW: Update Ward Pie Chart
         updateHomicidesByWardChart();
+        // NEW: Update Factor Chart
+        updateHomicidesByFactorChart();
     }
 
     // NEW: Helper function to determine if point is inside polygon (Ray Casting Algorithm)
@@ -2219,4 +2211,3 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
-
