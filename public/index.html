@@ -8,6 +8,12 @@
     <!-- Leaflet and Chart.js Libraries -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- NEW: MarkerCluster CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
@@ -375,7 +381,15 @@
              border: 1px solid var(--legend-border);
              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
-
+ /* NEW: CUSTOM STYLES FOR MARKER CLUSTERS TO MATCH RED THEME */
+        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+            background-color: rgba(217, 83, 79, 0.5); /* Faint red halo */
+        }
+        .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+            background-color: rgba(217, 83, 79, 0.95); /* Solid red core */
+            color: white; /* White text */
+            font-weight: bold;
+        }
         /* --- Chart and Tab Styles --- */
         .charts-container-wrapper {
             border-top: 1px solid var(--legend-border);
@@ -855,7 +869,8 @@
     let cityComparisonData = [];
     let filteredHomicideDataForMap = [];
     let map;
-    let markersLayer = L.layerGroup();
+        // NEW: Initialize MarkerClusterGroup instead of LayerGroup
+    let markersLayer; 
     let heatLayer;
     let cityLimitsLayer, ccidLayer, wardsLayer; // NEW: wardsLayer
     // NEW: Search overlay state
@@ -1113,7 +1128,16 @@
         map.createPane('homicideMarkersPane');
         // zIndex 650 is higher than default overlayPane (400) and markerPane (600)
         map.getPane('homicideMarkersPane').style.zIndex = 650; 
-
+        
+// NEW: Initialize the MarkerClusterGroup with options for spiderfying identical coordinates
+        markersLayer = L.markerClusterGroup({
+            maxClusterRadius: 40,        // Distance to group markers
+            spiderfyOnMaxZoom: true,     // Break apart overlapping markers when fully zoomed in
+            showCoverageOnHover: false,  // Don't show the geographic bounds of the cluster on hover
+            zoomToBoundsOnClick: true,
+            clusterPane: 'homicideMarkersPane' // Keep clusters on top
+        });
+        
         updateMapTiles();
         markersLayer.addTo(map);
         searchCircleLayer.addTo(map); // NEW: Add search layer
@@ -1274,40 +1298,20 @@ function updateMapDisplay() {
     const heatPoints = [];
     const visibleMarkers = [];
     
-    // MODIFIED: Jitter logic to handle overlapping markers
-    const coordMap = new Map(); // Track coordinates to handle overlaps
-
     filteredHomicideDataForMap.forEach(d => {
         // MODIFIED: Skip mapping for items with no coordinates, but they remain in stats above
         if (d.Latitude === null || d.Longitude === null) return;
 
-        let lat = d.Latitude;
-        let lng = d.Longitude;
-        const coordKey = `${lat},${lng}`;
-
-        // If duplicate found, apply slight offset
-        if (coordMap.has(coordKey)) {
-            const count = coordMap.get(coordKey);
-            // Spiral/Circle offset logic
-            const angle = count * (Math.PI * 2 / 5); // Spread 5 around a circle roughly
-            const offset = 0.0003; // Approx 30 meters
-            lat = lat + Math.sin(angle) * offset;
-            lng = lng + Math.cos(angle) * offset;
-            coordMap.set(coordKey, count + 1);
-        } else {
-            coordMap.set(coordKey, 1);
-        }
-
-        const latLng = [lat, lng];
+      // No more manual jitter logic! Use exact coordinates.
+        const latLng = [d.Latitude, d.Longitude];
         heatPoints.push(latLng);
         
-        // MODIFIED: Use custom pane for markers
         const marker = L.circleMarker(latLng, { 
             ...defaultMarkerStyle, 
             bubblingMouseEvents: false,
-            pane: 'homicideMarkersPane' // Ensure markers are always on top
+            pane: 'homicideMarkersPane' 
         });
-        
+                
         marker.on('click', (e) => {
             if (e.originalEvent) L.DomEvent.stop(e.originalEvent); else L.DomEvent.stop(e);
             if (selectedMarker) {
@@ -1321,6 +1325,10 @@ function updateMapDisplay() {
         markersLayer.addLayer(marker);
         visibleMarkers.push(marker);
     });
+
+    // Add all markers to the cluster group at once (better performance)
+        markersLayer.addLayers(visibleMarkers);
+
     heatLayer.setLatLngs(heatPoints);
     updateInfoPanel(filteredHomicideDataForMap);
 
@@ -2211,4 +2219,5 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
