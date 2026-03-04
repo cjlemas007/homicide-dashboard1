@@ -1131,7 +1131,7 @@
         
 // NEW: Initialize the MarkerClusterGroup with options for spiderfying identical coordinates
         markersLayer = L.markerClusterGroup({
-            maxClusterRadius: 40,        // Distance to group markers
+            maxClusterRadius: 1,        // Distance to group markers
             spiderfyOnMaxZoom: true,     // Break apart overlapping markers when fully zoomed in
             showCoverageOnHover: false,  // Don't show the geographic bounds of the cluster on hover
             zoomToBoundsOnClick: true,
@@ -2219,5 +2219,6 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
+
 
 
