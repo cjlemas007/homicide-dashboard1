@@ -561,6 +561,57 @@
                 border-right: none;
                 border-bottom: 1px solid var(--legend-border);
             }
+                        /* --- IFRAME SPECIFIC MOBILE FIXES --- */
+            /* Prioritize map, un-stack overlays, and push filters down */
+            body.is-iframe .main-content-area {
+                display: flex;
+                flex-direction: column;
+            }
+            body.is-iframe .map-container {
+                order: 1; /* Map on top */
+                display: flex;
+                flex-direction: column;
+                height: auto;
+            }
+            body.is-iframe .left-column {
+                order: 2; /* Filters below map */
+                border-top: 2px solid var(--legend-border);
+            }
+            body.is-iframe #map {
+                order: 1;
+                height: 55vh;
+                min-height: 350px;
+                width: 100%;
+            }
+            body.is-iframe #map-info-panel {
+                order: 2;
+                position: static; /* Removes absolute positioning */
+                max-width: 100%;
+                width: 100%;
+                box-sizing: border-box;
+                border-radius: 0;
+                box-shadow: none;
+                border-bottom: 1px solid var(--header-border);
+                background-color: var(--content-bg);
+            }
+            body.is-iframe #map-legend {
+                order: 3;
+                position: static; /* Removes absolute positioning */
+                max-width: 100%;
+                width: 100%;
+                box-sizing: border-box;
+                border-radius: 0;
+                box-shadow: none;
+                background-color: var(--content-bg);
+            }
+            body.is-iframe #map-info-panel h4,
+            body.is-iframe #map-legend h4 {
+                margin-top: 5px;
+            }
+            body.is-iframe .filter-group {
+                margin-bottom: 8px; /* Tighter spacing for iframe */
+            }
+        }
         }
     </style>
 </head>
