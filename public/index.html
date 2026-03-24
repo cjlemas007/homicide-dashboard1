@@ -527,91 +527,61 @@
         }
         .tip-button-floating svg { width: 28px; height: 28px; }
 
-        /* --- RESPONSIVE STYLES --- */
+    /* --- RESPONSIVE LAYOUT FOR MOBILE SCREENS --- */
         @media (max-width: 900px) {
             .main-content-area { 
-                display: flex;
+                display: flex; 
                 flex-direction: column; 
-                height: auto;
-                min-height: 0;
+                height: auto; 
+                min-height: 0; 
             }
+            
+            /* Push left-column (filters) below the map container */
             .left-column { 
                 border-right: none; 
-                overflow-y: visible;
-                height: auto;
+                overflow-y: visible; 
+                height: auto; 
+                order: 2; 
+                border-top: 2px solid var(--header-border); 
+                padding-top: 10px;
             } 
-            .map-container {
-                height: 50vh; /* Give map a fixed height on mobile */
+            
+            /* Bring map-container to the top */
+            .map-container { 
+                display: flex; 
+                flex-direction: column; 
+                height: auto; 
+                order: 1; 
             }
-            .charts-container-wrapper {
-                height: auto;
+            
+            #map { 
+                height: 50vh; 
+                min-height: 350px; 
+                order: 1; 
+                width: 100%; 
+                flex-shrink: 0;
             }
-            .filter-columns-wrapper {
-                grid-template-columns: 1fr;
-            }
-            .chart-tab-content {
-                flex-direction: column;
-            }
-            #details-content.active {
-                display: flex; /* Revert to flex col for mobile */
-                flex-direction: column;
-            }
-            #main-trends-content .chart-box, #details-content .chart-box {
-                width: 100%;
-                border-right: none;
-                border-bottom: 1px solid var(--legend-border);
-            }
-                        /* --- IFRAME SPECIFIC MOBILE FIXES --- */
-            /* Prioritize map, un-stack overlays, and push filters down */
-            body.is-iframe .main-content-area {
-                display: flex;
-                flex-direction: column;
-            }
-            body.is-iframe .map-container {
-                order: 1; /* Map on top */
-                display: flex;
-                flex-direction: column;
-                height: auto;
-            }
-            body.is-iframe .left-column {
-                order: 2; /* Filters below map */
-                border-top: 2px solid var(--legend-border);
-            }
-            body.is-iframe #map {
-                order: 1;
-                height: 55vh;
-                min-height: 350px;
-                width: 100%;
-            }
-            body.is-iframe #map-info-panel {
-                order: 2;
-                position: static; /* Removes absolute positioning */
-                max-width: 100%;
-                width: 100%;
+            
+            /* Flatten Overlays: Stops them from floating over the map */
+            .map-overlay {
+                position: static !important;
+                width: 100% !important;
+                max-width: 100% !important;
                 box-sizing: border-box;
-                border-radius: 0;
-                box-shadow: none;
-                border-bottom: 1px solid var(--header-border);
-                background-color: var(--content-bg);
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                border-bottom: 1px solid var(--header-border) !important;
+                margin: 0 !important;
             }
-            body.is-iframe #map-legend {
-                order: 3;
-                position: static; /* Removes absolute positioning */
-                max-width: 100%;
-                width: 100%;
-                box-sizing: border-box;
-                border-radius: 0;
-                box-shadow: none;
-                background-color: var(--content-bg);
-            }
-            body.is-iframe #map-info-panel h4,
-            body.is-iframe #map-legend h4 {
-                margin-top: 5px;
-            }
-            body.is-iframe .filter-group {
-                margin-bottom: 8px; /* Tighter spacing for iframe */
-            }
-        }
+            #map-info-panel { order: 2; }
+            #map-legend { order: 3; }
+            #map-info-panel h4, #map-legend h4 { margin-top: 5px; }
+
+            .charts-container-wrapper { height: auto; }
+            .filter-columns-wrapper { grid-template-columns: 1fr; }
+            .chart-tab-content { flex-direction: column; }
+            #details-content.active { display: flex; flex-direction: column; }
+            #main-trends-content .chart-box, #details-content .chart-box { width: 100%; border-right: none; border-bottom: 1px solid var(--legend-border); }
         }
     </style>
 </head>
