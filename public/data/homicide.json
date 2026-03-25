@@ -26094,7 +26094,7 @@
       "M",
       "Unknown",
       "Shooting",
-      "200 block of Rebel Woods Drive",
+      "200 block of Rebel Woods Drive (Pine Ridge Gardens Apartments)",
       "Rebel Woods Drive",
       "",
       "32.262337",
@@ -26158,6 +26158,30 @@
       "",
       "JPD",
       "Solved"
+    ],
+    [
+      "3/24/2026",
+      "Jakori Smith",
+      "20",
+      "M",
+      "Black",
+      "Shooting",
+      "200 block of Rebel Woods Drive (Pine Ridge Gardens Apartments)",
+      "Rebel Woods Drive",
+      "",
+      "32.262139",
+      "-90.216588",
+      "1",
+      "FALSE",
+      "MS",
+      "Jackson",
+      "2026",
+      "3",
+      "24",
+      "1",
+      "",
+      "JPD",
+      "Unsolved"
     ]
   ]
 }
