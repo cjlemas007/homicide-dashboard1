@@ -26209,7 +26209,7 @@
     ],
     [
       "4/10/2026",
-      "Unidentified Victim",
+      "Leonard Banks",
       "33",
       "M",
       "Unknown",
@@ -26230,6 +26230,30 @@
       "",
       "JPD",
       "Unsolved"
+    ],
+    [
+      "4/11/2026",
+      "Johnny Bingham",
+      "71",
+      "M",
+      "Unknown",
+      "Shooting",
+      "1000 block of Branch Street",
+      "Branch Street",
+      "",
+      "32.257814",
+      "-90.258482",
+      "1",
+      "TRUE",
+      "MS",
+      "Jackson",
+      "2026",
+      "4",
+      "11",
+      "1",
+      "",
+      "JPD",
+      "Solved"
     ]
   ]
 }
