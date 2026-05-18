@@ -13,170 +13,160 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --red:#c8102e;--red2:#a50d24;
+  --red:#c8102e;
   --dark:#0c0c14;--panel:#12121e;--panel2:#16162a;
   --border:#1f1f35;--border2:#2a2a44;
-  --text:#eeeef8;--muted:#6a6a90;--soft:#9898b8;
-  --lower-h:50px;--bar-h:58px;
+  --text:#eeeef8;--muted:#8888aa;--soft:#aaaacc;
+  --lower-h:56px;--bar-h:68px;
   --font:'Helvetica Neue',Arial,sans-serif;
 }
 html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-family:var(--font);color:var(--text)}
 
-/* ── SHELL ── */
 #shell{display:flex;flex-direction:column;width:100%;height:100%}
 
-/* ── VIEWS (map | charts | city) ── */
-#view-map,#view-charts,#view-city{
-  flex:1 1 0;min-height:0;display:none;
-}
+/* ── VIEWS ── */
+#view-map,#view-charts,#view-city{flex:1 1 0;min-height:0;display:none}
 #view-map.active,#view-charts.active,#view-city.active{display:flex}
 
-/* MAP VIEW */
+/* ── MAP VIEW ── */
 #view-map{flex-direction:row}
 #map-wrap{flex:1 1 0;position:relative;min-width:0}
 #map{width:100%;height:100%}
 
-/* MAP STAT PANEL */
+/* year pill row above map */
+#year-bar{
+  position:absolute;top:12px;left:50%;transform:translateX(-50%);
+  z-index:1000;display:flex;gap:8px;
+  background:rgba(12,12,20,.85);
+  border:1px solid var(--border2);
+  border-radius:40px;padding:6px 10px;
+  backdrop-filter:blur(6px);
+}
+.ypill{
+  padding:6px 18px;border-radius:30px;
+  font-size:15px;font-weight:700;cursor:pointer;
+  border:none;background:transparent;color:var(--muted);
+  transition:background .15s,color .15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.ypill.on{background:var(--red);color:#fff}
+.ypill:hover:not(.on){color:#fff}
+
+/* MAP PANEL */
 #map-panel{
-  width:260px;flex-shrink:0;
+  width:300px;flex-shrink:0;
   background:var(--panel);
   border-left:1px solid var(--border);
   display:flex;flex-direction:column;
   overflow-y:auto;
 }
-.mp-block{
-  padding:18px 16px;
-  border-bottom:1px solid var(--border);
-}
-.mp-label{
-  font-size:10px;font-weight:700;letter-spacing:.1em;
-  text-transform:uppercase;color:var(--muted);margin-bottom:6px;
-}
-.mp-big{font-size:48px;font-weight:900;line-height:1;color:#fff}
-.mp-big span{font-size:16px;font-weight:400;color:var(--soft);margin-left:4px}
+.mp-block{padding:22px 20px;border-bottom:1px solid var(--border)}
+.mp-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
+.mp-big{font-size:64px;font-weight:900;line-height:1;color:#fff}
+.mp-big span{font-size:18px;font-weight:400;color:var(--soft);margin-left:6px}
 .mp-row{
   display:flex;justify-content:space-between;align-items:baseline;
-  padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;
+  padding:7px 0;border-bottom:1px solid var(--border);font-size:15px;
 }
 .mp-row:last-child{border:none}
 .mp-row .yr{color:var(--soft)}
-.mp-row .ct{font-weight:700;color:#fff}
-.mp-ytd{color:var(--red);font-size:10px;font-weight:700;margin-left:4px}
+.mp-row .ct{font-weight:700;color:#fff;font-size:17px}
 
 /* Leaflet cluster red theme */
 .marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(200,16,46,.25)}
-.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:rgba(200,16,46,.9);color:#fff;font-weight:700}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:rgba(200,16,46,.9);color:#fff;font-weight:700;font-size:13px}
 
 /* ── CHARTS VIEW ── */
-#view-charts{flex-direction:column;padding:24px 28px;gap:20px;overflow:hidden}
-.charts-row{display:flex;flex:1 1 0;gap:20px;min-height:0}
+#view-charts{flex-direction:column;padding:28px 32px;gap:24px;overflow:hidden}
+.charts-row{display:flex;flex:1 1 0;gap:24px;min-height:0}
 .chart-card{
   flex:1 1 0;min-width:0;
-  background:var(--panel);
-  border:1px solid var(--border);
-  border-radius:8px;
-  padding:16px 18px;
-  display:flex;flex-direction:column;
+  background:var(--panel);border:1px solid var(--border);border-radius:10px;
+  padding:20px 22px;display:flex;flex-direction:column;
 }
 .chart-card h3{
-  font-size:11px;font-weight:700;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--muted);margin-bottom:12px;
+  font-size:13px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:14px;flex-shrink:0;
 }
 .chart-card canvas{flex:1;min-height:0}
 
-/* ── CITY RANKING VIEW ── */
-#view-city{flex-direction:column;padding:32px 48px;overflow:hidden}
-#city-header{margin-bottom:24px}
-#city-header h2{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-#city-header p{font-size:28px;font-weight:900;color:#fff;margin-top:4px}
-#city-bars{flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center;overflow:hidden}
-.city-row{display:flex;align-items:center;gap:14px}
-.city-name{width:200px;font-size:14px;font-weight:600;flex-shrink:0;text-align:right;color:var(--text)}
-.city-name.hl{color:var(--red);font-weight:900}
-.city-bar-wrap{flex:1;height:32px;background:var(--panel2);border-radius:4px;overflow:hidden;position:relative}
-.city-bar{height:100%;background:var(--border2);border-radius:4px;transition:width 1s ease;display:flex;align-items:center;padding:0 10px}
+/* ── CITY VIEW ── */
+#view-city{flex-direction:column;padding:36px 56px;overflow:hidden}
+#city-header{margin-bottom:28px}
+#city-header h2{font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#city-header p{font-size:32px;font-weight:900;color:#fff;margin-top:6px}
+#city-bars{flex:1;display:flex;flex-direction:column;gap:12px;justify-content:center;overflow:hidden}
+.city-row{display:flex;align-items:center;gap:16px}
+.city-rank{width:36px;font-size:13px;color:var(--muted);text-align:center;flex-shrink:0}
+.city-name{width:220px;font-size:16px;font-weight:600;flex-shrink:0;text-align:right;color:var(--text)}
+.city-name.hl{color:var(--red);font-weight:900;font-size:18px}
+.city-bar-wrap{flex:1;height:38px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.city-bar{height:100%;background:var(--border2);border-radius:5px;display:flex;align-items:center;padding:0 14px;transition:width 1.2s ease}
 .city-bar.hl{background:var(--red)}
-.city-rate{font-size:13px;font-weight:700;color:#fff}
-.city-rank{width:32px;font-size:11px;color:var(--muted);text-align:center;flex-shrink:0}
+.city-rate{font-size:15px;font-weight:700;color:#fff}
 
 /* ── LOWER THIRD ── */
 #lower{
   height:var(--lower-h);flex-shrink:0;
   background:var(--red);
   display:flex;align-items:center;
-  padding:0 16px;gap:14px;
-  position:relative;z-index:20;
+  padding:0 18px;gap:16px;z-index:20;
 }
-#logo-wrap{
-  background:#fff;border-radius:3px;
-  padding:3px 8px;flex-shrink:0;
-  display:flex;align-items:center;height:36px;
-}
-#logo-wrap img{height:28px;width:auto;object-fit:contain}
-#logo-text{font-size:16px;font-weight:900;color:#000;letter-spacing:.04em}
-#brand{flex:1;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#vdots{display:flex;gap:5px;flex-shrink:0}
-.vd{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .2s}
+#logo-wrap{background:#fff;border-radius:4px;padding:4px 10px;flex-shrink:0;display:flex;align-items:center;height:42px}
+#logo-wrap img{height:32px;width:auto;object-fit:contain}
+#logo-text{font-size:18px;font-weight:900;color:#000;letter-spacing:.04em}
+#brand{flex:1;font-size:15px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vdots{display:flex;gap:6px;flex-shrink:0}
+.vd{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .2s}
 .vd.on{background:#fff}
-#clock{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.92);flex-shrink:0}
+#clock{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.92);flex-shrink:0;min-width:90px;text-align:right}
 
 /* ── CONTROL BAR ── */
 #ctrl{
   height:var(--bar-h);flex-shrink:0;
-  background:var(--panel);
-  border-top:1px solid var(--border);
-  display:flex;align-items:center;
-  padding:0 14px;gap:7px;
-  transition:height .25s,opacity .25s,padding .25s;
-  overflow:hidden;
+  background:var(--panel);border-top:1px solid var(--border);
+  display:flex;align-items:center;padding:0 16px;gap:8px;
+  transition:height .25s,opacity .25s,padding .25s;overflow:hidden;
 }
-#ctrl.hidden{height:0;opacity:0;padding:0 14px;pointer-events:none}
+#ctrl.hidden{height:0;opacity:0;padding:0 16px;pointer-events:none}
 .btn{
-  height:38px;padding:0 16px;
-  border-radius:5px;font-size:12px;font-weight:700;
-  letter-spacing:.03em;
-  border:1px solid var(--border2);
-  background:var(--panel2);
-  color:var(--muted);
-  cursor:pointer;
-  display:flex;align-items:center;gap:6px;
+  height:44px;padding:0 20px;border-radius:6px;
+  font-size:14px;font-weight:700;letter-spacing:.03em;
+  border:1px solid var(--border2);background:var(--panel2);color:var(--muted);
+  cursor:pointer;display:flex;align-items:center;gap:7px;
   white-space:nowrap;flex-shrink:0;
   transition:background .15s,color .15s,border-color .15s;
-  -webkit-tap-highlight-color:transparent;
-  touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent;touch-action:manipulation;
 }
 .btn:active{transform:scale(.97)}
 .btn.on{background:var(--red);color:#fff;border-color:transparent}
-.btn.act{background:#142040;color:rgba(255,255,255,.8);border-color:#243560}
+.btn.act{background:#142040;color:rgba(255,255,255,.85);border-color:#243560}
 .btn.act:hover{background:#1a2f54}
-.btn.dim{background:transparent;color:rgba(255,255,255,.22);font-size:11px;border-color:var(--border)}
-.div{width:1px;height:28px;background:var(--border2);flex-shrink:0}
+.btn.dim{background:transparent;color:rgba(255,255,255,.25);font-size:12px;border-color:var(--border)}
+.div{width:1px;height:32px;background:var(--border2);flex-shrink:0}
 .spc{flex:1}
 
 #show-tab{
-  position:fixed;bottom:0;right:24px;
-  height:26px;padding:0 14px;
+  position:fixed;bottom:0;right:28px;
+  height:28px;padding:0 16px;
   background:var(--red);color:#fff;
-  font-size:11px;font-weight:700;letter-spacing:.05em;
-  border-radius:5px 5px 0 0;
-  display:none;align-items:center;
-  cursor:pointer;z-index:200;
+  font-size:12px;font-weight:700;letter-spacing:.05em;
+  border-radius:6px 6px 0 0;
+  display:none;align-items:center;cursor:pointer;z-index:200;
 }
 #show-tab.vis{display:flex}
 
 /* ── LOADING ── */
 #loader{
-  position:fixed;inset:0;
-  background:var(--dark);
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:18px;z-index:999;
+  position:fixed;inset:0;background:var(--dark);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:999;
   transition:opacity .6s;
 }
 #loader.gone{opacity:0;pointer-events:none}
-.spin{width:44px;height:44px;border:3px solid rgba(255,255,255,.08);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite}
+.spin{width:48px;height:48px;border:3px solid rgba(255,255,255,.08);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
-#loader p{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
-#loader-status{font-size:11px;color:var(--muted);margin-top:-10px}
+#loader p{font-size:13px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+#loader-status{font-size:12px;color:var(--muted);margin-top:-12px}
 </style>
 </head>
 <body>
@@ -191,19 +181,22 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
 
   <!-- MAP VIEW -->
   <div id="view-map" class="active">
-    <div id="map-wrap"><div id="map"></div></div>
+    <div id="map-wrap">
+      <div id="map"></div>
+      <div id="year-bar"></div>
+    </div>
     <div id="map-panel">
       <div class="mp-block">
-        <div class="mp-label">2026 Homicides (YTD)</div>
-        <div class="mp-big" id="mp-ytd-count">—</div>
-      </div>
-      <div class="mp-block">
-        <div class="mp-label">By Year</div>
-        <div id="mp-year-rows"></div>
+        <div class="mp-label" id="mp-year-label">Loading…</div>
+        <div class="mp-big" id="mp-count">—</div>
       </div>
       <div class="mp-block">
         <div class="mp-label">By Agency</div>
         <div id="mp-agency-rows"></div>
+      </div>
+      <div class="mp-block">
+        <div class="mp-label">By Circumstance</div>
+        <div id="mp-circ-rows"></div>
       </div>
     </div>
   </div>
@@ -212,11 +205,11 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
   <div id="view-charts">
     <div class="charts-row">
       <div class="chart-card">
-        <h3>Annual Homicide Trend</h3>
+        <h3>Annual Homicide Trend (1976–Present)</h3>
         <canvas id="ch-annual"></canvas>
       </div>
       <div class="chart-card">
-        <h3>Monthly Pace — Current Year</h3>
+        <h3>Monthly Pace — <span id="ch-monthly-label"></span></h3>
         <canvas id="ch-monthly"></canvas>
       </div>
     </div>
@@ -230,7 +223,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
         <canvas id="ch-circ"></canvas>
       </div>
       <div class="chart-card">
-        <h3>Clearance Rate</h3>
+        <h3>Clearance Rate by Year</h3>
         <canvas id="ch-clear"></canvas>
       </div>
     </div>
@@ -240,7 +233,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
   <div id="view-city">
     <div id="city-header">
       <h2>Homicide Rate Comparison — Major U.S. Cities</h2>
-      <p id="city-subtitle">Per 100,000 residents · Current year</p>
+      <p>Per 100,000 residents · Current year</p>
     </div>
     <div id="city-bars"></div>
   </div>
@@ -248,25 +241,26 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
   <!-- LOWER THIRD -->
   <div id="lower">
     <div id="logo-wrap">
-      <img id="logo-img" src="" alt="WLBT 3 Investigates" onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
+      <img id="logo-img" src="" alt="WLBT 3 Investigates"
+           onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
       <span id="logo-text" style="display:none">WLBT3</span>
     </div>
     <span id="brand">WLBT Investigates &nbsp;·&nbsp; Tracking Jackson's Homicides</span>
     <div id="vdots">
       <div class="vd on" id="vd0"></div>
-      <div class="vd" id="vd1"></div>
-      <div class="vd" id="vd2"></div>
+      <div class="vd"    id="vd1"></div>
+      <div class="vd"    id="vd2"></div>
     </div>
     <span id="clock">—</span>
   </div>
 
   <!-- CONTROL BAR -->
   <div id="ctrl">
-    <button class="btn on" onclick="setView('map')">Map</button>
-    <button class="btn" onclick="setView('charts')">Charts</button>
-    <button class="btn" onclick="setView('city')">City Ranking</button>
+    <button class="btn on"  onclick="setView('map')">Map</button>
+    <button class="btn"     onclick="setView('charts')">Charts</button>
+    <button class="btn"     onclick="setView('city')">City Ranking</button>
     <div class="div"></div>
-    <button class="btn act" onclick="toggleLayer()">Toggle Heatmap</button>
+    <button class="btn act" onclick="toggleLayer()" id="heat-btn">Toggle Heatmap</button>
     <button class="btn act" onclick="goFS()">⛶ Fullscreen</button>
     <button class="btn act" onclick="doRefresh()">↻ Refresh</button>
     <div class="spc"></div>
@@ -278,17 +272,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
 
 <script>
 // ── CONFIG ────────────────────────────────────────────────────────────────────
-const HOMICIDE_URL   = 'https://homicide-dashboard.netlify.app/data/homicide.json';
-const CITY_URL       = `https://sheets.googleapis.com/v4/spreadsheets/1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk/values/Sheet1?key=AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI`;
-const WARD_URL       = 'https://dl.dropbox.com/scl/fi/g8y0ecap7g4tug8t2b8ww/CombinedWards2024.geojson?rlkey=t3i2oicns2f5t7rb5fm70ukyk&st=wpaxqdg0&raw=1';
-const CITY_LIMITS_URL= 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1';
-const CCID_URL       = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1';
-const JACKSON_POP    = 143709;
-const MAP_CENTER     = [32.2988, -90.1848];
-const MAP_ZOOM       = 11;
-const CY             = new Date().getFullYear();
+const HOMICIDE_URL = 'https://homicide-dashboard.netlify.app/data/homicide.json';
+const CITY_URL     = 'https://sheets.googleapis.com/v4/spreadsheets/1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk/values/Sheet1?key=AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI';
+const CITY_LIMITS  = 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1';
+const CCID_URL     = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1';
+const MAP_CENTER   = [32.2988, -90.1848];
+const MAP_ZOOM     = 11;
+const CY           = new Date().getFullYear();
 
-// Historical data for annual trend chart
 const HISTORICAL = [
   {year:1976,total:40},{year:1977,total:47},{year:1978,total:33},{year:1979,total:55},{year:1980,total:42},
   {year:1981,total:49},{year:1982,total:57},{year:1983,total:42},{year:1984,total:34},{year:1985,total:43},
@@ -304,8 +295,9 @@ const HISTORICAL = [
 let allData = [], cityData = [];
 let map, markersLayer, heatLayer;
 let showHeat = false;
-let curView = 'map';
-let charts = {};
+let curView  = 'map';
+let selYear  = CY;   // currently selected year on map
+let charts   = {};
 
 // ── CLOCK ─────────────────────────────────────────────────────────────────────
 setInterval(() => {
@@ -319,16 +311,14 @@ function setStatus(t){ document.getElementById('loader-status').textContent = t;
 async function loadAll() {
   try {
     setStatus('Fetching homicide records…');
-    const hResp = await fetch(HOMICIDE_URL);
-    const raw   = await hResp.json();
+    const raw = await fetch(HOMICIDE_URL).then(r => r.json());
     allData = processHomicide(raw);
 
     setStatus('Fetching city comparison data…');
     try {
-      const cResp = await fetch(CITY_URL);
-      const cRaw  = await cResp.json();
+      const cRaw = await fetch(CITY_URL).then(r => r.json());
       cityData = processCityData(cRaw);
-    } catch(e) { console.warn('City data unavailable', e); }
+    } catch(e){ console.warn('City data unavailable', e); }
 
     setStatus('Initializing map…');
     initMap();
@@ -339,9 +329,7 @@ async function loadAll() {
     setStatus('Loading boundary layers…');
     loadBoundaries();
 
-    // Done
     document.getElementById('loader').classList.add('gone');
-    renderMapPanel();
     renderCityBars();
   } catch(e) {
     setStatus('Error: ' + e.message);
@@ -351,26 +339,25 @@ async function loadAll() {
 
 // ── DATA PROCESSING ───────────────────────────────────────────────────────────
 function processHomicide(raw) {
-  if (!raw || !raw.headers || !raw.entries) return [];
+  if (!raw?.headers || !raw?.entries) return [];
   const h = raw.headers.map(x => String(x).trim().toLowerCase());
   const gi = names => names.map(n => h.indexOf(n.toLowerCase())).find(i => i !== -1) ?? -1;
   const idx = {
-    victim:     gi(['Victim']),
-    age:        gi(['Age']),
-    race:       gi(['Race']),
-    circ:       gi(['Circumstance']),
-    date:       gi(['Date']),
-    address:    gi(['Address','Location']),
-    agency:     gi(['Investigating Agency','Agency']),
-    lat:        gi(['Latitude','Lat']),
-    lon:        gi(['Longitude','Lon','Long']),
-    status:     gi(['Case Status','Status']),
-    factor:     gi(['Contributing Factor','Factor'])
+    victim:  gi(['Victim']),
+    age:     gi(['Age']),
+    race:    gi(['Race']),
+    circ:    gi(['Circumstance']),
+    date:    gi(['Date']),
+    address: gi(['Address','Location']),
+    agency:  gi(['Investigating Agency','Agency']),
+    lat:     gi(['Latitude','Lat']),
+    lon:     gi(['Longitude','Lon','Long']),
+    status:  gi(['Case Status','Status']),
   };
   return raw.entries.map(e => {
     const dateStr = e[idx.date] ? String(e[idx.date]).trim() : '';
     let dateObj;
-    if (dateStr.includes('-')) dateObj = new Date(dateStr+'T00:00:00');
+    if (dateStr.includes('-')) dateObj = new Date(dateStr + 'T00:00:00');
     else if (dateStr.includes('/')) {
       const p = dateStr.split('/');
       if (p.length === 3) {
@@ -381,35 +368,36 @@ function processHomicide(raw) {
     if (!dateObj || isNaN(dateObj)) return null;
     const lat = parseFloat(e[idx.lat]), lon = parseFloat(e[idx.lon]);
     return {
-      Victim:   e[idx.victim] || 'Unknown',
-      Age:      isNaN(parseInt(e[idx.age])) ? null : parseInt(e[idx.age]),
-      Race:     e[idx.race] || 'Unknown',
-      Circ:     e[idx.circ] || 'Unknown',
-      Date:     dateObj.toISOString().split('T')[0],
-      Month:    dateObj.getMonth(),
-      Year:     dateObj.getFullYear(),
-      Address:  e[idx.address] || '',
-      Agency:   e[idx.agency] || 'Unknown',
-      Lat:      isNaN(lat) ? null : lat,
-      Lon:      isNaN(lon) ? null : lon,
-      Status:   e[idx.status] || 'Unknown',
+      Victim:  e[idx.victim]  || 'Unknown',
+      Age:     isNaN(parseInt(e[idx.age])) ? null : parseInt(e[idx.age]),
+      Circ:    e[idx.circ]    || 'Unknown',
+      Date:    dateObj.toISOString().split('T')[0],
+      Month:   dateObj.getMonth(),
+      Year:    dateObj.getFullYear(),
+      Address: e[idx.address] || '',
+      Agency:  e[idx.agency]  || 'Unknown',
+      Lat:     isNaN(lat) ? null : lat,
+      Lon:     isNaN(lon) ? null : lon,
+      Status:  e[idx.status]  || 'Unknown',
     };
   }).filter(Boolean);
 }
 
 function processCityData(raw) {
-  if (!raw || !raw.values) return [];
+  if (!raw?.values) return [];
   const [hdr, ...rows] = raw.values;
   const h = hdr.map(x => x.trim().toLowerCase());
   const ci = h.indexOf('city'), hi = h.indexOf('homicides'), pi = h.indexOf('population');
-  return rows.map(r => ({
-    city:       r[ci]?.trim() || '',
-    homicides:  parseInt(String(r[hi]).replace(/,/g,'')),
-    population: parseInt(String(r[pi]).replace(/,/g,'')),
-  })).filter(d => d.city && d.homicides >= 0 && d.population > 0)
-     .map(d => ({ ...d, rate: (d.homicides / d.population * 100000) }))
-     .sort((a,b) => b.rate - a.rate)
-     .slice(0, 15);
+  return rows
+    .map(r => ({
+      city:       r[ci]?.trim() || '',
+      homicides:  parseInt(String(r[hi]).replace(/,/g,'')),
+      population: parseInt(String(r[pi]).replace(/,/g,'')),
+    }))
+    .filter(d => d.city && d.homicides >= 0 && d.population > 0)
+    .map(d => ({ ...d, rate: d.homicides / d.population * 100000 }))
+    .sort((a,b) => b.rate - a.rate)
+    .slice(0, 14);
 }
 
 // ── MAP ───────────────────────────────────────────────────────────────────────
@@ -429,40 +417,73 @@ function initMap() {
     showCoverageOnHover: false,
     clusterPane: 'markersPane'
   });
-
   heatLayer = L.heatLayer([], { radius:25, blur:18, maxZoom:13 });
+  markersLayer.addTo(map);
 
-  const withCoords = allData.filter(d => d.Lat && d.Lon);
+  // Build year pill bar
+  buildYearBar();
+
+  // Initial render for current year
+  renderMapForYear(CY);
+}
+
+function buildYearBar() {
+  const years = [...new Set(allData.map(d => d.Year))].sort((a,b) => b-a);
+  const bar = document.getElementById('year-bar');
+  // Add "All" option first
+  [null, ...years].forEach(y => {
+    const pill = document.createElement('button');
+    pill.className = 'ypill' + (y === CY ? ' on' : '');
+    pill.textContent = y === null ? 'All' : String(y);
+    pill.dataset.year = y === null ? 'all' : y;
+    pill.addEventListener('click', () => {
+      document.querySelectorAll('.ypill').forEach(p => p.classList.remove('on'));
+      pill.classList.add('on');
+      selYear = y === null ? 'all' : y;
+      renderMapForYear(selYear);
+    });
+    bar.appendChild(pill);
+  });
+}
+
+function renderMapForYear(year) {
+  const data = year === 'all' ? allData : allData.filter(d => d.Year === year);
+  const withCoords = data.filter(d => d.Lat && d.Lon);
+
+  markersLayer.clearLayers();
   const heatPts = [];
 
   withCoords.forEach(d => {
     heatPts.push([d.Lat, d.Lon]);
     const marker = L.circleMarker([d.Lat, d.Lon], {
-      radius:5, fillColor:'#c8102e', color:'#8b0000',
+      radius:6, fillColor:'#c8102e', color:'#8b0000',
       weight:1, opacity:1, fillOpacity:.85,
       pane:'markersPane'
     });
-    marker.bindTooltip(`<strong>${d.Victim}</strong><br>${d.Date}<br>${d.Address}`, { sticky:true });
+    marker.bindTooltip(
+      `<strong style="font-size:13px">${d.Victim}</strong><br>${d.Date}<br>${d.Address || ''}`,
+      { sticky:true }
+    );
     markersLayer.addLayer(marker);
   });
 
   heatLayer.setLatLngs(heatPts);
-  markersLayer.addTo(map);
 
-  // Fit to Jackson data extent
+  // Fit bounds
   if (withCoords.length > 0) {
-    const bounds = L.featureGroup(withCoords.map(d => L.circleMarker([d.Lat,d.Lon]))).getBounds();
-    map.fitBounds(bounds.pad(.05));
+    const group = L.featureGroup(withCoords.map(d => L.circleMarker([d.Lat,d.Lon])));
+    map.fitBounds(group.getBounds().pad(.05));
+  } else {
+    map.setView(MAP_CENTER, MAP_ZOOM);
   }
+
+  renderMapPanel(data, year);
 }
 
 function loadBoundaries() {
-  // City limits
-  fetch(CITY_LIMITS_URL).then(r=>r.json()).then(g => {
+  fetch(CITY_LIMITS).then(r=>r.json()).then(g => {
     L.geoJSON(g, { style:{ color:'#000', weight:2, opacity:.7, fillOpacity:0 }, interactive:false }).addTo(map);
   }).catch(()=>{});
-
-  // CCID
   fetch(CCID_URL).then(r=>r.json()).then(g => {
     L.geoJSON(g, { style:{ color:'#E65100', weight:2.5, opacity:.8, fillOpacity:.1 }, interactive:false }).addTo(map);
   }).catch(()=>{});
@@ -470,63 +491,66 @@ function loadBoundaries() {
 
 function toggleLayer() {
   showHeat = !showHeat;
+  const btn = document.getElementById('heat-btn');
   if (showHeat) {
-    if (map.hasLayer(markersLayer)) map.removeLayer(markersLayer);
+    map.removeLayer(markersLayer);
     heatLayer.addTo(map);
+    btn.textContent = 'Show Markers';
   } else {
-    if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+    map.removeLayer(heatLayer);
     markersLayer.addTo(map);
+    btn.textContent = 'Toggle Heatmap';
   }
 }
 
 // ── MAP PANEL ─────────────────────────────────────────────────────────────────
-function renderMapPanel() {
-  const ytd  = allData.filter(d => d.Year === CY).length;
-  document.getElementById('mp-ytd-count').textContent = ytd;
+function renderMapPanel(data, year) {
+  const label = year === 'all' ? 'All Years' : (year === CY ? `${year} (YTD)` : String(year));
+  document.getElementById('mp-year-label').textContent = label + ' — Total Homicides';
+  document.getElementById('mp-count').textContent = data.length;
 
-  // By year (recent 5)
-  const bYear = {};
-  allData.forEach(d => { bYear[d.Year] = (bYear[d.Year]||0)+1; });
-  const years = Object.keys(bYear).map(Number).sort((a,b)=>b-a).slice(0,6);
-  document.getElementById('mp-year-rows').innerHTML = years.map(y =>
-    `<div class="mp-row"><span class="yr">${y}${y===CY?'<span class="mp-ytd">YTD</span>':''}</span><span class="ct">${bYear[y]}</span></div>`
-  ).join('');
-
-  // By agency
+  // Agency breakdown
   const bAg = {};
-  allData.filter(d=>d.Year===CY).forEach(d => { bAg[d.Agency]=(bAg[d.Agency]||0)+1; });
+  data.forEach(d => { bAg[d.Agency] = (bAg[d.Agency]||0)+1; });
   document.getElementById('mp-agency-rows').innerHTML =
     Object.entries(bAg).sort((a,b)=>b[1]-a[1]).map(([ag,ct]) =>
       `<div class="mp-row"><span class="yr">${ag}</span><span class="ct">${ct}</span></div>`
     ).join('');
+
+  // Circumstance top 5
+  const bCi = {};
+  data.forEach(d => { bCi[d.Circ] = (bCi[d.Circ]||0)+1; });
+  document.getElementById('mp-circ-rows').innerHTML =
+    Object.entries(bCi).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([ci,ct]) =>
+      `<div class="mp-row"><span class="yr">${ci}</span><span class="ct">${ct}</span></div>`
+    ).join('');
 }
 
 // ── CHARTS ────────────────────────────────────────────────────────────────────
-const CHART_DEFAULTS = {
+const CD = {
   responsive:true, maintainAspectRatio:false,
-  plugins:{ legend:{ display:false }, tooltip:{ backgroundColor:'#1e1e35', titleColor:'#fff', bodyColor:'#aaa' } },
+  plugins:{
+    legend:{ display:false },
+    tooltip:{ backgroundColor:'#1e1e35', titleColor:'#fff', bodyColor:'#aaa',
+              titleFont:{size:13}, bodyFont:{size:12} }
+  },
   scales:{
-    x:{ grid:{ color:'rgba(255,255,255,.06)' }, ticks:{ color:'#6a6a90', font:{ size:10 } } },
-    y:{ grid:{ color:'rgba(255,255,255,.06)' }, ticks:{ color:'#6a6a90', font:{ size:10 } } }
+    x:{ grid:{ color:'rgba(255,255,255,.06)' }, ticks:{ color:'#8888aa', font:{size:12} } },
+    y:{ grid:{ color:'rgba(255,255,255,.06)' }, ticks:{ color:'#8888aa', font:{size:12} } }
   }
 };
 
 function buildAllCharts() {
-  buildAnnual();
-  buildMonthly();
-  buildAge();
-  buildCirc();
-  buildClearance();
+  document.getElementById('ch-monthly-label').textContent = CY;
+  buildAnnual(); buildMonthly(); buildAge(); buildCirc(); buildClearance();
 }
 
 function buildAnnual() {
   const bYear = {};
-  allData.forEach(d => { bYear[d.Year]=(bYear[d.Year]||0)+1; });
-  // merge historical + modern
-  const modern = Object.keys(bYear).map(Number).sort((a,b)=>a-b);
-  const allYears = [...HISTORICAL.map(h=>h.year), ...modern.filter(y=>y>=2016)];
-  const allTotals = [...HISTORICAL.map(h=>h.total), ...modern.filter(y=>y>=2016).map(y=>bYear[y])];
-
+  allData.forEach(d => { bYear[d.Year] = (bYear[d.Year]||0)+1; });
+  const modernYears = Object.keys(bYear).map(Number).sort((a,b)=>a-b);
+  const allYears    = [...HISTORICAL.map(h=>h.year), ...modernYears.filter(y=>y>=2016)];
+  const allTotals   = [...HISTORICAL.map(h=>h.total), ...modernYears.filter(y=>y>=2016).map(y=>bYear[y])];
   charts.annual = new Chart(document.getElementById('ch-annual'), {
     type:'bar',
     data:{
@@ -534,37 +558,42 @@ function buildAnnual() {
       datasets:[{
         data: allTotals,
         backgroundColor: allYears.map(y =>
-          y === CY ? 'rgba(200,16,46,.9)' : y >= 2016 ? 'rgba(200,16,46,.5)' : 'rgba(100,100,160,.4)'
+          y === CY ? 'rgba(200,16,46,.95)' :
+          y >= 2016 ? 'rgba(200,16,46,.55)' : 'rgba(100,100,160,.35)'
         ),
         borderRadius:2,
       }]
     },
-    options:{ ...CHART_DEFAULTS }
+    options:{ ...CD }
   });
 }
 
 function buildMonthly() {
-  const months = Array(12).fill(0);
-  const prevMonths = Array(12).fill(0);
-  allData.filter(d=>d.Year===CY).forEach(d=>months[d.Month]++);
-  allData.filter(d=>d.Year===CY-1).forEach(d=>prevMonths[d.Month]++);
+  const cur = Array(12).fill(0), prev = Array(12).fill(0);
+  allData.filter(d=>d.Year===CY).forEach(d=>cur[d.Month]++);
+  allData.filter(d=>d.Year===CY-1).forEach(d=>prev[d.Month]++);
   const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-
   charts.monthly = new Chart(document.getElementById('ch-monthly'), {
     type:'line',
     data:{
       labels,
       datasets:[
-        { label:String(CY),   data:months,     borderColor:'#c8102e', backgroundColor:'rgba(200,16,46,.12)', fill:true, tension:.35, pointRadius:3 },
-        { label:String(CY-1), data:prevMonths, borderColor:'rgba(150,150,200,.4)', fill:false, tension:.35, pointRadius:2, borderDash:[4,4] }
+        { label:String(CY),   data:cur,  borderColor:'#c8102e', backgroundColor:'rgba(200,16,46,.12)', fill:true, tension:.35, pointRadius:4 },
+        { label:String(CY-1), data:prev, borderColor:'rgba(150,150,200,.45)', fill:false, tension:.35, pointRadius:3, borderDash:[5,4] }
       ]
     },
-    options:{ ...CHART_DEFAULTS, plugins:{ ...CHART_DEFAULTS.plugins, legend:{ display:true, labels:{ color:'#6a6a90', boxWidth:12, font:{size:10} } } } }
+    options:{
+      ...CD,
+      plugins:{
+        ...CD.plugins,
+        legend:{ display:true, labels:{ color:'#8888aa', boxWidth:14, font:{size:12} } }
+      }
+    }
   });
 }
 
 function buildAge() {
-  const buckets = { 'Under 18':0, '18–24':0, '25–34':0, '35–44':0, '45–54':0, '55+':0, 'Unknown':0 };
+  const buckets = {'Under 18':0,'18–24':0,'25–34':0,'35–44':0,'45–54':0,'55+':0,'Unknown':0};
   allData.filter(d=>d.Year===CY).forEach(d => {
     const a = d.Age;
     if (a===null) buckets['Unknown']++;
@@ -578,10 +607,10 @@ function buildAge() {
   charts.age = new Chart(document.getElementById('ch-age'), {
     type:'bar',
     data:{
-      labels:Object.keys(buckets),
-      datasets:[{ data:Object.values(buckets), backgroundColor:'rgba(200,16,46,.7)', borderRadius:3 }]
+      labels: Object.keys(buckets),
+      datasets:[{ data:Object.values(buckets), backgroundColor:'rgba(200,16,46,.7)', borderRadius:4 }]
     },
-    options:{ ...CHART_DEFAULTS, indexAxis:'y' }
+    options:{ ...CD, indexAxis:'y' }
   });
 }
 
@@ -589,18 +618,18 @@ function buildCirc() {
   const counts = {};
   allData.filter(d=>d.Year===CY).forEach(d => { counts[d.Circ]=(counts[d.Circ]||0)+1; });
   const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const COLORS = ['#c8102e','#e03050','#a50d24','#8b0014','#ff6080','#cc2040','#991530','#771020'];
+  const COLS = ['#c8102e','#e03050','#a50d24','#8b0014','#ff6080','#cc2040','#991530','#771020'];
   charts.circ = new Chart(document.getElementById('ch-circ'), {
     type:'doughnut',
     data:{
-      labels:sorted.map(e=>e[0]),
-      datasets:[{ data:sorted.map(e=>e[1]), backgroundColor:COLORS, borderColor:'#12121e', borderWidth:2 }]
+      labels: sorted.map(e=>e[0]),
+      datasets:[{ data:sorted.map(e=>e[1]), backgroundColor:COLS, borderColor:'#12121e', borderWidth:2 }]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins:{
-        legend:{ display:true, position:'right', labels:{ color:'#9898b8', font:{size:10}, boxWidth:12 } },
-        tooltip:{ backgroundColor:'#1e1e35', titleColor:'#fff', bodyColor:'#aaa' }
+        legend:{ display:true, position:'right', labels:{ color:'#aaaacc', font:{size:12}, boxWidth:14 } },
+        tooltip:{ backgroundColor:'#1e1e35', titleColor:'#fff', bodyColor:'#aaa', titleFont:{size:13}, bodyFont:{size:12} }
       }
     }
   });
@@ -613,20 +642,19 @@ function buildClearance() {
     byYear[d.Year].total++;
     if (d.Status==='Solved') byYear[d.Year].solved++;
   });
-  const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b).slice(-8);
+  const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b).slice(-9);
   const rates = years.map(y => byYear[y].total ? Math.round(byYear[y].solved/byYear[y].total*100) : 0);
-
   charts.clear = new Chart(document.getElementById('ch-clear'), {
     type:'bar',
     data:{
-      labels:years.map(String),
-      datasets:[{ data:rates, backgroundColor:rates.map(r=>r>=50?'rgba(92,184,92,.7)':'rgba(200,16,46,.6)'), borderRadius:3 }]
+      labels: years.map(String),
+      datasets:[{ data:rates, backgroundColor:rates.map(r=>r>=50?'rgba(92,184,92,.75)':'rgba(200,16,46,.65)'), borderRadius:4 }]
     },
     options:{
-      ...CHART_DEFAULTS,
+      ...CD,
       scales:{
-        ...CHART_DEFAULTS.scales,
-        y:{ ...CHART_DEFAULTS.scales.y, max:100, ticks:{ ...CHART_DEFAULTS.scales.y.ticks, callback:v=>v+'%' } }
+        ...CD.scales,
+        y:{ ...CD.scales.y, max:100, ticks:{ ...CD.scales.y.ticks, callback:v=>v+'%' } }
       }
     }
   });
@@ -636,12 +664,11 @@ function buildClearance() {
 function renderCityBars() {
   if (!cityData.length) {
     document.getElementById('city-bars').innerHTML =
-      '<p style="color:var(--muted);font-size:14px">City comparison data unavailable.</p>';
+      '<p style="color:var(--muted);font-size:16px">City comparison data unavailable.</p>';
     return;
   }
-  const top = cityData.slice(0,12);
-  const maxRate = top[0].rate;
-  document.getElementById('city-bars').innerHTML = top.map((c, i) => {
+  const maxRate = cityData[0].rate;
+  document.getElementById('city-bars').innerHTML = cityData.map((c,i) => {
     const isJackson = c.city.toLowerCase().includes('jackson');
     const pct = (c.rate / maxRate * 100).toFixed(1);
     return `<div class="city-row">
@@ -664,52 +691,51 @@ function setView(v) {
     document.getElementById('view-'+id).classList.toggle('active', id===v);
     document.getElementById('vd'+i).classList.toggle('on', id===v);
   });
-  document.querySelectorAll('#ctrl .btn:not(.act):not(.dim)').forEach((b,i) => {
-    b.classList.toggle('on', VIEWS[i]===v);
+  // Update view buttons (first 3 .btn elements in ctrl)
+  document.querySelectorAll('#ctrl .btn').forEach((b,i) => {
+    if (i < 3) b.classList.toggle('on', VIEWS[i]===v);
   });
-  // Invalidate map size when switching back to map
   if (v==='map' && map) setTimeout(()=>map.invalidateSize(),50);
-  // Resize charts
   if (v==='charts') Object.values(charts).forEach(c=>c.resize());
 }
 
-// ── CONTROLS ─────────────────────────────────────────────────────────────────
+// ── FULLSCREEN ────────────────────────────────────────────────────────────────
 function goFS() {
   const el = document.getElementById('shell');
   (el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen).call(el);
 }
-document.addEventListener('fullscreenchange', ()=>{
+document.addEventListener('fullscreenchange', () => {
   if (map) setTimeout(()=>map.invalidateSize(),100);
   Object.values(charts).forEach(c=>c.resize());
 });
 
-function doRefresh() { location.reload(); }
+function doRefresh(){ location.reload(); }
 
-const ctrl = document.getElementById('ctrl');
+// ── HIDE/SHOW CONTROLS ────────────────────────────────────────────────────────
+const ctrl    = document.getElementById('ctrl');
 const showTab = document.getElementById('show-tab');
 function hideCtrl(){ ctrl.classList.add('hidden'); showTab.classList.add('vis'); }
 function showCtrl(){ ctrl.classList.remove('hidden'); showTab.classList.remove('vis'); }
 
-// Keyboard shortcuts
+let lastTap = 0;
+document.getElementById('lower').addEventListener('touchend', () => {
+  const now = Date.now();
+  if (now - lastTap < 350) showCtrl();
+  lastTap = now;
+});
+
+// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (e.key==='1') setView('map');
   if (e.key==='2') setView('charts');
   if (e.key==='3') setView('city');
-  if (e.key==='h'||e.key==='H') ctrl.classList.contains('hidden')?showCtrl():hideCtrl();
+  if (e.key==='t'||e.key==='T') toggleLayer();
   if (e.key==='f'||e.key==='F') goFS();
   if (e.key==='r'||e.key==='R') doRefresh();
-  if (e.key==='t'||e.key==='T') toggleLayer();
+  if (e.key==='h'||e.key==='H') ctrl.classList.contains('hidden')?showCtrl():hideCtrl();
 });
 
-// Double-tap lower third to show controls
-let lastTap=0;
-document.getElementById('lower').addEventListener('touchend',()=>{
-  const now=Date.now();
-  if(now-lastTap<350) showCtrl();
-  lastTap=now;
-});
-
-// ── BOOT ─────────────────────────────────────────────────────────────────────
+// ── BOOT ──────────────────────────────────────────────────────────────────────
 loadAll();
 </script>
 </body>
