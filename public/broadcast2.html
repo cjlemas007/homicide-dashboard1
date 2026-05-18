@@ -441,16 +441,16 @@ function dbgErr(msg){ var el=document.getElementById('loader-err'); if(el) el.te
 window.onerror = function(msg,src,line,col,err){ dbgErr('JS ERROR line '+line+': '+msg); };
 window.addEventListener('unhandledrejection',function(e){ dbgErr('Promise: '+(e.reason?(e.reason.message||String(e.reason)):'unknown')); });
 
-function fetchWithTimeout(url, ms=12000) {
-  const ctrl = new AbortController();
-  const id = setTimeout(() => ctrl.abort(), ms);
-  return fetch(url, { signal: ctrl.signal }).finally(() => clearTimeout(id));
+function fetchWithTimeout(url, ms) {
+  ms = ms || 12000;
+  var ctrl = new AbortController();
+  var id = setTimeout(function(){ ctrl.abort(); }, ms);
+  return fetch(url, { signal: ctrl.signal }).then(function(r){ clearTimeout(id); return r; }, function(e){ clearTimeout(id); throw e; });
 }
 
 async function loadAll() {
   try {
-    dbg('Libraries: Leaflet='+(typeof L!=='undefined'?'OK':'MISSING')+
-        ' Chart='+(typeof Chart!=='undefined'?'OK':'MISSING'));
+    dbg('Leaflet='+(typeof L!=='undefined'?'OK':'MISSING')+' Chart='+(typeof Chart!=='undefined'?'OK':'MISSING'));
 
     dbg('Step 1: processing records...');
     setStatus('Loading records…');
@@ -460,8 +460,8 @@ async function loadAll() {
     dbg('Step 2: city data...');
     setStatus('Fetching city comparison…');
     try {
-      cityData = processCityData(await fetchWithTimeout(CITY_URL).then(r=>r.json()));
-      dbg('Step 2 OK: '+cityData.length+' cities');
+      cityData = processCityData(await fetchWithTimeout(CITY_URL).then(function(r){ return r.json(); }));
+      dbg('Step 2 OK');
     } catch(e) { dbg('Step 2 skipped: '+e.message); }
 
     dbg('Step 3: initMap...');
@@ -478,9 +478,8 @@ async function loadAll() {
     dbg('Step 5: boundaries...');
     setStatus('Loading boundaries…');
     loadBoundaries();
-    dbg('Step 5 OK');
+    dbg('Step 5 OK - done!');
 
-    dbg('All done - hiding loader');
     document.getElementById('loader').classList.add('gone');
     renderCityBars();
   } catch(e) {
@@ -494,7 +493,7 @@ async function loadAll() {
 function processHomicide(raw) {
   if (!raw || !raw.headers || !raw.entries) return [];
   const h = raw.headers.map(x => String(x).trim().toLowerCase());
-  const gi = names => { var r = names.map(n => h.indexOf(n.toLowerCase())).find(i => i !== -1); return r !== undefined ? r : -1; };
+  const gi = function(names) { var r = names.map(function(n){ return h.indexOf(n.toLowerCase()); }).find(function(i){ return i !== -1; }); return r !== undefined ? r : -1; };
   const idx = {
     victim:  gi(['Victim']),
     age:     gi(['Age']),
@@ -534,13 +533,13 @@ function processHomicide(raw) {
 
 function processCityData(raw) {
   if (!raw || !raw.values) return [];
-  const [hdr,...rows] = raw.values;
+  var _rv = raw.values; var hdr = _rv[0]; var rows = _rv.slice(1);
   const h = hdr.map(x=>x.trim().toLowerCase());
   const ci=h.indexOf('city'), hi=h.indexOf('homicides'), pi=h.indexOf('population');
   return rows
     .map(r=>({ city:(r[ci]&&r[ci].trim?r[ci].trim():''), homicides:parseInt(String(r[hi]).replace(/,/g,'')), population:parseInt(String(r[pi]).replace(/,/g,'')) }))
     .filter(d=>d.city&&d.homicides>=0&&d.population>0)
-    .map(d=>({...d, rate:d.homicides/d.population*100000}))
+    .map(function(d){ return {city:d.city,homicides:d.homicides,population:d.population,rate:d.homicides/d.population*100000}; })
     .sort((a,b)=>b.rate-a.rate).slice(0,14);
 }
 
@@ -812,7 +811,7 @@ function buildGridCharts() {
   CHART_DEFS.forEach(def => {
     const canvas = document.getElementById('ch-'+def.id);
     const data   = getChartData(def.id);
-    const cfg    = { ...makeDefaults(false), plugins:{...makeDefaults(false).plugins} };
+    const _md0=makeDefaults(false); const cfg = Object.assign({},_md0, { plugins:Object.assign({},_md0.plugins} };
     applyLegend(cfg, def.id, false);
     const chartData = data._timeScale
       ? { datasets: data.datasets }
@@ -877,7 +876,7 @@ function renderSolo(idx) {
   wrap.innerHTML = '<canvas id="ch-solo"></canvas>';
   const canvas = document.getElementById('ch-solo');
 
-  const cfg = { ...makeDefaults(true), plugins:{...makeDefaults(true).plugins} };
+  const _md1=makeDefaults(true); const cfg = Object.assign({},_md1, { plugins:Object.assign({},_md1.plugins) });
   applyLegend(cfg, def.id, true);
 
   const chartData = data._timeScale
@@ -929,15 +928,15 @@ function setView(v) {
 
 // ── FULLSCREEN ────────────────────────────────────────────────────────────────
 function goFS() {
-  const el = document.documentElement;
-  const fn = el.requestFullscreen||el.mozRequestFullScreen||el.webkitRequestFullscreen||el.msRequestFullscreen;
+  var el = document.documentElement;
+  var fn = el.requestFullscreen||el.mozRequestFullScreen||el.webkitRequestFullscreen||el.msRequestFullscreen;
   if(fn) fn.call(el);
 }
-['fullscreenchange','mozfullscreenchange','webkitfullscreenchange'].forEach(evt=>{
-  document.addEventListener(evt,()=>{
-    if(map) setTimeout(()=>map.invalidateSize(),100);
-    if(isSoloMode&&soloChart) setTimeout(()=>soloChart.resize(),100);
-    else Object.values(gridCharts).forEach(c=>c.resize());
+['fullscreenchange','mozfullscreenchange','webkitfullscreenchange'].forEach(function(evt){
+  document.addEventListener(evt,function(){
+    if(map) setTimeout(function(){map.invalidateSize();},100);
+    if(isSoloMode&&soloChart) setTimeout(function(){soloChart.resize();},100);
+    else Object.values(gridCharts).forEach(function(c){c.resize();});
   });
 });
 
