@@ -492,9 +492,9 @@ async function loadAll() {
 
 // ── DATA PROCESSING ───────────────────────────────────────────────────────────
 function processHomicide(raw) {
-  if (!raw?.headers || !raw?.entries) return [];
+  if (!raw || !raw.headers || !raw.entries) return [];
   const h = raw.headers.map(x => String(x).trim().toLowerCase());
-  const gi = names => names.map(n => h.indexOf(n.toLowerCase())).find(i => i !== -1) ?? -1;
+  const gi = names => { var r = names.map(n => h.indexOf(n.toLowerCase())).find(i => i !== -1); return r !== undefined ? r : -1; };
   const idx = {
     victim:  gi(['Victim']),
     age:     gi(['Age']),
@@ -533,12 +533,12 @@ function processHomicide(raw) {
 }
 
 function processCityData(raw) {
-  if (!raw?.values) return [];
+  if (!raw || !raw.values) return [];
   const [hdr,...rows] = raw.values;
   const h = hdr.map(x=>x.trim().toLowerCase());
   const ci=h.indexOf('city'), hi=h.indexOf('homicides'), pi=h.indexOf('population');
   return rows
-    .map(r=>({ city:r[ci]?.trim()||'', homicides:parseInt(String(r[hi]).replace(/,/g,'')), population:parseInt(String(r[pi]).replace(/,/g,'')) }))
+    .map(r=>({ city:(r[ci]&&r[ci].trim?r[ci].trim():''), homicides:parseInt(String(r[hi]).replace(/,/g,'')), population:parseInt(String(r[pi]).replace(/,/g,'')) }))
     .filter(d=>d.city&&d.homicides>=0&&d.population>0)
     .map(d=>({...d, rate:d.homicides/d.population*100000}))
     .sort((a,b)=>b.rate-a.rate).slice(0,14);
