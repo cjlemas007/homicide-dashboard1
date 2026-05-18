@@ -203,7 +203,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 #logo-wrap{background:#fff;border-radius:4px;padding:4px 10px;flex-shrink:0;display:flex;align-items:center;height:44px}
 #logo-wrap img{height:34px;width:auto;object-fit:contain}
 #logo-text{font-size:18px;font-weight:900;color:#000;letter-spacing:.04em}
-#brand{flex:1;font-size:17px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#brand{flex:1;font-size:17px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-left:24px}
 
 /* ── LOWER BAR (clock + dots only) ── */
 #lower{
@@ -948,28 +948,26 @@ function renderMapForYear(year) {
   });
   markersLayer.addLayers(layers);
   heatLayer.setLatLngs(heatPts);
-  if (withCoords.length > 0) {
-    map.fitBounds(L.featureGroup(withCoords.map(d => L.circleMarker([d.Lat, d.Lon]))).getBounds().pad(.05));
-  } else {
-    map.setView(MAP_CENTER, MAP_ZOOM);
-  }
   renderMapPanel(data, year);
+  if (withCoords.length > 0) {
+    map.fitBounds(L.featureGroup(withCoords.map(d => L.circleMarker([d.Lat, d.Lon]))).getBounds().pad(.05), { animate: false });
+  } else {
+    map.setView(MAP_CENTER, MAP_ZOOM, { animate: false });
+  }
 }
 function renderMapPanel(data, year) {
   var isPrevYear = typeof year === 'number';
   var prevYear = isPrevYear ? year - 1 : null;
 
-  // YTD change — compare same calendar month/day of prior year
+  // YTD change — only shown for current year
   var changeHTML = '';
-  if (isPrevYear && year !== 'all') {
+  if (year === CY) {
     var today = new Date();
-    var refYear = year === CY ? CY : year;
-    var _prevYear = refYear - 1;
-    // Use month/day of today as the YTD cutoff — same logic as ward calc
+    var _prevYear = CY - 1;
     var cutoffMonth = today.getMonth();
     var cutoffDay = today.getDate();
     var curCount = allData.filter(function(d) {
-      if (d.Year !== refYear) return false;
+      if (d.Year !== CY) return false;
       var dt = new Date(d.Date + 'T00:00:00');
       var m = dt.getMonth(), day = dt.getDate();
       return m < cutoffMonth || (m === cutoffMonth && day <= cutoffDay);
