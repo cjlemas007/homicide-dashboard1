@@ -520,6 +520,8 @@ Step 5 OK - done!
     <button class="btn" onclick="setView(&#39;city&#39;)">City Ranking</button>
     <div class="divider"></div>
     <button class="btn act" onclick="toggleLayer()" id="heat-btn">Toggle Heatmap</button>
+    <button class="btn act on" onclick="toggleWards()" id="ward-btn">Wards</button>
+    <button class="btn act on" onclick="toggleCCID()" id="ccid-btn">CCID</button>
     <button class="btn act" onclick="goFS()">⛶ Fullscreen</button>
     <button class="btn act" onclick="doRefresh()">↻ Refresh</button>
     <div class="spc"></div>
@@ -681,6 +683,8 @@ var HISTORICAL = [{
 var allData = [],
   cityData = [];
 var map, markersLayer, heatLayer;
+var wardLayerRef = null, ccidLayerRef = null;
+var showWards = true, showCCID = true;
 var showHeat = false;
 var curView = 'map';
 var selYear = CY;
@@ -908,6 +912,7 @@ function initMap() {
 function buildYearBar() {
   var years = Array.from(new Set(allData.map(function(d){return d.Year;}))).sort(function(a,b){return b-a;});
   var bar = document.getElementById('year-bar');
+  bar.innerHTML = '';
   [null, ...years].forEach(y => {
     var pill = document.createElement('button');
     pill.className = 'ypill' + (y === CY ? ' on' : '');
@@ -1014,7 +1019,7 @@ function loadBoundaries() {
   }).catch(function() {});
 
   fetch(CCID_URL).then(function(r) { return r.json(); }).then(function(g) {
-    L.geoJSON(g, {
+    ccidLayerRef = L.geoJSON(g, {
       style: { color: '#E65100', weight: 2.5, opacity: .8, fillOpacity: .08 },
       interactive: false
     }).addTo(map);
@@ -1024,11 +1029,19 @@ function loadBoundaries() {
     var processed = processWardsData(g);
     var wardLayer = L.geoJSON(processed, {
       style: function(feature) {
+        var vel = feature.properties.velocity;
+        var fillColor;
+        if (vel > 20)       fillColor = '#c8102e';
+        else if (vel > 5)   fillColor = '#f0ad4e';
+        else if (vel < -20) fillColor = '#0275d8';
+        else if (vel < -5)  fillColor = '#5bc0de';
+        else                fillColor = '#aaaaaa';
         return {
-          color: '#e63946',
-          weight: 2,
-          opacity: 0.8,
-          fillOpacity: 0,
+          color: '#ffffff',
+          weight: 1.5,
+          opacity: 0.7,
+          fillColor: fillColor,
+          fillOpacity: 0.35,
           dashArray: '6,4'
         };
       },
@@ -1064,6 +1077,7 @@ function loadBoundaries() {
         });
       }
     });
+    wardLayerRef = wardLayer;
     wardLayer.addTo(map);
   }).catch(function() {});
 }
@@ -1144,6 +1158,28 @@ function toggleLayer() {
     map.removeLayer(heatLayer);
     markersLayer.addTo(map);
     btn.textContent = 'Toggle Heatmap';
+  }
+}
+function toggleWards() {
+  showWards = !showWards;
+  var btn = document.getElementById('ward-btn');
+  btn.classList.toggle('on', showWards);
+  if (!wardLayerRef) return;
+  if (showWards) {
+    wardLayerRef.addTo(map);
+  } else {
+    map.removeLayer(wardLayerRef);
+  }
+}
+function toggleCCID() {
+  showCCID = !showCCID;
+  var btn = document.getElementById('ccid-btn');
+  btn.classList.toggle('on', showCCID);
+  if (!ccidLayerRef) return;
+  if (showCCID) {
+    ccidLayerRef.addTo(map);
+  } else {
+    map.removeLayer(ccidLayerRef);
   }
 }
 
