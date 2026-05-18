@@ -90,17 +90,17 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 /* chart grid (multi-chart mode) */
 #chart-grid{
-  display:flex;flex-wrap:wrap;flex:1 1 0;
-  padding:20px;gap:16px;overflow:hidden;
+  display:flex;flex-direction:column;flex:1 1 0;
+  padding:16px;gap:14px;overflow:hidden;min-height:0;
+}
+.charts-row{
+  display:flex;flex:1 1 0;gap:14px;min-height:0;overflow:hidden;
 }
 .chart-card{
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
-  padding:20px 22px;display:flex;flex-direction:column;
-  min-width:0;min-height:0;
+  padding:16px 18px;display:flex;flex-direction:column;
+  flex:1 1 0;min-width:0;min-height:0;overflow:hidden;
 }
-/* 2-col top row, 3-col bottom row — flex basis math */
-.chart-card.wide{flex:1 1 calc(50% - 8px)}
-.chart-card.narrow{flex:1 1 calc(33.333% - 11px)}
 
 .chart-card h3{
   font-size:13px;font-weight:700;letter-spacing:.07em;
@@ -278,35 +278,39 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
     <!-- multi-chart grid -->
     <div id="chart-grid">
-      <div class="chart-card wide">
-        <h3>Annual Homicide Trend (1976–Present)</h3>
-        <button class="expand-btn" onclick="openSolo(0)" title="Expand">⤢</button>
-        <canvas id="ch-annual"></canvas>
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Annual Homicide Trend (1976–Present)</h3>
+          <button class="expand-btn" onclick="openSolo(0)" title="Expand">⤢</button>
+          <canvas id="ch-annual"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Monthly Pace — <span id="ch-monthly-label"></span></h3>
+          <button class="expand-btn" onclick="openSolo(1)" title="Expand">⤢</button>
+          <canvas id="ch-monthly"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>YTD Cumulative Pace — <span id="ch-ytdpace-label"></span></h3>
+          <button class="expand-btn" onclick="openSolo(5)" title="Expand">⤢</button>
+          <canvas id="ch-ytdpace"></canvas>
+        </div>
       </div>
-      <div class="chart-card wide">
-        <h3>Monthly Pace — <span id="ch-monthly-label"></span></h3>
-        <button class="expand-btn" onclick="openSolo(1)" title="Expand">⤢</button>
-        <canvas id="ch-monthly"></canvas>
-      </div>
-      <div class="chart-card narrow">
-        <h3>Victim Age Distribution</h3>
-        <button class="expand-btn" onclick="openSolo(2)" title="Expand">⤢</button>
-        <canvas id="ch-age"></canvas>
-      </div>
-      <div class="chart-card narrow">
-        <h3>Circumstance</h3>
-        <button class="expand-btn" onclick="openSolo(3)" title="Expand">⤢</button>
-        <canvas id="ch-circ"></canvas>
-      </div>
-      <div class="chart-card narrow">
-        <h3>Clearance Rate by Year</h3>
-        <button class="expand-btn" onclick="openSolo(4)" title="Expand">⤢</button>
-        <canvas id="ch-clear"></canvas>
-      </div>
-      <div class="chart-card wide">
-        <h3>YTD Cumulative Pace — <span id="ch-ytdpace-label"></span></h3>
-        <button class="expand-btn" onclick="openSolo(5)" title="Expand">⤢</button>
-        <canvas id="ch-ytdpace"></canvas>
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Victim Age Distribution</h3>
+          <button class="expand-btn" onclick="openSolo(2)" title="Expand">⤢</button>
+          <canvas id="ch-age"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Circumstance</h3>
+          <button class="expand-btn" onclick="openSolo(3)" title="Expand">⤢</button>
+          <canvas id="ch-circ"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Clearance Rate by Year</h3>
+          <button class="expand-btn" onclick="openSolo(4)" title="Expand">⤢</button>
+          <canvas id="ch-clear"></canvas>
+        </div>
       </div>
     </div>
 
@@ -550,29 +554,34 @@ function renderMapPanel(data, year) {
   const isPrevYear   = typeof year === 'number';
   const prevYear     = isPrevYear ? year - 1 : null;
 
-  // YTD change vs same period last year
+  // YTD change — always compare same calendar day of prior year
   let changeHTML = '';
-  if (isPrevYear && year === CY) {
-    const prevCount = allData.filter(d => d.Year === CY-1).length;
-    const curCount  = data.length;
+  if (isPrevYear && year !== 'all') {
+    const today    = new Date();
+    const todayDOY = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 0);
+    // For a past selected year, "today" within that year is the same day-of-year offset
+    const refYear  = (year === CY) ? CY : year;
+    const refStart = Date.UTC(refYear, 0, 0);
+    const refCutoff= new Date(refStart + todayDOY);
+    const prevYear = refYear - 1;
+    const prevStart= Date.UTC(prevYear, 0, 0);
+    const prevCutoff=new Date(prevStart + todayDOY);
+
+    const curCount  = allData.filter(d => {
+      if (d.Year !== refYear) return false;
+      return new Date(d.Date + 'T00:00:00') <= refCutoff;
+    }).length;
+    const prevCount = allData.filter(d => {
+      if (d.Year !== prevYear) return false;
+      return new Date(d.Date + 'T00:00:00') <= prevCutoff;
+    }).length;
+
     if (prevCount > 0) {
-      const pct = ((curCount - prevCount) / prevCount * 100);
+      const pct  = ((curCount - prevCount) / prevCount * 100);
       const sign = pct >= 0 ? '+' : '';
       const cls  = pct > 2 ? 'up' : pct < -2 ? 'down' : 'flat';
       const arrow= pct > 2 ? '▲' : pct < -2 ? '▼' : '–';
-      changeHTML = `<div id="ytd-change" class="${cls}">${arrow} ${sign}${pct.toFixed(1)}% vs ${CY-1}</div>`;
-    }
-  } else if (year === 'all') {
-    changeHTML = '';
-  } else if (isPrevYear) {
-    // comparing this year to prior year
-    const prev = allData.filter(d => d.Year === year-1).length;
-    if (prev > 0) {
-      const pct = ((data.length - prev) / prev * 100);
-      const sign = pct >= 0 ? '+' : '';
-      const cls  = pct > 2 ? 'up' : pct < -2 ? 'down' : 'flat';
-      const arrow= pct > 2 ? '▲' : pct < -2 ? '▼' : '–';
-      changeHTML = `<div id="ytd-change" class="${cls}">${arrow} ${sign}${pct.toFixed(1)}% vs ${year-1}</div>`;
+      changeHTML = `<div id="ytd-change" class="${cls}">${arrow} ${sign}${pct.toFixed(1)}% vs ${prevYear} YTD</div>`;
     }
   }
 
