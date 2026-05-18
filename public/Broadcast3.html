@@ -1025,11 +1025,11 @@ function loadBoundaries() {
     var wardLayer = L.geoJSON(processed, {
       style: function(feature) {
         return {
-          color: '#ffffff',
+          color: '#e63946',
           weight: 2,
-          opacity: 0.85,
+          opacity: 0.8,
           fillOpacity: 0,
-          dashArray: '5,4'
+          dashArray: '6,4'
         };
       },
       onEachFeature: function(feature, layer) {
@@ -1065,7 +1065,6 @@ function loadBoundaries() {
       }
     });
     wardLayer.addTo(map);
-    wardLayer.bringToBack();
   }).catch(function() {});
 }
 
