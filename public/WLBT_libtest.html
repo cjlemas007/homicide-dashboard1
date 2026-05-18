@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lib Test</title>
+<link rel="stylesheet" href="libs/leaflet.css"/>
+<style>
+body { font-family: monospace; font-size: 18px; padding: 30px; background: #f0f0f0; }
+.ok { color: green; font-weight: bold; }
+.fail { color: red; font-weight: bold; }
+#map { width: 300px; height: 200px; margin-top: 20px; border: 2px solid #ccc; }
+</style>
+</head>
+<body>
+<h2>WLBT Library Test</h2>
+<div id="results">Loading scripts...</div>
+<div id="map"></div>
+
+<script src="libs/leaflet.js"></script>
+<script src="libs/markercluster.js"></script>
+<script src="libs/leaflet-heat.js"></script>
+<script src="libs/chart.js"></script>
+<script src="libs/chartjs-adapter-date-fns.js"></script>
+<script>
+var results = document.getElementById('results');
+var lines = [];
+
+function check(name, test) {
+  try {
+    var ok = test();
+    lines.push('<span class="' + (ok ? 'ok' : 'fail') + '">' + name + ': ' + (ok ? 'OK' : 'MISSING') + '</span>');
+  } catch(e) {
+    lines.push('<span class="fail">' + name + ': ERROR - ' + e.message + '</span>');
+  }
+  results.innerHTML = lines.join('<br>');
+}
+
+check('Leaflet (L)', function(){ return typeof L !== 'undefined'; });
+check('L.map', function(){ return typeof L.map === 'function'; });
+check('MarkerCluster', function(){ return typeof L.markerClusterGroup === 'function'; });
+check('Leaflet Heat', function(){ return typeof L.heatLayer === 'function'; });
+check('Chart.js', function(){ return typeof Chart !== 'undefined'; });
+check('Date Adapter', function(){ return typeof Chart !== 'undefined' && Chart.registry && Chart.registry.scales && Chart.registry.scales.time; });
+
+// Try actually initializing a map
+try {
+  var map = L.map('map').setView([32.29, -90.18], 11);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+  lines.push('<span class="ok">Map init: OK</span>');
+} catch(e) {
+  lines.push('<span class="fail">Map init: FAILED - ' + e.message + '</span>');
+}
+results.innerHTML = lines.join('<br>');
+</script>
+</body>
+</html>
