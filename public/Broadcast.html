@@ -3,417 +3,714 @@
 <head>
 <meta charset="UTF-8">
 <title>WLBT Investigates — Tracking Jackson's Homicides</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script src="https://unpkg.com/leaflet-heat@0.2.0/dist/leaflet-heat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --red:#c8102e;--red2:#a50d24;
+  --dark:#0c0c14;--panel:#12121e;--panel2:#16162a;
+  --border:#1f1f35;--border2:#2a2a44;
+  --text:#eeeef8;--muted:#6a6a90;--soft:#9898b8;
+  --lower-h:50px;--bar-h:58px;
+  --font:'Helvetica Neue',Arial,sans-serif;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-family:var(--font);color:var(--text)}
 
-  :root {
-    --wlbt-red: #c8102e;
-    --wlbt-dark: #0a0a0f;
-    --ctrl-bg: #13131c;
-    --ctrl-border: #2a2a3c;
-    --btn-idle: #1e1e2e;
-    --btn-active: #c8102e;
-    --btn-action: #162040;
-    --lower-h: 44px;
-    --bar-h: 52px;
-  }
+/* ── SHELL ── */
+#shell{display:flex;flex-direction:column;width:100%;height:100%}
 
-  html {
-    width: 100%;
-    height: 100%;
-  }
+/* ── VIEWS (map | charts | city) ── */
+#view-map,#view-charts,#view-city{
+  flex:1 1 0;min-height:0;display:none;
+}
+#view-map.active,#view-charts.active,#view-city.active{display:flex}
 
-  body {
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    background: var(--wlbt-dark);
-    font-family: 'Helvetica Neue', Arial, sans-serif;
-    color: #fff;
-    user-select: none;
-  }
+/* MAP VIEW */
+#view-map{flex-direction:row}
+#map-wrap{flex:1 1 0;position:relative;min-width:0}
+#map{width:100%;height:100%}
 
-  #shell {
-    display: flex;
-    flex-direction: column;
-    width: 100%;
-    height: 100%;
-  }
+/* MAP STAT PANEL */
+#map-panel{
+  width:260px;flex-shrink:0;
+  background:var(--panel);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow-y:auto;
+}
+.mp-block{
+  padding:18px 16px;
+  border-bottom:1px solid var(--border);
+}
+.mp-label{
+  font-size:10px;font-weight:700;letter-spacing:.1em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:6px;
+}
+.mp-big{font-size:48px;font-weight:900;line-height:1;color:#fff}
+.mp-big span{font-size:16px;font-weight:400;color:var(--soft);margin-left:4px}
+.mp-row{
+  display:flex;justify-content:space-between;align-items:baseline;
+  padding:5px 0;border-bottom:1px solid var(--border);font-size:13px;
+}
+.mp-row:last-child{border:none}
+.mp-row .yr{color:var(--soft)}
+.mp-row .ct{font-weight:700;color:#fff}
+.mp-ytd{color:var(--red);font-size:10px;font-weight:700;margin-left:4px}
 
-  /* ── iframe area ── */
-  #iframe-wrap {
-    position: relative;
-    flex: 1 1 0;
-    overflow: hidden;
-    min-height: 0;
-  }
+/* Leaflet cluster red theme */
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(200,16,46,.25)}
+.marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:rgba(200,16,46,.9);color:#fff;font-weight:700}
 
-  /* The iframe is 1.5× taller than its container so the map is visible.
-     We shift it up to hide the dashboard's own header, then scale it down
-     to fill the wrapper using CSS transform — pure CSS, no JS needed. */
-  #dash-frame {
-    display: block;
-    border: none;
-    /* Full native size — we scale it visually */
-    width: 100%;
-    height: 100%;
-  }
+/* ── CHARTS VIEW ── */
+#view-charts{flex-direction:column;padding:24px 28px;gap:20px;overflow:hidden}
+.charts-row{display:flex;flex:1 1 0;gap:20px;min-height:0}
+.chart-card{
+  flex:1 1 0;min-width:0;
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:8px;
+  padding:16px 18px;
+  display:flex;flex-direction:column;
+}
+.chart-card h3{
+  font-size:11px;font-weight:700;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:12px;
+}
+.chart-card canvas{flex:1;min-height:0}
 
-  /* ── lower third ── */
-  #lower-third {
-    height: var(--lower-h);
-    background: var(--wlbt-red);
-    display: flex;
-    align-items: center;
-    padding: 0 16px;
-    gap: 14px;
-    flex-shrink: 0;
-    z-index: 10;
-  }
+/* ── CITY RANKING VIEW ── */
+#view-city{flex-direction:column;padding:32px 48px;overflow:hidden}
+#city-header{margin-bottom:24px}
+#city-header h2{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#city-header p{font-size:28px;font-weight:900;color:#fff;margin-top:4px}
+#city-bars{flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center;overflow:hidden}
+.city-row{display:flex;align-items:center;gap:14px}
+.city-name{width:200px;font-size:14px;font-weight:600;flex-shrink:0;text-align:right;color:var(--text)}
+.city-name.hl{color:var(--red);font-weight:900}
+.city-bar-wrap{flex:1;height:32px;background:var(--panel2);border-radius:4px;overflow:hidden;position:relative}
+.city-bar{height:100%;background:var(--border2);border-radius:4px;transition:width 1s ease;display:flex;align-items:center;padding:0 10px}
+.city-bar.hl{background:var(--red)}
+.city-rate{font-size:13px;font-weight:700;color:#fff}
+.city-rank{width:32px;font-size:11px;color:var(--muted);text-align:center;flex-shrink:0}
 
-  #logo-bug {
-    height: 32px;
-    width: auto;
-    background: #fff;
-    padding: 2px 7px;
-    border-radius: 2px;
-    object-fit: contain;
-    flex-shrink: 0;
-  }
+/* ── LOWER THIRD ── */
+#lower{
+  height:var(--lower-h);flex-shrink:0;
+  background:var(--red);
+  display:flex;align-items:center;
+  padding:0 16px;gap:14px;
+  position:relative;z-index:20;
+}
+#logo-wrap{
+  background:#fff;border-radius:3px;
+  padding:3px 8px;flex-shrink:0;
+  display:flex;align-items:center;height:36px;
+}
+#logo-wrap img{height:28px;width:auto;object-fit:contain}
+#logo-text{font-size:16px;font-weight:900;color:#000;letter-spacing:.04em}
+#brand{flex:1;font-size:13px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#vdots{display:flex;gap:5px;flex-shrink:0}
+.vd{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .2s}
+.vd.on{background:#fff}
+#clock{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.92);flex-shrink:0}
 
-  #logo-fallback {
-    font-size: 17px;
-    font-weight: 900;
-    letter-spacing: 0.06em;
-    color: #fff;
-    background: #000;
-    padding: 3px 9px;
-    border-radius: 2px;
-    flex-shrink: 0;
-  }
+/* ── CONTROL BAR ── */
+#ctrl{
+  height:var(--bar-h);flex-shrink:0;
+  background:var(--panel);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;
+  padding:0 14px;gap:7px;
+  transition:height .25s,opacity .25s,padding .25s;
+  overflow:hidden;
+}
+#ctrl.hidden{height:0;opacity:0;padding:0 14px;pointer-events:none}
+.btn{
+  height:38px;padding:0 16px;
+  border-radius:5px;font-size:12px;font-weight:700;
+  letter-spacing:.03em;
+  border:1px solid var(--border2);
+  background:var(--panel2);
+  color:var(--muted);
+  cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+  white-space:nowrap;flex-shrink:0;
+  transition:background .15s,color .15s,border-color .15s;
+  -webkit-tap-highlight-color:transparent;
+  touch-action:manipulation;
+}
+.btn:active{transform:scale(.97)}
+.btn.on{background:var(--red);color:#fff;border-color:transparent}
+.btn.act{background:#142040;color:rgba(255,255,255,.8);border-color:#243560}
+.btn.act:hover{background:#1a2f54}
+.btn.dim{background:transparent;color:rgba(255,255,255,.22);font-size:11px;border-color:var(--border)}
+.div{width:1px;height:28px;background:var(--border2);flex-shrink:0}
+.spc{flex:1}
 
-  #brand-title {
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
+#show-tab{
+  position:fixed;bottom:0;right:24px;
+  height:26px;padding:0 14px;
+  background:var(--red);color:#fff;
+  font-size:11px;font-weight:700;letter-spacing:.05em;
+  border-radius:5px 5px 0 0;
+  display:none;align-items:center;
+  cursor:pointer;z-index:200;
+}
+#show-tab.vis{display:flex}
 
-  #view-dots { display: flex; gap: 5px; flex-shrink: 0; }
-  .vdot {
-    width: 8px; height: 8px; border-radius: 50%;
-    background: rgba(255,255,255,0.22);
-    transition: background 0.2s;
-  }
-  .vdot.on { background: #fff; }
-
-  #refresh-hint {
-    font-size: 11px;
-    color: rgba(255,255,255,0.6);
-    flex-shrink: 0;
-    display: flex; align-items: center; gap: 5px;
-  }
-  #rdot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: rgba(255,255,255,0.35);
-    transition: background 0.3s;
-  }
-  #rdot.pulse { background: #fff; animation: blink .7s ease-in-out; }
-  @keyframes blink {
-    0%,100% { opacity:1; transform:scale(1); }
-    50%      { opacity:.3; transform:scale(1.5); }
-  }
-
-  #live-clock {
-    font-size: 14px;
-    font-variant-numeric: tabular-nums;
-    font-weight: 500;
-    color: rgba(255,255,255,0.9);
-    flex-shrink: 0;
-  }
-
-  /* ── control bar ── */
-  #ctrl-bar {
-    height: var(--bar-h);
-    background: var(--ctrl-bg);
-    border-top: 1px solid var(--ctrl-border);
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    gap: 7px;
-    flex-shrink: 0;
-    transition: height .25s ease, opacity .25s ease, padding .25s ease;
-    overflow: hidden;
-  }
-  #ctrl-bar.hidden { height: 0; opacity: 0; padding: 0 12px; pointer-events: none; }
-
-  .btn {
-    height: 36px;
-    padding: 0 14px;
-    border-radius: 5px;
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    border: 1px solid var(--ctrl-border);
-    background: var(--btn-idle);
-    color: rgba(255,255,255,.5);
-    cursor: pointer;
-    display: flex; align-items: center; gap: 6px;
-    white-space: nowrap;
-    transition: background .15s, color .15s, border-color .15s;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    flex-shrink: 0;
-  }
-  .btn:active { transform: scale(.97); }
-  .btn.on   { background: var(--btn-active); color: #fff; border-color: transparent; }
-  .btn.act  { background: var(--btn-action); color: rgba(255,255,255,.85); border-color: #264070; }
-  .btn.act:hover { background: #1e3560; }
-  .btn.hide { background: transparent; color: rgba(255,255,255,.28); font-size: 11px; }
-
-  .divider { width: 1px; height: 28px; background: var(--ctrl-border); flex-shrink: 0; }
-  .spacer  { flex: 1; }
-
-  /* show-controls tab */
-  #show-tab {
-    position: fixed; bottom: 0; right: 24px;
-    height: 26px; padding: 0 14px;
-    background: var(--wlbt-red); color: #fff;
-    font-size: 11px; font-weight: 700; letter-spacing: .04em;
-    border-radius: 5px 5px 0 0;
-    display: none; align-items: center;
-    cursor: pointer; z-index: 200;
-    -webkit-tap-highlight-color: transparent;
-  }
-  #show-tab.vis { display: flex; }
-
-  /* loading overlay */
-  #loader {
-    position: absolute; inset: 0;
-    background: var(--wlbt-dark);
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    gap: 18px; z-index: 50;
-    transition: opacity .6s ease;
-  }
-  #loader.gone { opacity: 0; pointer-events: none; }
-  .spin {
-    width: 42px; height: 42px;
-    border: 3px solid rgba(255,255,255,.1);
-    border-top-color: var(--wlbt-red);
-    border-radius: 50%;
-    animation: rot .8s linear infinite;
-  }
-  @keyframes rot { to { transform: rotate(360deg); } }
-  #loader p { font-size: 13px; color: rgba(255,255,255,.4); letter-spacing: .07em; text-transform: uppercase; }
+/* ── LOADING ── */
+#loader{
+  position:fixed;inset:0;
+  background:var(--dark);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;z-index:999;
+  transition:opacity .6s;
+}
+#loader.gone{opacity:0;pointer-events:none}
+.spin{width:44px;height:44px;border:3px solid rgba(255,255,255,.08);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+#loader p{font-size:12px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+#loader-status{font-size:11px;color:var(--muted);margin-top:-10px}
 </style>
 </head>
 <body>
 
+<div id="loader">
+  <div class="spin"></div>
+  <p>Loading Dashboard</p>
+  <span id="loader-status">Fetching data…</span>
+</div>
+
 <div id="shell">
 
-  <!-- iframe -->
-  <div id="iframe-wrap">
-    <div id="loader"><div class="spin"></div><p>Loading Dashboard…</p></div>
-    <iframe id="frm"
-      src="https://homicide-dashboard.netlify.app/"
-      title="WLBT Homicide Dashboard"
-      allowfullscreen
-      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
-    ></iframe>
-  </div>
-
-  <!-- lower third -->
-  <div id="lower-third">
-    <img id="logo-bug" src="" alt="WLBT 3 Investigates"
-         onerror="this.style.display='none'">
-    <span id="logo-fallback">WLBT3</span>
-    <span id="brand-title">WLBT Investigates &nbsp;·&nbsp; Tracking Jackson's Homicides</span>
-    <div id="view-dots">
-      <div class="vdot on" id="vd0"></div>
-      <div class="vdot" id="vd1"></div>
-      <div class="vdot" id="vd2"></div>
-      <div class="vdot" id="vd3"></div>
-      <div class="vdot" id="vd4"></div>
+  <!-- MAP VIEW -->
+  <div id="view-map" class="active">
+    <div id="map-wrap"><div id="map"></div></div>
+    <div id="map-panel">
+      <div class="mp-block">
+        <div class="mp-label">2026 Homicides (YTD)</div>
+        <div class="mp-big" id="mp-ytd-count">—</div>
+      </div>
+      <div class="mp-block">
+        <div class="mp-label">By Year</div>
+        <div id="mp-year-rows"></div>
+      </div>
+      <div class="mp-block">
+        <div class="mp-label">By Agency</div>
+        <div id="mp-agency-rows"></div>
+      </div>
     </div>
-    <div id="refresh-hint"><div id="rdot"></div><span id="rlabel">Auto-refresh 5:00</span></div>
-    <span id="live-clock">—</span>
   </div>
 
-  <!-- control bar -->
-  <div id="ctrl-bar">
-    <button class="btn on"  data-v="0" onclick="setView(0)">Map View</button>
-    <button class="btn"     data-v="1" onclick="setView(1)">Heatmap</button>
-    <button class="btn"     data-v="2" onclick="setView(2)">Charts</button>
-    <button class="btn"     data-v="3" onclick="setView(3)">City Ranking</button>
-    <button class="btn"     data-v="4" onclick="setView(4)">YTD Count</button>
+  <!-- CHARTS VIEW -->
+  <div id="view-charts">
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Annual Homicide Trend</h3>
+        <canvas id="ch-annual"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Monthly Pace — Current Year</h3>
+        <canvas id="ch-monthly"></canvas>
+      </div>
+    </div>
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Victim Age Distribution</h3>
+        <canvas id="ch-age"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Circumstance</h3>
+        <canvas id="ch-circ"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Clearance Rate</h3>
+        <canvas id="ch-clear"></canvas>
+      </div>
+    </div>
+  </div>
 
-    <div class="divider"></div>
+  <!-- CITY RANKING VIEW -->
+  <div id="view-city">
+    <div id="city-header">
+      <h2>Homicide Rate Comparison — Major U.S. Cities</h2>
+      <p id="city-subtitle">Per 100,000 residents · Current year</p>
+    </div>
+    <div id="city-bars"></div>
+  </div>
+
+  <!-- LOWER THIRD -->
+  <div id="lower">
+    <div id="logo-wrap">
+      <img id="logo-img" src="" alt="WLBT 3 Investigates" onerror="this.style.display='none';document.getElementById('logo-text').style.display='block'">
+      <span id="logo-text" style="display:none">WLBT3</span>
+    </div>
+    <span id="brand">WLBT Investigates &nbsp;·&nbsp; Tracking Jackson's Homicides</span>
+    <div id="vdots">
+      <div class="vd on" id="vd0"></div>
+      <div class="vd" id="vd1"></div>
+      <div class="vd" id="vd2"></div>
+    </div>
+    <span id="clock">—</span>
+  </div>
+
+  <!-- CONTROL BAR -->
+  <div id="ctrl">
+    <button class="btn on" onclick="setView('map')">Map</button>
+    <button class="btn" onclick="setView('charts')">Charts</button>
+    <button class="btn" onclick="setView('city')">City Ranking</button>
+    <div class="div"></div>
+    <button class="btn act" onclick="toggleLayer()">Toggle Heatmap</button>
     <button class="btn act" onclick="goFS()">⛶ Fullscreen</button>
     <button class="btn act" onclick="doRefresh()">↻ Refresh</button>
-
-    <div class="spacer"></div>
-    <button class="btn hide" onclick="hideCtrl()">Hide Controls ↓</button>
+    <div class="spc"></div>
+    <button class="btn dim" onclick="hideCtrl()">Hide Controls ↓</button>
   </div>
 </div>
 
 <div id="show-tab" onclick="showCtrl()">▲ Controls</div>
 
 <script>
-// ── URL fragments for each view preset ──────────────────────────────────────
-// We reload the iframe to a specific hash. The dashboard's own JS handles
-// scrolling to anchors, so no cross-origin DOM access is needed at all.
-const BASE = 'https://homicide-dashboard.netlify.app/';
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const HOMICIDE_URL   = 'https://homicide-dashboard.netlify.app/data/homicide.json';
+const CITY_URL       = `https://sheets.googleapis.com/v4/spreadsheets/1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk/values/Sheet1?key=AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI`;
+const WARD_URL       = 'https://dl.dropbox.com/scl/fi/g8y0ecap7g4tug8t2b8ww/CombinedWards2024.geojson?rlkey=t3i2oicns2f5t7rb5fm70ukyk&st=wpaxqdg0&raw=1';
+const CITY_LIMITS_URL= 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1';
+const CCID_URL       = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1';
+const JACKSON_POP    = 143709;
+const MAP_CENTER     = [32.2988, -90.1848];
+const MAP_ZOOM       = 11;
+const CY             = new Date().getFullYear();
 
-const VIEWS = [
-  { hash: '',                label: 'Map View'     },
-  { hash: '#map',            label: 'Heatmap'      },
-  { hash: '#charts-section', label: 'Charts'       },
-  { hash: '#city-compare',   label: 'City Ranking' },
-  { hash: '#count-banner',   label: 'YTD Count'    },
+// Historical data for annual trend chart
+const HISTORICAL = [
+  {year:1976,total:40},{year:1977,total:47},{year:1978,total:33},{year:1979,total:55},{year:1980,total:42},
+  {year:1981,total:49},{year:1982,total:57},{year:1983,total:42},{year:1984,total:34},{year:1985,total:43},
+  {year:1986,total:35},{year:1987,total:54},{year:1988,total:51},{year:1989,total:49},{year:1990,total:47},
+  {year:1991,total:80},{year:1992,total:64},{year:1993,total:84},{year:1994,total:91},{year:1995,total:92},
+  {year:1996,total:61},{year:1997,total:64},{year:1998,total:60},{year:1999,total:45},{year:2000,total:39},
+  {year:2001,total:50},{year:2002,total:49},{year:2003,total:45},{year:2004,total:53},{year:2005,total:38},
+  {year:2006,total:40},{year:2007,total:46},{year:2008,total:63},{year:2009,total:37},{year:2010,total:41},
+  {year:2011,total:52},{year:2012,total:63},{year:2013,total:50},{year:2014,total:61},{year:2015,total:54}
 ];
 
-const frm = document.getElementById('frm');
-let curView = 0;
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let allData = [], cityData = [];
+let map, markersLayer, heatLayer;
+let showHeat = false;
+let curView = 'map';
+let charts = {};
 
-function setView(idx) {
-  curView = idx;
-
-  // Update buttons
-  document.querySelectorAll('.btn[data-v]').forEach((b, i) =>
-    b.classList.toggle('on', i === idx));
-
-  // Update dots
-  for (let i = 0; i < 5; i++)
-    document.getElementById('vd' + i).classList.toggle('on', i === idx);
-
-  // Navigate iframe to hash — works cross-origin via URL, no DOM access needed
-  const url = BASE + VIEWS[idx].hash;
-  if (frm.src !== url) frm.src = url;
-}
-
-// ── Iframe load ──────────────────────────────────────────────────────────────
-frm.addEventListener('load', () => {
-  document.getElementById('loader').classList.add('gone');
-
-  // Attempt same-origin CSS injection to hide dashboard chrome for broadcast
-  try {
-    const doc = frm.contentDocument;
-    if (!doc) return;
-    const s = doc.createElement('style');
-    s.id = 'broadcast-overrides';
-    if (doc.getElementById('broadcast-overrides')) return;
-    s.textContent = `
-      /* Suppress interactive sidebar so map fills width */
-      .left-column { display: none !important; }
-      .main-content-area { grid-template-columns: 0 1fr !important; }
-      /* Hide footer */
-      footer, .footer { display: none !important; }
-      /* Ensure map div fills */
-      #map { width: 100% !important; }
-    `;
-    doc.head.appendChild(s);
-
-    // Trigger Leaflet map resize so it fills the new width
-    setTimeout(() => {
-      try {
-        const win = frm.contentWindow;
-        if (win.map && win.map.invalidateSize) win.map.invalidateSize();
-      } catch(e) {}
-    }, 300);
-  } catch(e) {
-    // Cross-origin — silent fallback; iframe still shows full dashboard
-  }
-});
-
-// ── Clock ────────────────────────────────────────────────────────────────────
-function tick() {
-  document.getElementById('live-clock').textContent =
-    new Date().toLocaleTimeString('en-US');
-}
-tick(); setInterval(tick, 1000);
-
-// ── Auto-refresh countdown ───────────────────────────────────────────────────
-let countdown = 300;
-const rlabel = document.getElementById('rlabel');
-const rdot   = document.getElementById('rdot');
-
-function doRefresh() {
-  countdown = 300;
-  rdot.classList.add('pulse');
-  setTimeout(() => rdot.classList.remove('pulse'), 800);
-  frm.src = BASE + VIEWS[curView].hash;
-}
-
+// ── CLOCK ─────────────────────────────────────────────────────────────────────
 setInterval(() => {
-  countdown--;
-  const m = Math.floor(countdown / 60);
-  const s = String(countdown % 60).padStart(2, '0');
-  rlabel.textContent = 'Auto-refresh ' + m + ':' + s;
-  if (countdown <= 0) doRefresh();
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-US');
 }, 1000);
 
-// ── Fullscreen ───────────────────────────────────────────────────────────────
-// Request fullscreen on the whole shell div, not the iframe —
-// this stretches the entire layout to screen edges with no black bars.
-function goFS() {
-  const el = document.getElementById('shell');
-  const fn = el.requestFullscreen || el.webkitRequestFullscreen
-           || el.mozRequestFullScreen || el.msRequestFullscreen;
-  if (fn) fn.call(el);
-}
+// ── DATA LOADING ──────────────────────────────────────────────────────────────
+function setStatus(t){ document.getElementById('loader-status').textContent = t; }
 
-// When fullscreen is active, make the shell fill it properly
-document.addEventListener('fullscreenchange', onFSChange);
-document.addEventListener('webkitfullscreenchange', onFSChange);
-function onFSChange() {
-  const isFS = !!(document.fullscreenElement || document.webkitFullscreenElement);
-  const shell = document.getElementById('shell');
-  if (isFS) {
-    shell.style.width  = '100vw';
-    shell.style.height = '100vh';
-    // Notify Leaflet of size change
-    try { frm.contentWindow.map.invalidateSize(); } catch(e) {}
-  } else {
-    shell.style.width  = '';
-    shell.style.height = '';
+async function loadAll() {
+  try {
+    setStatus('Fetching homicide records…');
+    const hResp = await fetch(HOMICIDE_URL);
+    const raw   = await hResp.json();
+    allData = processHomicide(raw);
+
+    setStatus('Fetching city comparison data…');
+    try {
+      const cResp = await fetch(CITY_URL);
+      const cRaw  = await cResp.json();
+      cityData = processCityData(cRaw);
+    } catch(e) { console.warn('City data unavailable', e); }
+
+    setStatus('Initializing map…');
+    initMap();
+
+    setStatus('Building charts…');
+    buildAllCharts();
+
+    setStatus('Loading boundary layers…');
+    loadBoundaries();
+
+    // Done
+    document.getElementById('loader').classList.add('gone');
+    renderMapPanel();
+    renderCityBars();
+  } catch(e) {
+    setStatus('Error: ' + e.message);
+    console.error(e);
   }
 }
 
-// ── Hide / show controls ─────────────────────────────────────────────────────
-const ctrlBar = document.getElementById('ctrl-bar');
-const showTab = document.getElementById('show-tab');
+// ── DATA PROCESSING ───────────────────────────────────────────────────────────
+function processHomicide(raw) {
+  if (!raw || !raw.headers || !raw.entries) return [];
+  const h = raw.headers.map(x => String(x).trim().toLowerCase());
+  const gi = names => names.map(n => h.indexOf(n.toLowerCase())).find(i => i !== -1) ?? -1;
+  const idx = {
+    victim:     gi(['Victim']),
+    age:        gi(['Age']),
+    race:       gi(['Race']),
+    circ:       gi(['Circumstance']),
+    date:       gi(['Date']),
+    address:    gi(['Address','Location']),
+    agency:     gi(['Investigating Agency','Agency']),
+    lat:        gi(['Latitude','Lat']),
+    lon:        gi(['Longitude','Lon','Long']),
+    status:     gi(['Case Status','Status']),
+    factor:     gi(['Contributing Factor','Factor'])
+  };
+  return raw.entries.map(e => {
+    const dateStr = e[idx.date] ? String(e[idx.date]).trim() : '';
+    let dateObj;
+    if (dateStr.includes('-')) dateObj = new Date(dateStr+'T00:00:00');
+    else if (dateStr.includes('/')) {
+      const p = dateStr.split('/');
+      if (p.length === 3) {
+        let yr = parseInt(p[2]); if (yr < 100) yr += 2000;
+        dateObj = new Date(yr, parseInt(p[0])-1, parseInt(p[1]));
+      }
+    }
+    if (!dateObj || isNaN(dateObj)) return null;
+    const lat = parseFloat(e[idx.lat]), lon = parseFloat(e[idx.lon]);
+    return {
+      Victim:   e[idx.victim] || 'Unknown',
+      Age:      isNaN(parseInt(e[idx.age])) ? null : parseInt(e[idx.age]),
+      Race:     e[idx.race] || 'Unknown',
+      Circ:     e[idx.circ] || 'Unknown',
+      Date:     dateObj.toISOString().split('T')[0],
+      Month:    dateObj.getMonth(),
+      Year:     dateObj.getFullYear(),
+      Address:  e[idx.address] || '',
+      Agency:   e[idx.agency] || 'Unknown',
+      Lat:      isNaN(lat) ? null : lat,
+      Lon:      isNaN(lon) ? null : lon,
+      Status:   e[idx.status] || 'Unknown',
+    };
+  }).filter(Boolean);
+}
 
-function hideCtrl() {
-  ctrlBar.classList.add('hidden');
-  showTab.classList.add('vis');
+function processCityData(raw) {
+  if (!raw || !raw.values) return [];
+  const [hdr, ...rows] = raw.values;
+  const h = hdr.map(x => x.trim().toLowerCase());
+  const ci = h.indexOf('city'), hi = h.indexOf('homicides'), pi = h.indexOf('population');
+  return rows.map(r => ({
+    city:       r[ci]?.trim() || '',
+    homicides:  parseInt(String(r[hi]).replace(/,/g,'')),
+    population: parseInt(String(r[pi]).replace(/,/g,'')),
+  })).filter(d => d.city && d.homicides >= 0 && d.population > 0)
+     .map(d => ({ ...d, rate: (d.homicides / d.population * 100000) }))
+     .sort((a,b) => b.rate - a.rate)
+     .slice(0, 15);
 }
-function showCtrl() {
-  ctrlBar.classList.remove('hidden');
-  showTab.classList.remove('vis');
+
+// ── MAP ───────────────────────────────────────────────────────────────────────
+function initMap() {
+  map = L.map('map', { zoomControl:false, minZoom:10 }).setView(MAP_CENTER, MAP_ZOOM);
+  L.control.zoom({ position:'bottomright' }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap'
+  }).addTo(map);
+
+  map.createPane('markersPane');
+  map.getPane('markersPane').style.zIndex = 650;
+
+  markersLayer = L.markerClusterGroup({
+    maxClusterRadius: 40,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    clusterPane: 'markersPane'
+  });
+
+  heatLayer = L.heatLayer([], { radius:25, blur:18, maxZoom:13 });
+
+  const withCoords = allData.filter(d => d.Lat && d.Lon);
+  const heatPts = [];
+
+  withCoords.forEach(d => {
+    heatPts.push([d.Lat, d.Lon]);
+    const marker = L.circleMarker([d.Lat, d.Lon], {
+      radius:5, fillColor:'#c8102e', color:'#8b0000',
+      weight:1, opacity:1, fillOpacity:.85,
+      pane:'markersPane'
+    });
+    marker.bindTooltip(`<strong>${d.Victim}</strong><br>${d.Date}<br>${d.Address}`, { sticky:true });
+    markersLayer.addLayer(marker);
+  });
+
+  heatLayer.setLatLngs(heatPts);
+  markersLayer.addTo(map);
+
+  // Fit to Jackson data extent
+  if (withCoords.length > 0) {
+    const bounds = L.featureGroup(withCoords.map(d => L.circleMarker([d.Lat,d.Lon]))).getBounds();
+    map.fitBounds(bounds.pad(.05));
+  }
 }
+
+function loadBoundaries() {
+  // City limits
+  fetch(CITY_LIMITS_URL).then(r=>r.json()).then(g => {
+    L.geoJSON(g, { style:{ color:'#000', weight:2, opacity:.7, fillOpacity:0 }, interactive:false }).addTo(map);
+  }).catch(()=>{});
+
+  // CCID
+  fetch(CCID_URL).then(r=>r.json()).then(g => {
+    L.geoJSON(g, { style:{ color:'#E65100', weight:2.5, opacity:.8, fillOpacity:.1 }, interactive:false }).addTo(map);
+  }).catch(()=>{});
+}
+
+function toggleLayer() {
+  showHeat = !showHeat;
+  if (showHeat) {
+    if (map.hasLayer(markersLayer)) map.removeLayer(markersLayer);
+    heatLayer.addTo(map);
+  } else {
+    if (map.hasLayer(heatLayer)) map.removeLayer(heatLayer);
+    markersLayer.addTo(map);
+  }
+}
+
+// ── MAP PANEL ─────────────────────────────────────────────────────────────────
+function renderMapPanel() {
+  const ytd  = allData.filter(d => d.Year === CY).length;
+  document.getElementById('mp-ytd-count').textContent = ytd;
+
+  // By year (recent 5)
+  const bYear = {};
+  allData.forEach(d => { bYear[d.Year] = (bYear[d.Year]||0)+1; });
+  const years = Object.keys(bYear).map(Number).sort((a,b)=>b-a).slice(0,6);
+  document.getElementById('mp-year-rows').innerHTML = years.map(y =>
+    `<div class="mp-row"><span class="yr">${y}${y===CY?'<span class="mp-ytd">YTD</span>':''}</span><span class="ct">${bYear[y]}</span></div>`
+  ).join('');
+
+  // By agency
+  const bAg = {};
+  allData.filter(d=>d.Year===CY).forEach(d => { bAg[d.Agency]=(bAg[d.Agency]||0)+1; });
+  document.getElementById('mp-agency-rows').innerHTML =
+    Object.entries(bAg).sort((a,b)=>b[1]-a[1]).map(([ag,ct]) =>
+      `<div class="mp-row"><span class="yr">${ag}</span><span class="ct">${ct}</span></div>`
+    ).join('');
+}
+
+// ── CHARTS ────────────────────────────────────────────────────────────────────
+const CHART_DEFAULTS = {
+  responsive:true, maintainAspectRatio:false,
+  plugins:{ legend:{ display:false }, tooltip:{ backgroundColor:'#1e1e35', titleColor:'#fff', bodyColor:'#aaa' } },
+  scales:{
+    x:{ grid:{ color:'rgba(255,255,255,.06)' }, ticks:{ color:'#6a6a90', font:{ size:10 } } },
+    y:{ grid:{ color:'rgba(255,255,255,.06)' }, ticks:{ color:'#6a6a90', font:{ size:10 } } }
+  }
+};
+
+function buildAllCharts() {
+  buildAnnual();
+  buildMonthly();
+  buildAge();
+  buildCirc();
+  buildClearance();
+}
+
+function buildAnnual() {
+  const bYear = {};
+  allData.forEach(d => { bYear[d.Year]=(bYear[d.Year]||0)+1; });
+  // merge historical + modern
+  const modern = Object.keys(bYear).map(Number).sort((a,b)=>a-b);
+  const allYears = [...HISTORICAL.map(h=>h.year), ...modern.filter(y=>y>=2016)];
+  const allTotals = [...HISTORICAL.map(h=>h.total), ...modern.filter(y=>y>=2016).map(y=>bYear[y])];
+
+  charts.annual = new Chart(document.getElementById('ch-annual'), {
+    type:'bar',
+    data:{
+      labels: allYears.map(String),
+      datasets:[{
+        data: allTotals,
+        backgroundColor: allYears.map(y =>
+          y === CY ? 'rgba(200,16,46,.9)' : y >= 2016 ? 'rgba(200,16,46,.5)' : 'rgba(100,100,160,.4)'
+        ),
+        borderRadius:2,
+      }]
+    },
+    options:{ ...CHART_DEFAULTS }
+  });
+}
+
+function buildMonthly() {
+  const months = Array(12).fill(0);
+  const prevMonths = Array(12).fill(0);
+  allData.filter(d=>d.Year===CY).forEach(d=>months[d.Month]++);
+  allData.filter(d=>d.Year===CY-1).forEach(d=>prevMonths[d.Month]++);
+  const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  charts.monthly = new Chart(document.getElementById('ch-monthly'), {
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        { label:String(CY),   data:months,     borderColor:'#c8102e', backgroundColor:'rgba(200,16,46,.12)', fill:true, tension:.35, pointRadius:3 },
+        { label:String(CY-1), data:prevMonths, borderColor:'rgba(150,150,200,.4)', fill:false, tension:.35, pointRadius:2, borderDash:[4,4] }
+      ]
+    },
+    options:{ ...CHART_DEFAULTS, plugins:{ ...CHART_DEFAULTS.plugins, legend:{ display:true, labels:{ color:'#6a6a90', boxWidth:12, font:{size:10} } } } }
+  });
+}
+
+function buildAge() {
+  const buckets = { 'Under 18':0, '18–24':0, '25–34':0, '35–44':0, '45–54':0, '55+':0, 'Unknown':0 };
+  allData.filter(d=>d.Year===CY).forEach(d => {
+    const a = d.Age;
+    if (a===null) buckets['Unknown']++;
+    else if (a<18) buckets['Under 18']++;
+    else if (a<=24) buckets['18–24']++;
+    else if (a<=34) buckets['25–34']++;
+    else if (a<=44) buckets['35–44']++;
+    else if (a<=54) buckets['45–54']++;
+    else buckets['55+']++;
+  });
+  charts.age = new Chart(document.getElementById('ch-age'), {
+    type:'bar',
+    data:{
+      labels:Object.keys(buckets),
+      datasets:[{ data:Object.values(buckets), backgroundColor:'rgba(200,16,46,.7)', borderRadius:3 }]
+    },
+    options:{ ...CHART_DEFAULTS, indexAxis:'y' }
+  });
+}
+
+function buildCirc() {
+  const counts = {};
+  allData.filter(d=>d.Year===CY).forEach(d => { counts[d.Circ]=(counts[d.Circ]||0)+1; });
+  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const COLORS = ['#c8102e','#e03050','#a50d24','#8b0014','#ff6080','#cc2040','#991530','#771020'];
+  charts.circ = new Chart(document.getElementById('ch-circ'), {
+    type:'doughnut',
+    data:{
+      labels:sorted.map(e=>e[0]),
+      datasets:[{ data:sorted.map(e=>e[1]), backgroundColor:COLORS, borderColor:'#12121e', borderWidth:2 }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ display:true, position:'right', labels:{ color:'#9898b8', font:{size:10}, boxWidth:12 } },
+        tooltip:{ backgroundColor:'#1e1e35', titleColor:'#fff', bodyColor:'#aaa' }
+      }
+    }
+  });
+}
+
+function buildClearance() {
+  const byYear = {};
+  allData.filter(d=>d.Status).forEach(d => {
+    if (!byYear[d.Year]) byYear[d.Year]={solved:0,total:0};
+    byYear[d.Year].total++;
+    if (d.Status==='Solved') byYear[d.Year].solved++;
+  });
+  const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b).slice(-8);
+  const rates = years.map(y => byYear[y].total ? Math.round(byYear[y].solved/byYear[y].total*100) : 0);
+
+  charts.clear = new Chart(document.getElementById('ch-clear'), {
+    type:'bar',
+    data:{
+      labels:years.map(String),
+      datasets:[{ data:rates, backgroundColor:rates.map(r=>r>=50?'rgba(92,184,92,.7)':'rgba(200,16,46,.6)'), borderRadius:3 }]
+    },
+    options:{
+      ...CHART_DEFAULTS,
+      scales:{
+        ...CHART_DEFAULTS.scales,
+        y:{ ...CHART_DEFAULTS.scales.y, max:100, ticks:{ ...CHART_DEFAULTS.scales.y.ticks, callback:v=>v+'%' } }
+      }
+    }
+  });
+}
+
+// ── CITY RANKING ──────────────────────────────────────────────────────────────
+function renderCityBars() {
+  if (!cityData.length) {
+    document.getElementById('city-bars').innerHTML =
+      '<p style="color:var(--muted);font-size:14px">City comparison data unavailable.</p>';
+    return;
+  }
+  const top = cityData.slice(0,12);
+  const maxRate = top[0].rate;
+  document.getElementById('city-bars').innerHTML = top.map((c, i) => {
+    const isJackson = c.city.toLowerCase().includes('jackson');
+    const pct = (c.rate / maxRate * 100).toFixed(1);
+    return `<div class="city-row">
+      <span class="city-rank">#${i+1}</span>
+      <span class="city-name${isJackson?' hl':''}">${c.city}</span>
+      <div class="city-bar-wrap">
+        <div class="city-bar${isJackson?' hl':''}" style="width:${pct}%">
+          <span class="city-rate">${c.rate.toFixed(1)}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── VIEW SWITCHING ────────────────────────────────────────────────────────────
+const VIEWS = ['map','charts','city'];
+function setView(v) {
+  curView = v;
+  VIEWS.forEach((id,i) => {
+    document.getElementById('view-'+id).classList.toggle('active', id===v);
+    document.getElementById('vd'+i).classList.toggle('on', id===v);
+  });
+  document.querySelectorAll('#ctrl .btn:not(.act):not(.dim)').forEach((b,i) => {
+    b.classList.toggle('on', VIEWS[i]===v);
+  });
+  // Invalidate map size when switching back to map
+  if (v==='map' && map) setTimeout(()=>map.invalidateSize(),50);
+  // Resize charts
+  if (v==='charts') Object.values(charts).forEach(c=>c.resize());
+}
+
+// ── CONTROLS ─────────────────────────────────────────────────────────────────
+function goFS() {
+  const el = document.getElementById('shell');
+  (el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen).call(el);
+}
+document.addEventListener('fullscreenchange', ()=>{
+  if (map) setTimeout(()=>map.invalidateSize(),100);
+  Object.values(charts).forEach(c=>c.resize());
+});
+
+function doRefresh() { location.reload(); }
+
+const ctrl = document.getElementById('ctrl');
+const showTab = document.getElementById('show-tab');
+function hideCtrl(){ ctrl.classList.add('hidden'); showTab.classList.add('vis'); }
+function showCtrl(){ ctrl.classList.remove('hidden'); showTab.classList.remove('vis'); }
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if (e.key==='1') setView('map');
+  if (e.key==='2') setView('charts');
+  if (e.key==='3') setView('city');
+  if (e.key==='h'||e.key==='H') ctrl.classList.contains('hidden')?showCtrl():hideCtrl();
+  if (e.key==='f'||e.key==='F') goFS();
+  if (e.key==='r'||e.key==='R') doRefresh();
+  if (e.key==='t'||e.key==='T') toggleLayer();
+});
 
 // Double-tap lower third to show controls
-let lastTap = 0;
-document.getElementById('lower-third').addEventListener('touchend', () => {
-  const now = Date.now();
-  if (now - lastTap < 350) showCtrl();
-  lastTap = now;
+let lastTap=0;
+document.getElementById('lower').addEventListener('touchend',()=>{
+  const now=Date.now();
+  if(now-lastTap<350) showCtrl();
+  lastTap=now;
 });
 
-// ── Keyboard shortcuts ───────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key >= '1' && e.key <= '5') setView(+e.key - 1);
-  if (e.key === 'f' || e.key === 'F') goFS();
-  if (e.key === 'r' || e.key === 'R') doRefresh();
-  if (e.key === 'h' || e.key === 'H')
-    ctrlBar.classList.contains('hidden') ? showCtrl() : hideCtrl();
-});
+// ── BOOT ─────────────────────────────────────────────────────────────────────
+loadAll();
 </script>
-
 </body>
 </html>
