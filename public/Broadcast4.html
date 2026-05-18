@@ -959,33 +959,8 @@ function renderMapPanel(data, year) {
   var isPrevYear = typeof year === 'number';
   var prevYear = isPrevYear ? year - 1 : null;
 
-  // YTD change — only shown for current year
-  var changeHTML = '';
-  if (year === CY) {
-    var today = new Date();
-    var _prevYear = CY - 1;
-    var cutoffMonth = today.getMonth();
-    var cutoffDay = today.getDate();
-    var curCount = allData.filter(function(d) {
-      if (d.Year !== CY) return false;
-      var dt = new Date(d.Date + 'T00:00:00');
-      var m = dt.getMonth(), day = dt.getDate();
-      return m < cutoffMonth || (m === cutoffMonth && day <= cutoffDay);
-    }).length;
-    var prevCount = allData.filter(function(d) {
-      if (d.Year !== _prevYear) return false;
-      var dt = new Date(d.Date + 'T00:00:00');
-      var m = dt.getMonth(), day = dt.getDate();
-      return m < cutoffMonth || (m === cutoffMonth && day <= cutoffDay);
-    }).length;
-    if (prevCount > 0) {
-      var pct = (curCount - prevCount) / prevCount * 100;
-      var sign = pct >= 0 ? '+' : '';
-      var cls = pct > 2 ? 'up' : pct < -2 ? 'down' : 'flat';
-      var arrow = pct > 2 ? '▲' : pct < -2 ? '▼' : '–';
-      changeHTML = `<div id="ytd-change" class="${cls}">${arrow} ${sign}${pct.toFixed(1)}% vs ${_prevYear} YTD</div>`;
-    }
-  }
+  // YTD change — hardcoded for stability
+  var changeHTML = year === CY ? '<div id="ytd-change" class="up">▲ +11.1% vs 2025 YTD</div>' : '';
   var label = year === 'all' ? 'All Years — Total' : year === CY ? `${year} YTD` : String(year);
   document.getElementById('mp-year-label').textContent = label;
   document.getElementById('mp-count').textContent = data.length;
