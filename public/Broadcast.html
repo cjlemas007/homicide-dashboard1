@@ -712,6 +712,7 @@ function getChartData(id) {
     };
   }
   if (id==='clear') {
+    const by={};
     allData.filter(d=>d.Status).forEach(d=>{
       if(!by[d.Year])by[d.Year]={s:0,t:0};
       by[d.Year].t++;if(d.Status==='Solved')by[d.Year].s++;
