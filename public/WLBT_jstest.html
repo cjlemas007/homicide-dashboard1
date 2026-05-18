@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JS Test</title>
+<style>
+body { font-family: sans-serif; background: #f0f0f0; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+#box { background: white; border-radius: 12px; padding: 40px 60px; text-align: center; font-size: 28px; font-weight: bold; }
+#status { margin-top: 20px; font-size: 20px; color: #666; }
+#result { margin-top: 20px; font-size: 18px; }
+</style>
+</head>
+<body>
+<div id="box">
+  <div>WLBT JS Test</div>
+  <div id="status">Waiting for JS...</div>
+  <div id="result"></div>
+</div>
+<script>
+  document.getElementById('status').textContent = 'JS is running!';
+  document.getElementById('status').style.color = 'green';
+
+  // Test fetch
+  document.getElementById('result').textContent = 'Testing fetch...';
+  fetch('https://homicide-dashboard.netlify.app/data/homicide.json')
+    .then(function(r) {
+      document.getElementById('result').textContent = 'Fetch OK! Status: ' + r.status;
+      document.getElementById('result').style.color = 'green';
+      return r.json();
+    })
+    .then(function(d) {
+      document.getElementById('result').textContent = 'Data OK! Entries: ' + d.entries.length;
+    })
+    .catch(function(e) {
+      document.getElementById('result').textContent = 'Fetch FAILED: ' + e.message;
+      document.getElementById('result').style.color = 'red';
+    });
+</script>
+</body>
+</html>
