@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1920">
+<title>WLBT Investigates — Tracking Jackson's Homicides</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --wlbt-red: #c8102e;
+    --wlbt-dark: #0a0a0f;
+    --ctrl-bg: #13131c;
+    --ctrl-border: #2a2a3c;
+    --btn-idle: #1e1e2e;
+    --btn-active: #c8102e;
+    --btn-action: #162040;
+    --bar-h: 52px;
+    --lower-h: 44px;
+    --font: 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  html, body {
+    width: 1920px;
+    height: 1080px;
+    overflow: hidden;
+    background: var(--wlbt-dark);
+    font-family: var(--font);
+    color: #fff;
+    user-select: none;
+  }
+
+  /* === LAYOUT === */
+  #shell {
+    display: flex;
+    flex-direction: column;
+    width: 1920px;
+    height: 1080px;
+  }
+
+  /* iframe takes all space above control bar */
+  #iframe-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  #dash-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    /* Hide the inner dashboard's header/footer chrome for broadcast */
+    /* We use CSS injected via onload to suppress interactive elements */
+  }
+
+  /* Lower third branding bar */
+  #lower-third {
+    height: var(--lower-h);
+    background: var(--wlbt-red);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 10;
+  }
+
+  #logo-bug {
+    height: 34px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+    border-radius: 2px;
+    /* White background to make the dark-text version readable on red */
+    background: #fff;
+    padding: 2px 6px;
+  }
+
+  #brand-title {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #fff;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #live-clock {
+    font-size: 14px;
+    font-variant-numeric: tabular-nums;
+    color: rgba(255,255,255,0.88);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  #refresh-indicator {
+    font-size: 11px;
+    color: rgba(255,255,255,0.6);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  #refresh-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.35);
+    transition: background 0.3s;
+  }
+  #refresh-dot.pulsing {
+    background: #fff;
+    animation: pulse 0.8s ease-in-out;
+  }
+  @keyframes pulse {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(1.4); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+
+  /* View indicator dots */
+  #view-dots {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .vdot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.22);
+    transition: background 0.2s;
+  }
+  .vdot.active { background: #fff; }
+
+  /* === CONTROL BAR === */
+  #ctrl-bar {
+    height: var(--bar-h);
+    background: var(--ctrl-bg);
+    border-top: 1px solid var(--ctrl-border);
+    display: flex;
+    align-items: center;
+    padding: 0 12px;
+    gap: 7px;
+    flex-shrink: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+  }
+  #ctrl-bar.hidden {
+    transform: translateY(100%);
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+  }
+
+  .ctrl-btn {
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    border: 1px solid var(--ctrl-border);
+    background: var(--btn-idle);
+    color: rgba(255,255,255,0.55);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .ctrl-btn:active { transform: scale(0.97); }
+
+  .ctrl-btn.active {
+    background: var(--btn-active);
+    color: #fff;
+    border-color: transparent;
+  }
+
+  .ctrl-btn.action {
+    background: var(--btn-action);
+    color: rgba(255,255,255,0.8);
+    border-color: #264070;
+  }
+  .ctrl-btn.action:hover { background: #1e3560; }
+
+  .ctrl-divider {
+    width: 1px;
+    height: 30px;
+    background: var(--ctrl-border);
+    flex-shrink: 0;
+  }
+
+  .ctrl-spacer { flex: 1; }
+
+  .ctrl-btn.hide-btn {
+    background: transparent;
+    color: rgba(255,255,255,0.28);
+    border-color: var(--ctrl-border);
+    font-size: 11px;
+  }
+  .ctrl-btn.hide-btn:hover { color: rgba(255,255,255,0.6); }
+
+  /* Show-controls tab (visible when controls hidden) */
+  #show-ctrl-tab {
+    position: fixed;
+    bottom: 0;
+    right: 24px;
+    height: 28px;
+    padding: 0 14px;
+    background: var(--wlbt-red);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 5px 5px 0 0;
+    display: none;
+    align-items: center;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    z-index: 100;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #show-ctrl-tab.visible { display: flex; }
+
+  /* Loading overlay */
+  #loading-overlay {
+    position: absolute;
+    inset: 0;
+    background: var(--wlbt-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    z-index: 50;
+    transition: opacity 0.6s ease;
+  }
+  #loading-overlay.faded { opacity: 0; pointer-events: none; }
+
+  .spinner {
+    width: 44px;
+    height: 44px;
+    border: 3px solid rgba(255,255,255,0.1);
+    border-top-color: var(--wlbt-red);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #loading-overlay p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.45);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div id="shell">
+
+  <!-- MAIN IFRAME AREA -->
+  <div id="iframe-wrap">
+    <!-- Loading overlay -->
+    <div id="loading-overlay">
+      <div class="spinner"></div>
+      <p>Loading Dashboard&hellip;</p>
+    </div>
+
+    <iframe
+      id="dash-frame"
+      src="https://homicide-dashboard.netlify.app/"
+      title="WLBT Tracking Jackson's Homicides"
+      allowfullscreen
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox"
+      loading="eager"
+    ></iframe>
+  </div>
+
+  <!-- LOWER THIRD -->
+  <div id="lower-third">
+    <!-- Logo: using CSS to invert the white-on-black logo so it reads on red -->
+    <img
+      id="logo-bug"
+      src="https://homicide-dashboard.netlify.app/wlbt-logo.png"
+      alt="WLBT 3 Investigates"
+      onerror="this.style.display='none'; document.getElementById('logo-text').style.display='block';"
+    >
+    <!-- Fallback text logo if image doesn't load -->
+    <span id="logo-text" style="display:none; font-size:17px; font-weight:900; letter-spacing:0.06em; color:#fff; background:#000; padding:3px 8px; border-radius:2px;">WLBT3</span>
+
+    <span id="brand-title">WLBT Investigates &nbsp;&bull;&nbsp; Tracking Jackson's Homicides</span>
+
+    <div id="view-dots">
+      <div class="vdot active" id="vd0"></div>
+      <div class="vdot" id="vd1"></div>
+      <div class="vdot" id="vd2"></div>
+      <div class="vdot" id="vd3"></div>
+      <div class="vdot" id="vd4"></div>
+    </div>
+
+    <div id="refresh-indicator">
+      <div id="refresh-dot"></div>
+      <span id="refresh-label">Auto-refresh 5 min</span>
+    </div>
+
+    <span id="live-clock">--:-- -- --</span>
+  </div>
+
+  <!-- CONTROL BAR -->
+  <div id="ctrl-bar">
+    <!-- View preset buttons -->
+    <button class="ctrl-btn active" data-view="0" onclick="setView(0)">Map View</button>
+    <button class="ctrl-btn" data-view="1" onclick="setView(1)">Heatmap</button>
+    <button class="ctrl-btn" data-view="2" onclick="setView(2)">Charts</button>
+    <button class="ctrl-btn" data-view="3" onclick="setView(3)">City Ranking</button>
+    <button class="ctrl-btn" data-view="4" onclick="setView(4)">YTD Count</button>
+
+    <div class="ctrl-divider"></div>
+
+    <button class="ctrl-btn action" onclick="goFullscreen()">⛶ Fullscreen</button>
+    <button class="ctrl-btn action" onclick="refreshDash()">↻ Refresh</button>
+
+    <div class="ctrl-spacer"></div>
+
+    <button class="ctrl-btn hide-btn" onclick="hideControls()">Hide Controls ↓</button>
+  </div>
+
+</div>
+
+<!-- Show-controls tab (appears when bar is hidden) -->
+<div id="show-ctrl-tab" onclick="showControls()">▲ Controls</div>
+
+<script>
+// ─── CLOCK ───────────────────────────────────────────────────────────────────
+function tickClock() {
+  document.getElementById('live-clock').textContent =
+    new Date().toLocaleTimeString('en-US', { hour12: true });
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+// ─── IFRAME LOAD ─────────────────────────────────────────────────────────────
+const frame = document.getElementById('dash-frame');
+const overlay = document.getElementById('loading-overlay');
+
+frame.addEventListener('load', () => {
+  // Fade out loading overlay
+  overlay.classList.add('faded');
+
+  // Inject CSS into the iframe to hide interactive chrome for broadcast
+  // (This works only if same-origin; cross-origin iframes will silently skip.)
+  try {
+    const style = frame.contentDocument.createElement('style');
+    style.textContent = `
+      /* Hide filter sidebar, tabs, footer, tip button, and search for broadcast */
+      .left-column,
+      .filters-container,
+      footer,
+      .tip-button,
+      #searchForm,
+      .tabs-container button:not(.active),
+      .filter-columns-wrapper { display: none !important; }
+
+      /* Expand the map to fill available space */
+      .main-content-area {
+        grid-template-columns: 0 1fr !important;
+      }
+    `;
+    frame.contentDocument.head.appendChild(style);
+  } catch(e) {
+    // Cross-origin — we can't inject CSS, but the iframe still shows fully
+    console.log('Cross-origin iframe — CSS injection skipped.');
+  }
+});
+
+// ─── VIEW PRESETS ─────────────────────────────────────────────────────────────
+// Each view scrolls/navigates to a named anchor within the dashboard.
+// If the dashboard is cross-origin, we use postMessage; otherwise direct DOM.
+const VIEWS = [
+  { label: 'Map View',     anchor: '#map',           tab: null },
+  { label: 'Heatmap',      anchor: '#map',           tab: 'Heatmap' },
+  { label: 'Charts',       anchor: '#charts',        tab: null },
+  { label: 'City Ranking', anchor: '#charts',        tab: 'City Comparison' },
+  { label: 'YTD Count',    anchor: '#homicideCountBanner', tab: null },
+];
+
+let currentView = 0;
+
+function setView(idx) {
+  currentView = idx;
+
+  // Update active button
+  document.querySelectorAll('.ctrl-btn[data-view]').forEach((btn, i) => {
+    btn.classList.toggle('active', i === idx);
+  });
+
+  // Update view dots
+  for (let i = 0; i < 5; i++) {
+    document.getElementById('vd' + i).classList.toggle('active', i === idx);
+  }
+
+  const view = VIEWS[idx];
+
+  // Try to scroll/click inside the iframe
+  try {
+    const doc = frame.contentDocument || frame.contentWindow.document;
+
+    // If there's a tab to activate, click it
+    if (view.tab) {
+      const tabs = doc.querySelectorAll('[role="tab"], .tab-btn, button');
+      tabs.forEach(t => {
+        if (t.textContent.includes(view.tab)) {
+          t.click();
+        }
+      });
+    }
+
+    // Scroll to anchor
+    if (view.anchor) {
+      const el = doc.querySelector(view.anchor);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+    }
+
+    // Heatmap: click the heatmap layer button if present
+    if (idx === 1) {
+      doc.querySelectorAll('input[type=radio], label').forEach(el => {
+        if (el.textContent && el.textContent.includes('Heatmap')) {
+          el.click();
+        }
+      });
+    }
+
+    // Map: click the markers layer button
+    if (idx === 0) {
+      doc.querySelectorAll('input[type=radio], label').forEach(el => {
+        if (el.textContent && el.textContent.includes('Markers')) {
+          el.click();
+        }
+      });
+    }
+
+  } catch(e) {
+    // Cross-origin: send postMessage for any custom listener
+    frame.contentWindow.postMessage({ wlbt_view: view }, '*');
+    console.log('View switch via postMessage:', view);
+  }
+}
+
+// ─── AUTO-REFRESH (5 min) ────────────────────────────────────────────────────
+let refreshCountdown = 300;
+const refreshLabel = document.getElementById('refresh-label');
+const refreshDot = document.getElementById('refresh-dot');
+
+function updateRefreshLabel() {
+  const m = Math.floor(refreshCountdown / 60);
+  const s = String(refreshCountdown % 60).padStart(2, '0');
+  refreshLabel.textContent = refreshCountdown > 60
+    ? `Auto-refresh ${m}m ${s}s`
+    : `Auto-refresh ${refreshCountdown}s`;
+}
+
+function refreshDash() {
+  refreshCountdown = 300;
+  refreshDot.classList.add('pulsing');
+  setTimeout(() => refreshDot.classList.remove('pulsing'), 900);
+  frame.src = frame.src; // reload
+}
+
+setInterval(() => {
+  refreshCountdown--;
+  updateRefreshLabel();
+  if (refreshCountdown <= 0) {
+    refreshDash();
+  }
+}, 1000);
+
+// ─── FULLSCREEN ───────────────────────────────────────────────────────────────
+function goFullscreen() {
+  const el = document.documentElement;
+  const req = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen;
+  if (req) req.call(el);
+}
+
+// ─── HIDE / SHOW CONTROLS ────────────────────────────────────────────────────
+const ctrlBar = document.getElementById('ctrl-bar');
+const showTab = document.getElementById('show-ctrl-tab');
+
+function hideControls() {
+  ctrlBar.classList.add('hidden');
+  showTab.classList.add('visible');
+}
+
+function showControls() {
+  ctrlBar.classList.remove('hidden');
+  showTab.classList.remove('visible');
+}
+
+// Touch-friendly: double-tap lower third also shows controls
+let lastTap = 0;
+document.getElementById('lower-third').addEventListener('touchend', () => {
+  const now = Date.now();
+  if (now - lastTap < 350) showControls();
+  lastTap = now;
+});
+
+// ─── KEYBOARD SHORTCUTS ───────────────────────────────────────────────────────
+document.addEventListener('keydown', e => {
+  if (e.key >= '1' && e.key <= '5') setView(parseInt(e.key) - 1);
+  if (e.key === 'f' || e.key === 'F') goFullscreen();
+  if (e.key === 'r' || e.key === 'R') refreshDash();
+  if (e.key === 'h' || e.key === 'H') {
+    ctrlBar.classList.contains('hidden') ? showControls() : hideControls();
+  }
+});
+</script>
+
+</body>
+</html>
