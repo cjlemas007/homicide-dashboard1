@@ -10,17 +10,18 @@
 <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --red:#c8102e;
-  --dark:#0c0c14;--panel:#12121e;--panel2:#16162a;
-  --border:#1f1f35;--border2:#2a2a44;
-  --text:#eeeef8;--muted:#8888aa;--soft:#aaaacc;
-  --lower-h:56px;--bar-h:68px;
+  --red:#c8102e;--red2:#a50d24;
+  --bg:#f0f2f5;--surface:#ffffff;--surface2:#f7f8fa;
+  --border:#dde1e7;--border2:#c8cdd6;
+  --text:#1a1a2e;--muted:#6b7280;--soft:#9ca3af;
+  --lower-h:56px;--bar-h:64px;
   --font:'Helvetica Neue',Arial,sans-serif;
 }
-html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-family:var(--font);color:var(--text)}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:var(--font);color:var(--text)}
 
 #shell{display:flex;flex-direction:column;width:100%;height:100%}
 
@@ -33,106 +34,176 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
 #map-wrap{flex:1 1 0;position:relative;min-width:0}
 #map{width:100%;height:100%}
 
-/* year pill row above map */
+/* year pill bar */
 #year-bar{
-  position:absolute;top:12px;left:50%;transform:translateX(-50%);
-  z-index:1000;display:flex;gap:8px;
-  background:rgba(12,12,20,.85);
-  border:1px solid var(--border2);
-  border-radius:40px;padding:6px 10px;
-  backdrop-filter:blur(6px);
+  position:absolute;top:14px;left:50%;transform:translateX(-50%);
+  z-index:1000;display:flex;gap:6px;
+  background:rgba(255,255,255,.92);
+  border:1px solid var(--border2);border-radius:40px;
+  padding:6px 10px;backdrop-filter:blur(8px);
+  box-shadow:0 2px 12px rgba(0,0,0,.12);
 }
 .ypill{
-  padding:6px 18px;border-radius:30px;
+  padding:7px 20px;border-radius:30px;
   font-size:15px;font-weight:700;cursor:pointer;
   border:none;background:transparent;color:var(--muted);
   transition:background .15s,color .15s;
   -webkit-tap-highlight-color:transparent;
 }
 .ypill.on{background:var(--red);color:#fff}
-.ypill:hover:not(.on){color:#fff}
+.ypill:hover:not(.on){color:var(--text)}
+
+/* YTD change badge on map panel */
+#ytd-change{
+  display:inline-flex;align-items:center;gap:6px;
+  margin-top:8px;padding:5px 12px;border-radius:20px;
+  font-size:15px;font-weight:700;
+}
+#ytd-change.up{background:rgba(200,16,46,.1);color:var(--red)}
+#ytd-change.down{background:rgba(22,163,74,.1);color:#16a34a}
+#ytd-change.flat{background:rgba(107,114,128,.1);color:var(--muted)}
 
 /* MAP PANEL */
 #map-panel{
   width:300px;flex-shrink:0;
-  background:var(--panel);
+  background:var(--surface);
   border-left:1px solid var(--border);
-  display:flex;flex-direction:column;
-  overflow-y:auto;
+  display:flex;flex-direction:column;overflow-y:auto;
 }
-.mp-block{padding:22px 20px;border-bottom:1px solid var(--border)}
+.mp-block{padding:20px 20px;border-bottom:1px solid var(--border)}
 .mp-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.mp-big{font-size:64px;font-weight:900;line-height:1;color:#fff}
-.mp-big span{font-size:18px;font-weight:400;color:var(--soft);margin-left:6px}
+.mp-big{font-size:68px;font-weight:900;line-height:1;color:var(--text)}
 .mp-row{
   display:flex;justify-content:space-between;align-items:baseline;
   padding:7px 0;border-bottom:1px solid var(--border);font-size:15px;
 }
 .mp-row:last-child{border:none}
-.mp-row .yr{color:var(--soft)}
-.mp-row .ct{font-weight:700;color:#fff;font-size:17px}
+.mp-row .yr{color:var(--muted)}
+.mp-row .ct{font-weight:700;color:var(--text);font-size:17px}
 
-/* Leaflet cluster red theme */
-.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(200,16,46,.25)}
+/* cluster theme */
+.marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(200,16,46,.2)}
 .marker-cluster-small div,.marker-cluster-medium div,.marker-cluster-large div{background:rgba(200,16,46,.9);color:#fff;font-weight:700;font-size:13px}
 
 /* ── CHARTS VIEW ── */
-#view-charts{flex-direction:column;padding:28px 32px;gap:24px;overflow:hidden}
-.charts-row{display:flex;flex:1 1 0;gap:24px;min-height:0}
-.chart-card{
-  flex:1 1 0;min-width:0;
-  background:var(--panel);border:1px solid var(--border);border-radius:10px;
-  padding:20px 22px;display:flex;flex-direction:column;
+#view-charts{flex-direction:column;background:var(--bg)}
+
+/* chart grid (multi-chart mode) */
+#chart-grid{
+  display:flex;flex-wrap:wrap;flex:1 1 0;
+  padding:20px;gap:16px;overflow:hidden;
 }
+.chart-card{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:20px 22px;display:flex;flex-direction:column;
+  min-width:0;min-height:0;
+}
+/* 2-col top row, 3-col bottom row — flex basis math */
+.chart-card.wide{flex:1 1 calc(50% - 8px)}
+.chart-card.narrow{flex:1 1 calc(33.333% - 11px)}
+
 .chart-card h3{
-  font-size:13px;font-weight:700;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--muted);margin-bottom:14px;flex-shrink:0;
+  font-size:13px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);margin-bottom:12px;flex-shrink:0;
 }
 .chart-card canvas{flex:1;min-height:0}
 
+/* ── SINGLE CHART MODE ── */
+#chart-solo{
+  display:none;flex:1 1 0;flex-direction:column;
+  padding:32px 40px;background:var(--surface);
+}
+#chart-solo.active{display:flex}
+#chart-grid.hidden{display:none}
+
+#solo-title{
+  font-size:22px;font-weight:800;color:var(--text);
+  margin-bottom:24px;flex-shrink:0;display:flex;align-items:center;gap:16px;
+}
+#solo-nav{display:flex;gap:10px;margin-left:auto}
+.solo-nav-btn{
+  height:40px;padding:0 18px;border-radius:6px;
+  font-size:13px;font-weight:700;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--muted);
+  cursor:pointer;display:flex;align-items:center;gap:6px;
+  transition:background .15s,color .15s;
+}
+.solo-nav-btn:hover{background:var(--border);color:var(--text)}
+.solo-nav-btn.exit{background:var(--red);color:#fff;border-color:transparent}
+#solo-canvas-wrap{flex:1;position:relative;min-height:0}
+#solo-canvas-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+
+/* chart expand buttons */
+.expand-btn{
+  position:absolute;top:14px;right:14px;
+  width:28px;height:28px;border-radius:5px;
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--muted);font-size:14px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;opacity:0;transition:opacity .15s;
+}
+.chart-card{position:relative}
+.chart-card:hover .expand-btn{opacity:1}
+
+/* chart cycle bar (solo mode) */
+#chart-cycle{
+  display:none;flex-shrink:0;
+  background:var(--surface2);border-top:1px solid var(--border);
+  padding:10px 40px;gap:8px;align-items:center;
+  overflow-x:auto;
+}
+#chart-cycle.active{display:flex}
+.cpill{
+  padding:6px 16px;border-radius:20px;
+  font-size:13px;font-weight:600;border:1px solid var(--border2);
+  background:var(--surface);color:var(--muted);
+  cursor:pointer;white-space:nowrap;flex-shrink:0;
+  transition:background .15s,color .15s;
+}
+.cpill.on{background:var(--red);color:#fff;border-color:transparent}
+
 /* ── CITY VIEW ── */
-#view-city{flex-direction:column;padding:36px 56px;overflow:hidden}
-#city-header{margin-bottom:28px}
-#city-header h2{font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
-#city-header p{font-size:32px;font-weight:900;color:#fff;margin-top:6px}
-#city-bars{flex:1;display:flex;flex-direction:column;gap:12px;justify-content:center;overflow:hidden}
-.city-row{display:flex;align-items:center;gap:16px}
+#view-city{flex-direction:column;background:var(--bg);padding:32px 52px;overflow:hidden}
+#city-header{margin-bottom:24px}
+#city-header h2{font-size:13px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#city-header p{font-size:30px;font-weight:900;color:var(--text);margin-top:4px}
+#city-bars{flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center;overflow:hidden}
+.city-row{display:flex;align-items:center;gap:14px}
 .city-rank{width:36px;font-size:13px;color:var(--muted);text-align:center;flex-shrink:0}
 .city-name{width:220px;font-size:16px;font-weight:600;flex-shrink:0;text-align:right;color:var(--text)}
 .city-name.hl{color:var(--red);font-weight:900;font-size:18px}
-.city-bar-wrap{flex:1;height:38px;background:var(--panel2);border-radius:5px;overflow:hidden}
+.city-bar-wrap{flex:1;height:36px;background:var(--surface2);border-radius:5px;overflow:hidden;border:1px solid var(--border)}
 .city-bar{height:100%;background:var(--border2);border-radius:5px;display:flex;align-items:center;padding:0 14px;transition:width 1.2s ease}
 .city-bar.hl{background:var(--red)}
 .city-rate{font-size:15px;font-weight:700;color:#fff}
+.city-bar:not(.hl) .city-rate{color:var(--text)}
 
 /* ── LOWER THIRD ── */
 #lower{
-  height:var(--lower-h);flex-shrink:0;
-  background:var(--red);
-  display:flex;align-items:center;
-  padding:0 18px;gap:16px;z-index:20;
+  height:var(--lower-h);flex-shrink:0;background:var(--red);
+  display:flex;align-items:center;padding:0 18px;gap:16px;z-index:20;
 }
 #logo-wrap{background:#fff;border-radius:4px;padding:4px 10px;flex-shrink:0;display:flex;align-items:center;height:42px}
 #logo-wrap img{height:32px;width:auto;object-fit:contain}
 #logo-text{font-size:18px;font-weight:900;color:#000;letter-spacing:.04em}
 #brand{flex:1;font-size:15px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #vdots{display:flex;gap:6px;flex-shrink:0}
-.vd{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.25);transition:background .2s}
+.vd{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.3);transition:background .2s}
 .vd.on{background:#fff}
-#clock{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.92);flex-shrink:0;min-width:90px;text-align:right}
+#clock{font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;color:rgba(255,255,255,.95);flex-shrink:0;min-width:95px;text-align:right}
 
 /* ── CONTROL BAR ── */
 #ctrl{
   height:var(--bar-h);flex-shrink:0;
-  background:var(--panel);border-top:1px solid var(--border);
+  background:var(--surface);border-top:1px solid var(--border);
   display:flex;align-items:center;padding:0 16px;gap:8px;
   transition:height .25s,opacity .25s,padding .25s;overflow:hidden;
 }
 #ctrl.hidden{height:0;opacity:0;padding:0 16px;pointer-events:none}
 .btn{
-  height:44px;padding:0 20px;border-radius:6px;
-  font-size:14px;font-weight:700;letter-spacing:.03em;
-  border:1px solid var(--border2);background:var(--panel2);color:var(--muted);
+  height:42px;padding:0 20px;border-radius:6px;
+  font-size:14px;font-weight:700;letter-spacing:.02em;
+  border:1px solid var(--border2);background:var(--surface2);color:var(--muted);
   cursor:pointer;display:flex;align-items:center;gap:7px;
   white-space:nowrap;flex-shrink:0;
   transition:background .15s,color .15s,border-color .15s;
@@ -140,10 +211,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
 }
 .btn:active{transform:scale(.97)}
 .btn.on{background:var(--red);color:#fff;border-color:transparent}
-.btn.act{background:#142040;color:rgba(255,255,255,.85);border-color:#243560}
-.btn.act:hover{background:#1a2f54}
-.btn.dim{background:transparent;color:rgba(255,255,255,.25);font-size:12px;border-color:var(--border)}
-.div{width:1px;height:32px;background:var(--border2);flex-shrink:0}
+.btn.act{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.btn.act:hover{background:var(--border);color:var(--text)}
+.btn.dim{background:transparent;color:var(--soft);font-size:12px;border-color:var(--border)}
+.divider{width:1px;height:30px;background:var(--border2);flex-shrink:0}
 .spc{flex:1}
 
 #show-tab{
@@ -158,15 +229,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
 
 /* ── LOADING ── */
 #loader{
-  position:fixed;inset:0;background:var(--dark);
+  position:fixed;inset:0;background:var(--bg);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:999;
   transition:opacity .6s;
 }
 #loader.gone{opacity:0;pointer-events:none}
-.spin{width:48px;height:48px;border:3px solid rgba(255,255,255,.08);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite}
+.spin{width:48px;height:48px;border:3px solid var(--border2);border-top-color:var(--red);border-radius:50%;animation:rot .8s linear infinite}
 @keyframes rot{to{transform:rotate(360deg)}}
-#loader p{font-size:13px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
-#loader-status{font-size:12px;color:var(--muted);margin-top:-12px}
+#loader p{font-size:14px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase}
+#loader-status{font-size:12px;color:var(--soft);margin-top:-12px}
 </style>
 </head>
 <body>
@@ -189,13 +260,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
       <div class="mp-block">
         <div class="mp-label" id="mp-year-label">Loading…</div>
         <div class="mp-big" id="mp-count">—</div>
+        <div id="ytd-change"></div>
       </div>
       <div class="mp-block">
         <div class="mp-label">By Agency</div>
         <div id="mp-agency-rows"></div>
       </div>
       <div class="mp-block">
-        <div class="mp-label">By Circumstance</div>
+        <div class="mp-label">By Circumstance (Top 5)</div>
         <div id="mp-circ-rows"></div>
       </div>
     </div>
@@ -203,30 +275,59 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
 
   <!-- CHARTS VIEW -->
   <div id="view-charts">
-    <div class="charts-row">
-      <div class="chart-card">
+
+    <!-- multi-chart grid -->
+    <div id="chart-grid">
+      <div class="chart-card wide">
         <h3>Annual Homicide Trend (1976–Present)</h3>
+        <button class="expand-btn" onclick="openSolo(0)" title="Expand">⤢</button>
         <canvas id="ch-annual"></canvas>
       </div>
-      <div class="chart-card">
+      <div class="chart-card wide">
         <h3>Monthly Pace — <span id="ch-monthly-label"></span></h3>
+        <button class="expand-btn" onclick="openSolo(1)" title="Expand">⤢</button>
         <canvas id="ch-monthly"></canvas>
       </div>
-    </div>
-    <div class="charts-row">
-      <div class="chart-card">
+      <div class="chart-card narrow">
         <h3>Victim Age Distribution</h3>
+        <button class="expand-btn" onclick="openSolo(2)" title="Expand">⤢</button>
         <canvas id="ch-age"></canvas>
       </div>
-      <div class="chart-card">
+      <div class="chart-card narrow">
         <h3>Circumstance</h3>
+        <button class="expand-btn" onclick="openSolo(3)" title="Expand">⤢</button>
         <canvas id="ch-circ"></canvas>
       </div>
-      <div class="chart-card">
+      <div class="chart-card narrow">
         <h3>Clearance Rate by Year</h3>
+        <button class="expand-btn" onclick="openSolo(4)" title="Expand">⤢</button>
         <canvas id="ch-clear"></canvas>
       </div>
+      <div class="chart-card wide">
+        <h3>YTD Cumulative Pace — <span id="ch-ytdpace-label"></span></h3>
+        <button class="expand-btn" onclick="openSolo(5)" title="Expand">⤢</button>
+        <canvas id="ch-ytdpace"></canvas>
+      </div>
     </div>
+
+    <!-- solo / fullscreen chart -->
+    <div id="chart-solo">
+      <div id="solo-title">
+        <span id="solo-title-text"></span>
+        <div id="solo-nav">
+          <button class="solo-nav-btn" onclick="prevChart()">← Prev</button>
+          <button class="solo-nav-btn" onclick="nextChart()">Next →</button>
+          <button class="solo-nav-btn exit" onclick="closeSolo()">✕ Exit</button>
+        </div>
+      </div>
+      <div id="solo-canvas-wrap">
+        <canvas id="ch-solo"></canvas>
+      </div>
+    </div>
+
+    <!-- chart cycle pills (solo mode) -->
+    <div id="chart-cycle"></div>
+
   </div>
 
   <!-- CITY RANKING VIEW -->
@@ -259,7 +360,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--dark);font-fam
     <button class="btn on"  onclick="setView('map')">Map</button>
     <button class="btn"     onclick="setView('charts')">Charts</button>
     <button class="btn"     onclick="setView('city')">City Ranking</button>
-    <div class="div"></div>
+    <div class="divider"></div>
     <button class="btn act" onclick="toggleLayer()" id="heat-btn">Toggle Heatmap</button>
     <button class="btn act" onclick="goFS()">⛶ Fullscreen</button>
     <button class="btn act" onclick="doRefresh()">↻ Refresh</button>
@@ -296,37 +397,36 @@ let allData = [], cityData = [];
 let map, markersLayer, heatLayer;
 let showHeat = false;
 let curView  = 'map';
-let selYear  = CY;   // currently selected year on map
-let charts   = {};
+let selYear  = CY;
+let gridCharts   = {};   // the 5 small grid charts
+let soloChart    = null; // the one big solo chart
+let soloIdx      = 0;    // which chart is shown in solo mode
+let isSoloMode   = false;
 
 // ── CLOCK ─────────────────────────────────────────────────────────────────────
 setInterval(() => {
-  document.getElementById('clock').textContent =
-    new Date().toLocaleTimeString('en-US');
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US');
 }, 1000);
 
-// ── DATA LOADING ──────────────────────────────────────────────────────────────
-function setStatus(t){ document.getElementById('loader-status').textContent = t; }
-
+// ── BOOT ──────────────────────────────────────────────────────────────────────
 async function loadAll() {
   try {
     setStatus('Fetching homicide records…');
     const raw = await fetch(HOMICIDE_URL).then(r => r.json());
     allData = processHomicide(raw);
 
-    setStatus('Fetching city comparison data…');
-    try {
-      const cRaw = await fetch(CITY_URL).then(r => r.json());
-      cityData = processCityData(cRaw);
-    } catch(e){ console.warn('City data unavailable', e); }
+    setStatus('Fetching city comparison…');
+    try { cityData = processCityData(await fetch(CITY_URL).then(r=>r.json())); }
+    catch(e){ console.warn('City data unavailable', e); }
 
     setStatus('Initializing map…');
     initMap();
 
     setStatus('Building charts…');
-    buildAllCharts();
+    buildGridCharts();
+    buildChartCyclePills();
 
-    setStatus('Loading boundary layers…');
+    setStatus('Loading boundaries…');
     loadBoundaries();
 
     document.getElementById('loader').classList.add('gone');
@@ -337,6 +437,8 @@ async function loadAll() {
   }
 }
 
+function setStatus(t){ document.getElementById('loader-status').textContent = t; }
+
 // ── DATA PROCESSING ───────────────────────────────────────────────────────────
 function processHomicide(raw) {
   if (!raw?.headers || !raw?.entries) return [];
@@ -345,7 +447,6 @@ function processHomicide(raw) {
   const idx = {
     victim:  gi(['Victim']),
     age:     gi(['Age']),
-    race:    gi(['Race']),
     circ:    gi(['Circumstance']),
     date:    gi(['Date']),
     address: gi(['Address','Location']),
@@ -355,25 +456,22 @@ function processHomicide(raw) {
     status:  gi(['Case Status','Status']),
   };
   return raw.entries.map(e => {
-    const dateStr = e[idx.date] ? String(e[idx.date]).trim() : '';
-    let dateObj;
-    if (dateStr.includes('-')) dateObj = new Date(dateStr + 'T00:00:00');
-    else if (dateStr.includes('/')) {
-      const p = dateStr.split('/');
-      if (p.length === 3) {
-        let yr = parseInt(p[2]); if (yr < 100) yr += 2000;
-        dateObj = new Date(yr, parseInt(p[0])-1, parseInt(p[1]));
-      }
+    const ds = e[idx.date] ? String(e[idx.date]).trim() : '';
+    let d;
+    if (ds.includes('-')) d = new Date(ds+'T00:00:00');
+    else if (ds.includes('/')) {
+      const p = ds.split('/');
+      if (p.length===3){ let y=parseInt(p[2]); if(y<100)y+=2000; d=new Date(y,parseInt(p[0])-1,parseInt(p[1])); }
     }
-    if (!dateObj || isNaN(dateObj)) return null;
-    const lat = parseFloat(e[idx.lat]), lon = parseFloat(e[idx.lon]);
+    if (!d||isNaN(d)) return null;
+    const lat=parseFloat(e[idx.lat]), lon=parseFloat(e[idx.lon]);
     return {
       Victim:  e[idx.victim]  || 'Unknown',
       Age:     isNaN(parseInt(e[idx.age])) ? null : parseInt(e[idx.age]),
       Circ:    e[idx.circ]    || 'Unknown',
-      Date:    dateObj.toISOString().split('T')[0],
-      Month:   dateObj.getMonth(),
-      Year:    dateObj.getFullYear(),
+      Date:    d.toISOString().split('T')[0],
+      Month:   d.getMonth(),
+      Year:    d.getFullYear(),
       Address: e[idx.address] || '',
       Agency:  e[idx.agency]  || 'Unknown',
       Lat:     isNaN(lat) ? null : lat,
@@ -385,61 +483,41 @@ function processHomicide(raw) {
 
 function processCityData(raw) {
   if (!raw?.values) return [];
-  const [hdr, ...rows] = raw.values;
-  const h = hdr.map(x => x.trim().toLowerCase());
-  const ci = h.indexOf('city'), hi = h.indexOf('homicides'), pi = h.indexOf('population');
+  const [hdr,...rows] = raw.values;
+  const h = hdr.map(x=>x.trim().toLowerCase());
+  const ci=h.indexOf('city'), hi=h.indexOf('homicides'), pi=h.indexOf('population');
   return rows
-    .map(r => ({
-      city:       r[ci]?.trim() || '',
-      homicides:  parseInt(String(r[hi]).replace(/,/g,'')),
-      population: parseInt(String(r[pi]).replace(/,/g,'')),
-    }))
-    .filter(d => d.city && d.homicides >= 0 && d.population > 0)
-    .map(d => ({ ...d, rate: d.homicides / d.population * 100000 }))
-    .sort((a,b) => b.rate - a.rate)
-    .slice(0, 14);
+    .map(r=>({ city:r[ci]?.trim()||'', homicides:parseInt(String(r[hi]).replace(/,/g,'')), population:parseInt(String(r[pi]).replace(/,/g,'')) }))
+    .filter(d=>d.city&&d.homicides>=0&&d.population>0)
+    .map(d=>({...d, rate:d.homicides/d.population*100000}))
+    .sort((a,b)=>b.rate-a.rate).slice(0,14);
 }
 
 // ── MAP ───────────────────────────────────────────────────────────────────────
 function initMap() {
-  map = L.map('map', { zoomControl:false, minZoom:10 }).setView(MAP_CENTER, MAP_ZOOM);
-  L.control.zoom({ position:'bottomright' }).addTo(map);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution:'© OpenStreetMap'
-  }).addTo(map);
-
+  map = L.map('map',{zoomControl:false,minZoom:10}).setView(MAP_CENTER,MAP_ZOOM);
+  L.control.zoom({position:'bottomright'}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap'}).addTo(map);
   map.createPane('markersPane');
   map.getPane('markersPane').style.zIndex = 650;
-
-  markersLayer = L.markerClusterGroup({
-    maxClusterRadius: 40,
-    spiderfyOnMaxZoom: true,
-    showCoverageOnHover: false,
-    clusterPane: 'markersPane'
-  });
-  heatLayer = L.heatLayer([], { radius:25, blur:18, maxZoom:13 });
+  markersLayer = L.markerClusterGroup({maxClusterRadius:40,spiderfyOnMaxZoom:true,showCoverageOnHover:false,clusterPane:'markersPane'});
+  heatLayer    = L.heatLayer([],{radius:25,blur:18,maxZoom:13});
   markersLayer.addTo(map);
-
-  // Build year pill bar
   buildYearBar();
-
-  // Initial render for current year
   renderMapForYear(CY);
 }
 
 function buildYearBar() {
-  const years = [...new Set(allData.map(d => d.Year))].sort((a,b) => b-a);
+  const years = [...new Set(allData.map(d=>d.Year))].sort((a,b)=>b-a);
   const bar = document.getElementById('year-bar');
-  // Add "All" option first
-  [null, ...years].forEach(y => {
+  [null,...years].forEach(y => {
     const pill = document.createElement('button');
-    pill.className = 'ypill' + (y === CY ? ' on' : '');
-    pill.textContent = y === null ? 'All' : String(y);
-    pill.dataset.year = y === null ? 'all' : y;
+    pill.className = 'ypill' + (y===CY?' on':'');
+    pill.textContent = y===null ? 'All' : String(y);
     pill.addEventListener('click', () => {
-      document.querySelectorAll('.ypill').forEach(p => p.classList.remove('on'));
+      document.querySelectorAll('.ypill').forEach(p=>p.classList.remove('on'));
       pill.classList.add('on');
-      selYear = y === null ? 'all' : y;
+      selYear = y===null ? 'all' : y;
       renderMapForYear(selYear);
     });
     bar.appendChild(pill);
@@ -447,235 +525,326 @@ function buildYearBar() {
 }
 
 function renderMapForYear(year) {
-  const data = year === 'all' ? allData : allData.filter(d => d.Year === year);
-  const withCoords = data.filter(d => d.Lat && d.Lon);
-
+  const data = year==='all' ? allData : allData.filter(d=>d.Year===year);
+  const withCoords = data.filter(d=>d.Lat&&d.Lon);
   markersLayer.clearLayers();
-  const heatPts = [];
-
+  const heatPts=[], layers=[];
   withCoords.forEach(d => {
-    heatPts.push([d.Lat, d.Lon]);
-    const marker = L.circleMarker([d.Lat, d.Lon], {
-      radius:6, fillColor:'#c8102e', color:'#8b0000',
-      weight:1, opacity:1, fillOpacity:.85,
-      pane:'markersPane'
+    heatPts.push([d.Lat,d.Lon]);
+    const m = L.circleMarker([d.Lat,d.Lon],{
+      radius:6,fillColor:'#c8102e',color:'#8b0000',
+      weight:1,opacity:1,fillOpacity:.85,pane:'markersPane'
     });
-    marker.bindTooltip(
-      `<strong style="font-size:13px">${d.Victim}</strong><br>${d.Date}<br>${d.Address || ''}`,
-      { sticky:true }
-    );
-    markersLayer.addLayer(marker);
+    m.bindTooltip(`<strong style="font-size:13px">${d.Victim}</strong><br>${d.Date}<br>${d.Address||''}`,{sticky:true});
+    layers.push(m);
   });
-
+  markersLayer.addLayers(layers);
   heatLayer.setLatLngs(heatPts);
-
-  // Fit bounds
-  if (withCoords.length > 0) {
-    const group = L.featureGroup(withCoords.map(d => L.circleMarker([d.Lat,d.Lon])));
-    map.fitBounds(group.getBounds().pad(.05));
-  } else {
-    map.setView(MAP_CENTER, MAP_ZOOM);
-  }
-
+  if (withCoords.length>0) {
+    map.fitBounds(L.featureGroup(withCoords.map(d=>L.circleMarker([d.Lat,d.Lon]))).getBounds().pad(.05));
+  } else { map.setView(MAP_CENTER,MAP_ZOOM); }
   renderMapPanel(data, year);
 }
 
+function renderMapPanel(data, year) {
+  const isPrevYear   = typeof year === 'number';
+  const prevYear     = isPrevYear ? year - 1 : null;
+
+  // YTD change vs same period last year
+  let changeHTML = '';
+  if (isPrevYear && year === CY) {
+    const prevCount = allData.filter(d => d.Year === CY-1).length;
+    const curCount  = data.length;
+    if (prevCount > 0) {
+      const pct = ((curCount - prevCount) / prevCount * 100);
+      const sign = pct >= 0 ? '+' : '';
+      const cls  = pct > 2 ? 'up' : pct < -2 ? 'down' : 'flat';
+      const arrow= pct > 2 ? '▲' : pct < -2 ? '▼' : '–';
+      changeHTML = `<div id="ytd-change" class="${cls}">${arrow} ${sign}${pct.toFixed(1)}% vs ${CY-1}</div>`;
+    }
+  } else if (year === 'all') {
+    changeHTML = '';
+  } else if (isPrevYear) {
+    // comparing this year to prior year
+    const prev = allData.filter(d => d.Year === year-1).length;
+    if (prev > 0) {
+      const pct = ((data.length - prev) / prev * 100);
+      const sign = pct >= 0 ? '+' : '';
+      const cls  = pct > 2 ? 'up' : pct < -2 ? 'down' : 'flat';
+      const arrow= pct > 2 ? '▲' : pct < -2 ? '▼' : '–';
+      changeHTML = `<div id="ytd-change" class="${cls}">${arrow} ${sign}${pct.toFixed(1)}% vs ${year-1}</div>`;
+    }
+  }
+
+  const label = year==='all' ? 'All Years — Total' : (year===CY ? `${year} YTD` : String(year));
+  document.getElementById('mp-year-label').textContent = label;
+  document.getElementById('mp-count').textContent = data.length;
+
+  // Replace ytd-change div
+  const existing = document.getElementById('ytd-change');
+  if (existing) existing.remove();
+  if (changeHTML) {
+    document.getElementById('mp-count').insertAdjacentHTML('afterend', changeHTML);
+  }
+
+  const bAg={};
+  data.forEach(d=>{ bAg[d.Agency]=(bAg[d.Agency]||0)+1; });
+  document.getElementById('mp-agency-rows').innerHTML =
+    Object.entries(bAg).sort((a,b)=>b[1]-a[1]).map(([ag,ct])=>
+      `<div class="mp-row"><span class="yr">${ag}</span><span class="ct">${ct}</span></div>`).join('');
+
+  const bCi={};
+  data.forEach(d=>{ bCi[d.Circ]=(bCi[d.Circ]||0)+1; });
+  document.getElementById('mp-circ-rows').innerHTML =
+    Object.entries(bCi).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([ci,ct])=>
+      `<div class="mp-row"><span class="yr">${ci}</span><span class="ct">${ct}</span></div>`).join('');
+}
+
 function loadBoundaries() {
-  fetch(CITY_LIMITS).then(r=>r.json()).then(g => {
-    L.geoJSON(g, { style:{ color:'#000', weight:2, opacity:.7, fillOpacity:0 }, interactive:false }).addTo(map);
+  fetch(CITY_LIMITS).then(r=>r.json()).then(g=>{
+    L.geoJSON(g,{style:{color:'#000',weight:2,opacity:.6,fillOpacity:0},interactive:false}).addTo(map);
   }).catch(()=>{});
-  fetch(CCID_URL).then(r=>r.json()).then(g => {
-    L.geoJSON(g, { style:{ color:'#E65100', weight:2.5, opacity:.8, fillOpacity:.1 }, interactive:false }).addTo(map);
+  fetch(CCID_URL).then(r=>r.json()).then(g=>{
+    L.geoJSON(g,{style:{color:'#E65100',weight:2.5,opacity:.8,fillOpacity:.08},interactive:false}).addTo(map);
   }).catch(()=>{});
 }
 
 function toggleLayer() {
   showHeat = !showHeat;
   const btn = document.getElementById('heat-btn');
-  if (showHeat) {
-    map.removeLayer(markersLayer);
-    heatLayer.addTo(map);
-    btn.textContent = 'Show Markers';
-  } else {
-    map.removeLayer(heatLayer);
-    markersLayer.addTo(map);
-    btn.textContent = 'Toggle Heatmap';
-  }
+  if (showHeat) { map.removeLayer(markersLayer); heatLayer.addTo(map); btn.textContent='Show Markers'; }
+  else { map.removeLayer(heatLayer); markersLayer.addTo(map); btn.textContent='Toggle Heatmap'; }
 }
 
-// ── MAP PANEL ─────────────────────────────────────────────────────────────────
-function renderMapPanel(data, year) {
-  const label = year === 'all' ? 'All Years' : (year === CY ? `${year} (YTD)` : String(year));
-  document.getElementById('mp-year-label').textContent = label + ' — Total Homicides';
-  document.getElementById('mp-count').textContent = data.length;
-
-  // Agency breakdown
-  const bAg = {};
-  data.forEach(d => { bAg[d.Agency] = (bAg[d.Agency]||0)+1; });
-  document.getElementById('mp-agency-rows').innerHTML =
-    Object.entries(bAg).sort((a,b)=>b[1]-a[1]).map(([ag,ct]) =>
-      `<div class="mp-row"><span class="yr">${ag}</span><span class="ct">${ct}</span></div>`
-    ).join('');
-
-  // Circumstance top 5
-  const bCi = {};
-  data.forEach(d => { bCi[d.Circ] = (bCi[d.Circ]||0)+1; });
-  document.getElementById('mp-circ-rows').innerHTML =
-    Object.entries(bCi).sort((a,b)=>b[1]-a[1]).slice(0,5).map(([ci,ct]) =>
-      `<div class="mp-row"><span class="yr">${ci}</span><span class="ct">${ct}</span></div>`
-    ).join('');
-}
-
-// ── CHARTS ────────────────────────────────────────────────────────────────────
-const CD = {
-  responsive:true, maintainAspectRatio:false,
-  plugins:{
-    legend:{ display:false },
-    tooltip:{ backgroundColor:'#1e1e35', titleColor:'#fff', bodyColor:'#aaa',
-              titleFont:{size:13}, bodyFont:{size:12} }
-  },
-  scales:{
-    x:{ grid:{ color:'rgba(255,255,255,.06)' }, ticks:{ color:'#8888aa', font:{size:12} } },
-    y:{ grid:{ color:'rgba(255,255,255,.06)' }, ticks:{ color:'#8888aa', font:{size:12} } }
-  }
-};
-
-function buildAllCharts() {
-  document.getElementById('ch-monthly-label').textContent = CY;
-  buildAnnual(); buildMonthly(); buildAge(); buildCirc(); buildClearance();
-}
-
-function buildAnnual() {
-  const bYear = {};
-  allData.forEach(d => { bYear[d.Year] = (bYear[d.Year]||0)+1; });
-  const modernYears = Object.keys(bYear).map(Number).sort((a,b)=>a-b);
-  const allYears    = [...HISTORICAL.map(h=>h.year), ...modernYears.filter(y=>y>=2016)];
-  const allTotals   = [...HISTORICAL.map(h=>h.total), ...modernYears.filter(y=>y>=2016).map(y=>bYear[y])];
-  charts.annual = new Chart(document.getElementById('ch-annual'), {
-    type:'bar',
-    data:{
-      labels: allYears.map(String),
-      datasets:[{
-        data: allTotals,
-        backgroundColor: allYears.map(y =>
-          y === CY ? 'rgba(200,16,46,.95)' :
-          y >= 2016 ? 'rgba(200,16,46,.55)' : 'rgba(100,100,160,.35)'
-        ),
-        borderRadius:2,
-      }]
+// ── CHART SHARED DEFAULTS (grid = small, solo = large) ────────────────────────
+function makeDefaults(solo=false) {
+  const fs = solo ? 18 : 12;  // font size
+  const ts = solo ? 16 : 11;  // tick size
+  return {
+    responsive:true, maintainAspectRatio:false,
+    plugins:{
+      legend:{ display:false },
+      tooltip:{ backgroundColor:'#1a1a2e', titleColor:'#fff', bodyColor:'#6b7280',
+                titleFont:{size:fs}, bodyFont:{size:fs-2} }
     },
-    options:{ ...CD }
-  });
+    scales:{
+      x:{ grid:{color:'rgba(0,0,0,.06)'}, ticks:{color:'#6b7280', font:{size:ts}} },
+      y:{ grid:{color:'rgba(0,0,0,.06)'}, ticks:{color:'#6b7280', font:{size:ts}} }
+    }
+  };
 }
 
-function buildMonthly() {
-  const cur = Array(12).fill(0), prev = Array(12).fill(0);
-  allData.filter(d=>d.Year===CY).forEach(d=>cur[d.Month]++);
-  allData.filter(d=>d.Year===CY-1).forEach(d=>prev[d.Month]++);
-  const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  charts.monthly = new Chart(document.getElementById('ch-monthly'), {
-    type:'line',
-    data:{
-      labels,
+// ── CHART DATA BUILDERS ───────────────────────────────────────────────────────
+const CHART_DEFS = [
+  { id:'annual',   title:'Annual Homicide Trend (1976–Present)' },
+  { id:'monthly',  title:`Monthly Pace — ${CY} vs ${CY-1}` },
+  { id:'age',      title:'Victim Age Distribution' },
+  { id:'circ',     title:'Circumstance' },
+  { id:'clear',    title:'Clearance Rate by Year' },
+  { id:'ytdpace',  title:`YTD Cumulative Pace — ${CY} vs ${CY-1}` },
+];
+
+function getChartData(id) {
+  if (id==='annual') {
+    const bYear={};
+    allData.forEach(d=>{ bYear[d.Year]=(bYear[d.Year]||0)+1; });
+    const modernYears=Object.keys(bYear).map(Number).sort((a,b)=>a-b);
+    const allYears=[...HISTORICAL.map(h=>h.year),...modernYears.filter(y=>y>=2016)];
+    const allTotals=[...HISTORICAL.map(h=>h.total),...modernYears.filter(y=>y>=2016).map(y=>bYear[y])];
+    return { type:'bar', labels:allYears.map(String), datasets:[{
+      data:allTotals,
+      backgroundColor:allYears.map(y=>y===CY?'rgba(200,16,46,.95)':y>=2016?'rgba(200,16,46,.5)':'rgba(100,100,180,.3)'),
+      borderRadius:2,
+    }]};
+  }
+  if (id==='monthly') {
+    const cur=Array(12).fill(0), prev=Array(12).fill(0);
+    allData.filter(d=>d.Year===CY).forEach(d=>cur[d.Month]++);
+    allData.filter(d=>d.Year===CY-1).forEach(d=>prev[d.Month]++);
+    const labels=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    return { type:'line', labels, datasets:[
+      {label:String(CY),   data:cur,  borderColor:'#c8102e', backgroundColor:'rgba(200,16,46,.1)', fill:true, tension:.35, pointRadius:4},
+      {label:String(CY-1), data:prev, borderColor:'rgba(100,100,180,.5)', fill:false, tension:.35, pointRadius:3, borderDash:[5,4]},
+    ]};
+  }
+  if (id==='age') {
+    const b={'Under 18':0,'18–24':0,'25–34':0,'35–44':0,'45–54':0,'55+':0,'Unknown':0};
+    allData.filter(d=>d.Year===CY).forEach(d=>{
+      const a=d.Age;
+      if(a===null)b['Unknown']++;
+      else if(a<18)b['Under 18']++;else if(a<=24)b['18–24']++;
+      else if(a<=34)b['25–34']++;else if(a<=44)b['35–44']++;
+      else if(a<=54)b['45–54']++;else b['55+']++;
+    });
+    return {type:'bar',labels:Object.keys(b),datasets:[{data:Object.values(b),backgroundColor:'rgba(200,16,46,.7)',borderRadius:4}]};
+  }
+  if (id==='circ') {
+    const c={};
+    allData.filter(d=>d.Year===CY).forEach(d=>{c[d.Circ]=(c[d.Circ]||0)+1;});
+    const s=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,8);
+    const COLS=['#c8102e','#e03050','#a50d24','#8b0014','#ff6080','#cc2040','#991530','#771020'];
+    return {type:'doughnut',labels:s.map(e=>e[0]),datasets:[{data:s.map(e=>e[1]),backgroundColor:COLS,borderColor:'#fff',borderWidth:2}]};
+  }
+  if (id==='ytdpace') {
+    const COMMON_YEAR = 2001;
+    const today = new Date();
+    const todayDOY = Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 0)) / 86400000);
+    function buildCumulative(year) {
+      const sorted = allData.filter(d=>d.Year===year).map(d=>{
+        const dt=new Date(d.Date+'T00:00:00');
+        return Math.floor((Date.UTC(dt.getFullYear(),dt.getMonth(),dt.getDate())-Date.UTC(dt.getFullYear(),0,0))/86400000);
+      }).sort((a,b)=>a-b);
+      const endDOY = (year===CY) ? todayDOY : 365;
+      const pts=[]; let count=0, si=0;
+      for(let doy=0;doy<=endDOY;doy++){
+        while(si<sorted.length&&sorted[si]<=doy){count++;si++;}
+        const dt=new Date(Date.UTC(COMMON_YEAR,0,1)+doy*86400000);
+        const lbl=`${COMMON_YEAR}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}`;
+        pts.push({x:lbl,y:count});
+      }
+      return pts;
+    }
+    return { type:'line', labels:null, _timeScale:true,
       datasets:[
-        { label:String(CY),   data:cur,  borderColor:'#c8102e', backgroundColor:'rgba(200,16,46,.12)', fill:true, tension:.35, pointRadius:4 },
-        { label:String(CY-1), data:prev, borderColor:'rgba(150,150,200,.45)', fill:false, tension:.35, pointRadius:3, borderDash:[5,4] }
+        { label:String(CY),   data:buildCumulative(CY),   borderColor:'#c8102e', backgroundColor:'rgba(200,16,46,.08)', fill:true,  borderWidth:3, tension:.15, pointRadius:0, pointHoverRadius:5 },
+        { label:String(CY-1), data:buildCumulative(CY-1), borderColor:'rgba(100,100,180,.55)', fill:false, borderWidth:2, borderDash:[6,4], tension:.15, pointRadius:0, pointHoverRadius:4 },
       ]
-    },
-    options:{
-      ...CD,
-      plugins:{
-        ...CD.plugins,
-        legend:{ display:true, labels:{ color:'#8888aa', boxWidth:14, font:{size:12} } }
-      }
-    }
+    };
+  }
+  if (id==='clear') {
+    allData.filter(d=>d.Status).forEach(d=>{
+      if(!by[d.Year])by[d.Year]={s:0,t:0};
+      by[d.Year].t++;if(d.Status==='Solved')by[d.Year].s++;
+    });
+    const years=Object.keys(by).map(Number).sort((a,b)=>a-b).slice(-9);
+    const rates=years.map(y=>by[y].t?Math.round(by[y].s/by[y].t*100):0);
+    return {type:'bar',labels:years.map(String),datasets:[{
+      data:rates,
+      backgroundColor:rates.map(r=>r>=50?'rgba(22,163,74,.7)':'rgba(200,16,46,.65)'),
+      borderRadius:4,
+    }]};
+  }
+}
+
+function applyLegend(cfg, id, solo) {
+  const fs = solo ? 18 : 12;
+  if (id==='circ'||id==='monthly'||id==='ytdpace') {
+    cfg.plugins.legend = { display:true, position: id==='circ'?'right':'top',
+      labels:{ color:'#6b7280', font:{size:fs}, boxWidth:solo?20:14 }};
+  }
+  if (id==='clear') {
+    cfg.scales.y.max = 100;
+    cfg.scales.y.ticks.callback = v=>v+'%';
+  }
+  if (id==='age') cfg.indexAxis = 'y';
+  if (id==='ytdpace') {
+    // Replace x scale with time scale
+    cfg.scales.x = {
+      type: 'time',
+      time: { unit:'month', tooltipFormat:'MMM d', displayFormats:{ month:'MMM' } },
+      grid: { color:'rgba(0,0,0,.06)' },
+      ticks: { color:'#6b7280', font:{ size: solo?16:11 } }
+    };
+  }
+}
+
+// ── GRID CHARTS ───────────────────────────────────────────────────────────────
+function buildGridCharts() {
+  document.getElementById('ch-monthly-label').textContent = CY;
+  document.getElementById('ch-ytdpace-label').textContent = `${CY} vs ${CY-1}`;
+  CHART_DEFS.forEach(def => {
+    const canvas = document.getElementById('ch-'+def.id);
+    const data   = getChartData(def.id);
+    const cfg    = { ...makeDefaults(false), plugins:{...makeDefaults(false).plugins} };
+    applyLegend(cfg, def.id, false);
+    const chartData = data._timeScale
+      ? { datasets: data.datasets }
+      : { labels: data.labels, datasets: data.datasets };
+    gridCharts[def.id] = new Chart(canvas, { type:data.type, data:chartData, options:cfg });
   });
 }
 
-function buildAge() {
-  const buckets = {'Under 18':0,'18–24':0,'25–34':0,'35–44':0,'45–54':0,'55+':0,'Unknown':0};
-  allData.filter(d=>d.Year===CY).forEach(d => {
-    const a = d.Age;
-    if (a===null) buckets['Unknown']++;
-    else if (a<18) buckets['Under 18']++;
-    else if (a<=24) buckets['18–24']++;
-    else if (a<=34) buckets['25–34']++;
-    else if (a<=44) buckets['35–44']++;
-    else if (a<=54) buckets['45–54']++;
-    else buckets['55+']++;
-  });
-  charts.age = new Chart(document.getElementById('ch-age'), {
-    type:'bar',
-    data:{
-      labels: Object.keys(buckets),
-      datasets:[{ data:Object.values(buckets), backgroundColor:'rgba(200,16,46,.7)', borderRadius:4 }]
-    },
-    options:{ ...CD, indexAxis:'y' }
+// ── SOLO CHART ────────────────────────────────────────────────────────────────
+function buildChartCyclePills() {
+  const wrap = document.getElementById('chart-cycle');
+  CHART_DEFS.forEach((def,i) => {
+    const pill = document.createElement('button');
+    pill.className = 'cpill' + (i===0?' on':'');
+    pill.textContent = def.title;
+    pill.dataset.idx = i;
+    pill.addEventListener('click', () => switchSolo(i));
+    wrap.appendChild(pill);
   });
 }
 
-function buildCirc() {
-  const counts = {};
-  allData.filter(d=>d.Year===CY).forEach(d => { counts[d.Circ]=(counts[d.Circ]||0)+1; });
-  const sorted = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  const COLS = ['#c8102e','#e03050','#a50d24','#8b0014','#ff6080','#cc2040','#991530','#771020'];
-  charts.circ = new Chart(document.getElementById('ch-circ'), {
-    type:'doughnut',
-    data:{
-      labels: sorted.map(e=>e[0]),
-      datasets:[{ data:sorted.map(e=>e[1]), backgroundColor:COLS, borderColor:'#12121e', borderWidth:2 }]
-    },
-    options:{
-      responsive:true, maintainAspectRatio:false,
-      plugins:{
-        legend:{ display:true, position:'right', labels:{ color:'#aaaacc', font:{size:12}, boxWidth:14 } },
-        tooltip:{ backgroundColor:'#1e1e35', titleColor:'#fff', bodyColor:'#aaa', titleFont:{size:13}, bodyFont:{size:12} }
-      }
-    }
-  });
+function openSolo(idx) {
+  isSoloMode = true;
+  soloIdx    = idx;
+  document.getElementById('chart-grid').classList.add('hidden');
+  document.getElementById('chart-solo').classList.add('active');
+  document.getElementById('chart-cycle').classList.add('active');
+  renderSolo(idx);
 }
 
-function buildClearance() {
-  const byYear = {};
-  allData.filter(d=>d.Status).forEach(d => {
-    if (!byYear[d.Year]) byYear[d.Year]={solved:0,total:0};
-    byYear[d.Year].total++;
-    if (d.Status==='Solved') byYear[d.Year].solved++;
-  });
-  const years = Object.keys(byYear).map(Number).sort((a,b)=>a-b).slice(-9);
-  const rates = years.map(y => byYear[y].total ? Math.round(byYear[y].solved/byYear[y].total*100) : 0);
-  charts.clear = new Chart(document.getElementById('ch-clear'), {
-    type:'bar',
-    data:{
-      labels: years.map(String),
-      datasets:[{ data:rates, backgroundColor:rates.map(r=>r>=50?'rgba(92,184,92,.75)':'rgba(200,16,46,.65)'), borderRadius:4 }]
-    },
-    options:{
-      ...CD,
-      scales:{
-        ...CD.scales,
-        y:{ ...CD.scales.y, max:100, ticks:{ ...CD.scales.y.ticks, callback:v=>v+'%' } }
-      }
-    }
-  });
+function closeSolo() {
+  isSoloMode = false;
+  document.getElementById('chart-grid').classList.remove('hidden');
+  document.getElementById('chart-solo').classList.remove('active');
+  document.getElementById('chart-cycle').classList.remove('active');
+  if (soloChart) { soloChart.destroy(); soloChart=null; }
+  // resize grid charts
+  Object.values(gridCharts).forEach(c=>c.resize());
+}
+
+function switchSolo(idx) {
+  soloIdx = idx;
+  document.querySelectorAll('.cpill').forEach((p,i)=>p.classList.toggle('on',i===idx));
+  renderSolo(idx);
+}
+
+function prevChart() { switchSolo((soloIdx-1+CHART_DEFS.length)%CHART_DEFS.length); }
+function nextChart() { switchSolo((soloIdx+1)%CHART_DEFS.length); }
+
+function renderSolo(idx) {
+  const def  = CHART_DEFS[idx];
+  const data = getChartData(def.id);
+
+  document.getElementById('solo-title-text').textContent = def.title;
+  document.querySelectorAll('.cpill').forEach((p,i)=>p.classList.toggle('on',i===idx));
+
+  // Destroy old solo chart
+  if (soloChart) { soloChart.destroy(); soloChart=null; }
+
+  // Replace canvas element fresh (avoids Chart.js reuse errors)
+  const wrap = document.getElementById('solo-canvas-wrap');
+  wrap.innerHTML = '<canvas id="ch-solo"></canvas>';
+  const canvas = document.getElementById('ch-solo');
+
+  const cfg = { ...makeDefaults(true), plugins:{...makeDefaults(true).plugins} };
+  applyLegend(cfg, def.id, true);
+
+  const chartData = data._timeScale
+    ? { datasets: data.datasets }
+    : { labels: data.labels, datasets: data.datasets };
+
+  soloChart = new Chart(canvas, { type:data.type, data:chartData, options:cfg });
 }
 
 // ── CITY RANKING ──────────────────────────────────────────────────────────────
 function renderCityBars() {
   if (!cityData.length) {
-    document.getElementById('city-bars').innerHTML =
-      '<p style="color:var(--muted);font-size:16px">City comparison data unavailable.</p>';
+    document.getElementById('city-bars').innerHTML='<p style="color:var(--muted);font-size:16px">City comparison data unavailable.</p>';
     return;
   }
   const maxRate = cityData[0].rate;
-  document.getElementById('city-bars').innerHTML = cityData.map((c,i) => {
-    const isJackson = c.city.toLowerCase().includes('jackson');
-    const pct = (c.rate / maxRate * 100).toFixed(1);
+  document.getElementById('city-bars').innerHTML = cityData.map((c,i)=>{
+    const isJ = c.city.toLowerCase().includes('jackson');
+    const pct = (c.rate/maxRate*100).toFixed(1);
     return `<div class="city-row">
       <span class="city-rank">#${i+1}</span>
-      <span class="city-name${isJackson?' hl':''}">${c.city}</span>
+      <span class="city-name${isJ?' hl':''}">${c.city}</span>
       <div class="city-bar-wrap">
-        <div class="city-bar${isJackson?' hl':''}" style="width:${pct}%">
+        <div class="city-bar${isJ?' hl':''}" style="width:${pct}%">
           <span class="city-rate">${c.rate.toFixed(1)}</span>
         </div>
       </div>
@@ -687,16 +856,18 @@ function renderCityBars() {
 const VIEWS = ['map','charts','city'];
 function setView(v) {
   curView = v;
-  VIEWS.forEach((id,i) => {
-    document.getElementById('view-'+id).classList.toggle('active', id===v);
-    document.getElementById('vd'+i).classList.toggle('on', id===v);
+  VIEWS.forEach((id,i)=>{
+    document.getElementById('view-'+id).classList.toggle('active',id===v);
+    document.getElementById('vd'+i).classList.toggle('on',id===v);
   });
-  // Update view buttons (first 3 .btn elements in ctrl)
-  document.querySelectorAll('#ctrl .btn').forEach((b,i) => {
-    if (i < 3) b.classList.toggle('on', VIEWS[i]===v);
+  document.querySelectorAll('#ctrl .btn').forEach((b,i)=>{
+    if(i<3) b.classList.toggle('on',VIEWS[i]===v);
   });
-  if (v==='map' && map) setTimeout(()=>map.invalidateSize(),50);
-  if (v==='charts') Object.values(charts).forEach(c=>c.resize());
+  if (v==='map'&&map) setTimeout(()=>map.invalidateSize(),50);
+  if (v==='charts') {
+    if (isSoloMode && soloChart) setTimeout(()=>soloChart.resize(),50);
+    else Object.values(gridCharts).forEach(c=>c.resize());
+  }
 }
 
 // ── FULLSCREEN ────────────────────────────────────────────────────────────────
@@ -704,38 +875,37 @@ function goFS() {
   const el = document.getElementById('shell');
   (el.requestFullscreen||el.webkitRequestFullscreen||el.mozRequestFullScreen).call(el);
 }
-document.addEventListener('fullscreenchange', () => {
-  if (map) setTimeout(()=>map.invalidateSize(),100);
-  Object.values(charts).forEach(c=>c.resize());
+document.addEventListener('fullscreenchange',()=>{
+  if(map) setTimeout(()=>map.invalidateSize(),100);
+  if(isSoloMode&&soloChart) setTimeout(()=>soloChart.resize(),100);
+  else Object.values(gridCharts).forEach(c=>c.resize());
 });
 
 function doRefresh(){ location.reload(); }
 
-// ── HIDE/SHOW CONTROLS ────────────────────────────────────────────────────────
-const ctrl    = document.getElementById('ctrl');
-const showTab = document.getElementById('show-tab');
+// ── CONTROLS ─────────────────────────────────────────────────────────────────
+const ctrl=document.getElementById('ctrl'), showTab=document.getElementById('show-tab');
 function hideCtrl(){ ctrl.classList.add('hidden'); showTab.classList.add('vis'); }
 function showCtrl(){ ctrl.classList.remove('hidden'); showTab.classList.remove('vis'); }
 
-let lastTap = 0;
-document.getElementById('lower').addEventListener('touchend', () => {
-  const now = Date.now();
-  if (now - lastTap < 350) showCtrl();
-  lastTap = now;
+let lastTap=0;
+document.getElementById('lower').addEventListener('touchend',()=>{
+  const n=Date.now(); if(n-lastTap<350) showCtrl(); lastTap=n;
 });
 
-// ── KEYBOARD SHORTCUTS ────────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (e.key==='1') setView('map');
-  if (e.key==='2') setView('charts');
-  if (e.key==='3') setView('city');
-  if (e.key==='t'||e.key==='T') toggleLayer();
-  if (e.key==='f'||e.key==='F') goFS();
-  if (e.key==='r'||e.key==='R') doRefresh();
-  if (e.key==='h'||e.key==='H') ctrl.classList.contains('hidden')?showCtrl():hideCtrl();
+document.addEventListener('keydown',e=>{
+  if(e.key==='1') setView('map');
+  if(e.key==='2') setView('charts');
+  if(e.key==='3') setView('city');
+  if(e.key==='t'||e.key==='T') toggleLayer();
+  if(e.key==='f'||e.key==='F') goFS();
+  if(e.key==='r'||e.key==='R') doRefresh();
+  if(e.key==='h'||e.key==='H') ctrl.classList.contains('hidden')?showCtrl():hideCtrl();
+  if(e.key==='ArrowRight'&&isSoloMode) nextChart();
+  if(e.key==='ArrowLeft' &&isSoloMode) prevChart();
+  if(e.key==='Escape'    &&isSoloMode) closeSolo();
 });
 
-// ── BOOT ──────────────────────────────────────────────────────────────────────
 loadAll();
 </script>
 </body>
