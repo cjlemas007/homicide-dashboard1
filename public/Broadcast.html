@@ -55,9 +55,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 /* YTD change badge on map panel */
 #ytd-change{
-  display:inline-flex;align-items:center;gap:6px;
-  margin-top:8px;padding:5px 12px;border-radius:20px;
-  font-size:15px;font-weight:700;
+  display:inline-flex;align-items:center;gap:8px;
+  margin-top:12px;padding:8px 18px;border-radius:24px;
+  font-size:22px;font-weight:800;
 }
 #ytd-change.up{background:rgba(200,16,46,.1);color:var(--red)}
 #ytd-change.down{background:rgba(22,163,74,.1);color:#16a34a}
@@ -65,21 +65,23 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 /* MAP PANEL */
 #map-panel{
-  width:300px;flex-shrink:0;
+  width:380px;flex-shrink:0;
   background:var(--surface);
-  border-left:1px solid var(--border);
-  display:flex;flex-direction:column;overflow-y:auto;
+  border-right:1px solid var(--border);
+  border-left:none;
+  display:flex;flex-direction:column;
+  overflow-y:auto;
 }
-.mp-block{padding:20px 20px;border-bottom:1px solid var(--border)}
-.mp-label{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-.mp-big{font-size:68px;font-weight:900;line-height:1;color:var(--text)}
+.mp-block{padding:24px 24px;border-bottom:1px solid var(--border)}
+.mp-label{font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.mp-big{font-size:80px;font-weight:900;line-height:1;color:var(--text)}
 .mp-row{
   display:flex;justify-content:space-between;align-items:baseline;
-  padding:7px 0;border-bottom:1px solid var(--border);font-size:15px;
+  padding:10px 0;border-bottom:1px solid var(--border);font-size:19px;
 }
 .mp-row:last-child{border:none}
-.mp-row .yr{color:var(--muted)}
-.mp-row .ct{font-weight:700;color:var(--text);font-size:17px}
+.mp-row .yr{color:var(--muted);font-size:18px}
+.mp-row .ct{font-weight:800;color:var(--text);font-size:22px}
 
 /* cluster theme */
 .marker-cluster-small,.marker-cluster-medium,.marker-cluster-large{background:rgba(200,16,46,.2)}
@@ -252,10 +254,6 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
   <!-- MAP VIEW -->
   <div id="view-map" class="active">
-    <div id="map-wrap">
-      <div id="map"></div>
-      <div id="year-bar"></div>
-    </div>
     <div id="map-panel">
       <div class="mp-block">
         <div class="mp-label" id="mp-year-label">Loading…</div>
@@ -270,6 +268,10 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
         <div class="mp-label">By Circumstance (Top 5)</div>
         <div id="mp-circ-rows"></div>
       </div>
+    </div>
+    <div id="map-wrap">
+      <div id="map"></div>
+      <div id="year-bar"></div>
     </div>
   </div>
 
