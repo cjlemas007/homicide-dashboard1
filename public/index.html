@@ -701,7 +701,7 @@
                     <li><span class="legend-line ccid"></span> CCID Boundary</li>
                 </ul>
                 <div id="ward-legend-content" style="display:none; margin-top:10px; border-top:1px solid #ccc; padding-top:5px;">
-                    <h5 style="margin: 5px 0;">Ward Velocity (12mo Trend)</h5>
+                    <h5 style="margin: 5px 0;">Ward Velocity (YTD)</h5>
                     <li><span class="legend-square" style="background-color: var(--velocity-high-increase)"></span> High Increase (&gt;20%)</li>
                     <li><span class="legend-square" style="background-color: var(--velocity-increase)"></span> Increase (5-20%)</li>
                     <li><span class="legend-square" style="background-color: var(--velocity-stable)"></span> Stable (+/- 5%)</li>
@@ -2068,29 +2068,23 @@ function updateMapDisplay() {
     }
 
     // NEW: Process Wards and Calculate Velocity
-    function processWardsData(wardsGeoJSON) {
+   function processWardsData(wardsGeoJSON) {
         const today = new Date();
-        const oneYearAgo = new Date(new Date().setFullYear(today.getFullYear() - 1));
-        const twoYearsAgo = new Date(new Date().setFullYear(today.getFullYear() - 2));
+        const currentMonth = today.getMonth();
+        const currentDay = today.getDate();
 
         wardsGeoJSON.features.forEach(feature => {
             let countCurrent = 0;
             let countPrev = 0;
             
-            // Check all homicides against this ward polygon
-            // Only support Polygon and MultiPolygon
             const geom = feature.geometry;
             const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
 
             allHomicideData.forEach(d => {
-                const pt = [d.Longitude, d.Latitude]; // GeoJSON standard [lng, lat]
+                const pt = [d.Longitude, d.Latitude]; 
                 let isInside = false;
                 
-                // Iterate through all polygons in the MultiPolygon (or single)
                 for (const poly of polys) {
-                    // Coordinates in GeoJSON are often nested [ [ [lng, lat], ... ] ] (Rings)
-                    // The first ring is the outer boundary. Holes are subsequent rings.
-                    // For simple checking, checking the outer ring is usually sufficient for stats like this unless Wards have donuts.
                     const outerRing = (geom.type === 'Polygon') ? poly[0] : poly[0]; 
                     if (isPointInPolygon(pt, outerRing)) {
                         isInside = true;
@@ -2100,21 +2094,23 @@ function updateMapDisplay() {
 
                 if (isInside) {
                     const dDate = new Date(d.Date + 'T00:00:00');
-                    if (dDate >= oneYearAgo && dDate <= today) {
+                    
+                    if (d.Year === CURRENT_YEAR) {
                         countCurrent++;
-                    } else if (dDate >= twoYearsAgo && dDate < oneYearAgo) {
-                        countPrev++;
+                    } else if (d.Year === PREVIOUS_YEAR) {
+                        // Check if the previous year's case happened on or before today's month and day
+                        if (dDate.getMonth() < currentMonth || (dDate.getMonth() === currentMonth && dDate.getDate() <= currentDay)) {
+                            countPrev++;
+                        }
                     }
                 }
             });
 
-            // Calculate Velocity
-            // Formula: ((Current - Prev) / Prev) * 100
             let velocity = 0;
             if (countPrev > 0) {
                 velocity = ((countCurrent - countPrev) / countPrev) * 100;
             } else if (countCurrent > 0) {
-                velocity = 100; // Treat 0 to >0 as 100% increase (new activity)
+                velocity = 100; 
             }
             
             feature.properties.velocity = velocity;
@@ -2173,11 +2169,7 @@ function updateMapDisplay() {
                         const trendText = `${sign}${p.velocity.toFixed(0)}%`;
                         
                         // Modified to include sticky: true
-                        layer.bindTooltip(`
-                            <strong>${labelText}</strong><br>
-                            Trend: ${trendText}<br>
-                            (Past 12mo: ${p.countCurrent} vs ${p.countPrev})
-                        `, { sticky: true });
+                        layer.bindTooltip(`<strong>${labelText}</strong><br>Trend: ${trendText}<br>(YTD: ${p.countCurrent} vs ${p.countPrev})`, { sticky: true });
                     },
                     interactive: true 
                 });
@@ -2241,6 +2233,4 @@ function updateMapDisplay() {
 </script>
 </body>
 </html>
-
-
 
