@@ -1317,7 +1317,7 @@ function getChartData(id) {
       c[d.Circ] = (c[d.Circ] || 0) + 1;
     });
     var s = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 8);
-    var COLS = ['#c8102e', '#e03050', '#a50d24', '#8b0014', '#ff6080', '#cc2040', '#991530', '#771020'];
+    var COLS = ['#c8102e', '#f5a623', '#1a73e8', '#2ecc71', '#9b59b6', '#00bcd4', '#ff6f00', '#e91e63'];
     return {
       type: 'doughnut',
       labels: s.map(e => e[0]),
@@ -1332,13 +1332,17 @@ function getChartData(id) {
   if (id === 'ytdpace') {
     var COMMON_YEAR = 2001;
     var today = new Date();
-    var todayDOY = Math.floor((Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 0)) / 86400000);
     function buildCumulative(year) {
+      var isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      var yearEnd = isLeap ? 365 : 364; // 0-based: Jan1=0, Dec31=364 or 365
       var sorted = allData.filter(d => d.Year === year).map(d => {
         var dt = new Date(d.Date + 'T00:00:00');
-        return Math.floor((Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()) - Date.UTC(dt.getFullYear(), 0, 0)) / 86400000);
+        return Math.floor((Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()) - Date.UTC(dt.getFullYear(), 0, 1)) / 86400000);
       }).sort((a, b) => a - b);
-      var endDOY = year === CY ? todayDOY : 365;
+      var todayForYear = new Date();
+      var endDOY = year === CY
+        ? Math.floor((Date.UTC(CY, todayForYear.getMonth(), todayForYear.getDate()) - Date.UTC(CY, 0, 1)) / 86400000)
+        : yearEnd;
       var pts = [];
       var count = 0,
         si = 0;
