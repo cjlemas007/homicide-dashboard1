@@ -27571,7 +27571,7 @@
       "32.369703",
       "-90.23334",
       "3",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -27580,7 +27580,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "6/12/2026",
@@ -27596,7 +27596,7 @@
       "32.384981",
       "-90.168599",
       "3",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -27605,7 +27605,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "6/12/2026",
@@ -27621,7 +27621,7 @@
       "32.385035",
       "-90.168562",
       "3",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -27630,7 +27630,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "6/12/2026",
@@ -27784,8 +27784,8 @@
     ],
     [
       "6/28/2026",
-      "Unidentified Victim",
-      "N/A",
+      "Keyana Weathersby",
+      "25",
       "F",
       "Unknown",
       "Unknown",
@@ -27809,8 +27809,8 @@
     ],
     [
       "6/28/2026",
-      "Unidentified Victim",
-      "N/A",
+      "Erica Weathersby",
+      "30",
       "F",
       "Unknown",
       "Unknown",
@@ -27834,9 +27834,9 @@
     ],
     [
       "6/28/2026",
-      "Unidentified Victim",
-      "N/A",
-      "N/A",
+      "Camari Givens",
+      "2",
+      "M",
       "Unknown",
       "Unknown",
       "300 block of Queen Alexandria Lane",
