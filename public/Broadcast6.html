@@ -1344,6 +1344,13 @@ function getChartData(id) {
       prev = Array(12).fill(0);
     allData.filter(d => d.Year === CY).forEach(d => cur[d.Month]++);
     allData.filter(d => d.Year === CY - 1).forEach(d => prev[d.Month]++);
+    // End the current-year line at the last month with data:
+    // months after the current month are null (not 0), and the in-progress
+    // month stays hidden until it records its first homicide.
+    var nowMonth = new Date().getMonth();
+    for (var mi = 0; mi < 12; mi++) {
+      if (mi > nowMonth || (mi === nowMonth && cur[mi] === 0)) cur[mi] = null;
+    }
     var labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return {
       type: 'line',
