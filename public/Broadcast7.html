@@ -148,7 +148,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 .solo-nav-btn:hover{background:var(--border);color:var(--text)}
 .solo-nav-btn.exit{background:var(--red);color:#fff;border-color:transparent}
 #solo-canvas-wrap{flex:1;position:relative;min-height:0}
-#solo-canvas-wrap canvas{position:absolute;inset:0;width:100%!important;height:100%!important}
+#solo-canvas-wrap canvas{position:absolute;top:0;left:0;width:100%!important;height:100%!important}
 
 /* chart expand buttons */
 .expand-btn{
@@ -197,14 +197,14 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 /* ── SPLASH TITLE PAGE ── */
 #splash{
-  position:fixed;inset:0;z-index:2000;cursor:pointer;
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:2000;cursor:pointer;
   background:linear-gradient(150deg,#14142b 0%,#1a1a2e 45%,#3d0a14 100%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:34px;
   transition:opacity .55s ease;
 }
 #splash.gone{opacity:0;pointer-events:none}
 #splash::before{
-  content:'';position:absolute;inset:0;
+  content:'';position:absolute;top:0;left:0;width:100%;height:100%;
   background:radial-gradient(ellipse at 50% 42%,rgba(200,16,46,.22),transparent 60%);
 }
 #splash-logo-wrap{
@@ -227,14 +227,15 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 @keyframes splashPulse{0%,100%{opacity:.35}50%{opacity:1}}
 /* ── WLBT.com PROMO SPLASH ── */
 #promo{
-  position:fixed;inset:0;z-index:2000;cursor:pointer;
+  position:fixed;top:0;left:0;width:100%;height:100%;z-index:2100;cursor:pointer;
   background:linear-gradient(150deg,#14142b 0%,#1a1a2e 45%,#3d0a14 100%);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:30px;
-  transition:opacity .45s ease;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .45s ease,visibility .45s ease;
 }
-#promo.gone{opacity:0;pointer-events:none}
+#promo.show{opacity:1;visibility:visible;pointer-events:auto;cursor:pointer}
 #promo::before{
-  content:'';position:absolute;inset:0;
+  content:'';position:absolute;top:0;left:0;width:100%;height:100%;
   background:radial-gradient(ellipse at 50% 42%,rgba(200,16,46,.22),transparent 60%);
 }
 #promo-logo-wrap{
@@ -340,7 +341,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
 
 /* ── LOADING ── */
 #loader{
-  position:fixed;inset:0;background:var(--bg);
+  position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;z-index:999;
   transition:opacity .6s;
 }
@@ -362,7 +363,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
   <div id="splash-hint">Tap to Begin</div>
 </div>
 
-<div id="promo" class="gone" style="display:none">
+<div id="promo">
   <div id="promo-logo-wrap"><img id="promo-logo" src="" alt="WLBT 3 Investigates"></div>
   <div id="promo-lead">Follow the Homicide Tracker</div>
   <div id="promo-url">WLBT<span class="dot">.</span>com</div>
@@ -840,16 +841,12 @@ function showPromo() {
   if (!pr) return;
   var lg = document.getElementById('promo-logo');
   var hdr = document.getElementById('logo-img');
-  if (lg && hdr && !lg.src) lg.src = hdr.src;
-  pr.style.display = 'flex';
-  // next frame so the transition runs
-  setTimeout(function () { pr.className = ''; }, 20);
+  if (lg && hdr && !lg.getAttribute('src')) lg.src = hdr.src;
+  pr.className = 'show';
 }
 function hidePromo() {
   var pr = document.getElementById('promo');
-  if (!pr || pr.className.indexOf('gone') !== -1) return;
-  pr.className = 'gone';
-  setTimeout(function () { pr.style.display = 'none'; }, 500);
+  if (pr) pr.className = '';
 }
 (function initPromo() {
   var pr = document.getElementById('promo');
@@ -1866,7 +1863,7 @@ document.addEventListener('keydown', e => {
   if (e.key === 'd' || e.key === 'D') toggleDbgOverlay();
   if (e.key === 'p' || e.key === 'P') {
     var _pr = document.getElementById('promo');
-    if (_pr && _pr.style.display === 'flex' && _pr.className.indexOf('gone') === -1) hidePromo();else showPromo();
+    if (_pr && _pr.className === 'show') hidePromo();else showPromo();
   }
   if (e.key === 'Escape') hidePromo();
   if (e.key === 'ArrowRight' && isSoloMode) nextChart();
