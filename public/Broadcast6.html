@@ -364,7 +364,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
           <canvas id="ch-circ" height="0" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas>
         </div>
         <div class="chart-card">
-          <h3>Clearance Rate by Year</h3>
+          <h3>JPD Clearance Rate by Year</h3>
           <button class="expand-btn" onclick="openSolo(4)" title="Expand">⤢</button>
           <canvas id="ch-clear" height="0" style="display: block; box-sizing: border-box; height: 0px; width: 0px;" width="0"></canvas>
         </div>
@@ -387,7 +387,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-famil
     </div>
 
     <!-- chart cycle pills (solo mode) -->
-    <div id="chart-cycle"><button class="cpill on" data-idx="0">Annual Homicide Trend (1976–Present)</button><button class="cpill" data-idx="1">Monthly Pace — 2026 vs 2025</button><button class="cpill" data-idx="2">Victim Age Distribution</button><button class="cpill" data-idx="3">Circumstance</button><button class="cpill" data-idx="4">Clearance Rate by Year</button><button class="cpill" data-idx="5">YTD Cumulative Pace — 2026 vs 2025</button></div>
+    <div id="chart-cycle"><button class="cpill on" data-idx="0">Annual Homicide Trend (1976–Present)</button><button class="cpill" data-idx="1">Monthly Pace — 2026 vs 2025</button><button class="cpill" data-idx="2">Victim Age Distribution</button><button class="cpill" data-idx="3">Circumstance</button><button class="cpill" data-idx="4">JPD Clearance Rate by Year</button><button class="cpill" data-idx="5">YTD Cumulative Pace — 2026 vs 2025</button></div>
 
   </div>
 
@@ -906,7 +906,9 @@ function processHomicide(raw) {
       Victim: e[idx.victim] || 'Unknown',
       Age: isNaN(parseInt(e[idx.age])) ? null : parseInt(e[idx.age]),
       Circ: e[idx.circ] || 'Unknown',
-      Date: d.toISOString().split('T')[0],
+      // Local-date format; toISOString() shifted the date on devices whose
+      // clock is set ahead of UTC (e.g. the TouchIT TV showing Jun 29 vs Jun 30)
+      Date: d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2),
       Month: d.getMonth(),
       Year: d.getFullYear(),
       Address: e[idx.address] || '',
@@ -1262,15 +1264,23 @@ function makeDefaults(solo = false) {
         display: false
       },
       tooltip: {
-        backgroundColor: '#1a1a2e',
-        titleColor: '#fff',
-        bodyColor: '#6b7280',
+        backgroundColor: 'rgba(26,26,46,.96)',
+        titleColor: '#ffffff',
+        bodyColor: '#ffffff',
+        borderColor: 'rgba(255,255,255,.25)',
+        borderWidth: 1,
+        padding: 14,
+        cornerRadius: 8,
         titleFont: {
-          size: fs
+          size: solo ? 24 : 19,
+          weight: '800'
         },
         bodyFont: {
-          size: fs - 2
-        }
+          size: solo ? 22 : 17,
+          weight: '700'
+        },
+        caretSize: 8,
+        displayColors: false
       }
     },
     scales: {
@@ -1315,7 +1325,7 @@ var CHART_DEFS = [{
   title: 'Circumstance'
 }, {
   id: 'clear',
-  title: 'Clearance Rate by Year'
+  title: 'JPD Clearance Rate by Year'
 }, {
   id: 'ytdpace',
   title: `YTD Cumulative Pace — ${CY} vs ${CY - 1}`
@@ -1478,7 +1488,8 @@ function getChartData(id) {
   }
   if (id === 'clear') {
     var by = {};
-    allData.filter(d => d.Status).forEach(d => {
+    // JPD cases only - exclude Capitol Police, HCSO, MBI, JSUPD
+    allData.filter(d => d.Status && d.Agency === 'JPD').forEach(d => {
       if (!by[d.Year]) by[d.Year] = {
         s: 0,
         t: 0
