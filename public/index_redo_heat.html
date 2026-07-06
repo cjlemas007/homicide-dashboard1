@@ -1,0 +1,2556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tracking Jackson's Homicides</title>
+
+    <!-- Leaflet and Chart.js Libraries -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+    <!-- NEW: MarkerCluster CSS & JS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+    <script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* --- BASE STYLES & COLOR THEME --- */
+        :root {
+            --body-bg: #f0f2f5;
+            --content-bg: #ffffff;
+            --text-color: #333333;
+            --header-bg: #ffffff;
+            --header-border: #dee2e6;
+            --banner-bg: #c1272d; /* DESIGN: brand red sampled from the WLBT logo */
+            --banner-text: #ffffff;
+            --legend-bg: #f8f9fa;
+            --legend-border: #dee2e6;
+            --legend-label-text: #495057;
+            --input-border: #ced4da;
+            --input-bg: #ffffff;
+            --chart-title-text: #343a40;
+            --chart-axis-text: #6c757d;
+            --chart-grid-color: rgba(0, 0, 0, 0.1);
+            --footer-bg: #f8f9fa;
+            --footer-text: #6c757d;
+            --footer-link: #0056b3;
+            --map-overlay-bg: rgba(255, 255, 255, 0.9);
+            --boundary-city-color: #000000;
+            --boundary-ccid-color: #E65100;
+            --rank-banner-rank1-bg: #c1272d;
+            --rank-banner-rank2to5-bg: #f04e4e;
+            --rank-banner-ranklow-bg: #5cb85c;
+            --rank-banner-error-bg: #777777;
+            --percentage-increase-color: #c1272d;
+            --percentage-decrease-color: #198754;
+            --percentage-neutral-color: var(--text-color);
+            --tip-button-bg: #0d6efd;
+            --tip-button-hover-bg: #0b5ed7;
+            --marker-color: #c1272d;
+            --marker-border-color: #8f1d22;
+            --marker-selected-color: #ffc107;
+            --marker-selected-border-color: #e0a800;
+            --velocity-high-increase: #c1272d;
+            --velocity-increase: #f0ad4e;
+            --velocity-stable: #cccccc;
+            --velocity-decrease: #5bc0de;
+            --velocity-high-decrease: #0275d8;
+            /* DESIGN: brand tokens */
+            --wlbt-red: #c1272d;
+            --wlbt-navy: #2b3a4a;
+        }
+        
+        html {
+            height: 100%;
+        }
+        body {
+            min-height: 100%;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+            background-color: var(--body-bg);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto; /* RESTORED SCROLLING */
+        }
+        
+        .dashboard-container {
+            width: 100%;
+            max-width: 1600px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--content-bg);
+            flex-grow: 1;
+        }
+
+        /* --- INTEGRATED HEADER --- */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: nowrap; 
+            gap: 20px;
+            padding: 8px 15px;
+            background-color: var(--header-bg);
+            border-bottom: 2px solid var(--header-border);
+            flex-shrink: 0;
+        }
+        .header-logo-main, .header-logo-secondary {
+            flex-shrink: 0; 
+        }
+        .header-logo-main img, .header-logo-secondary img {
+            max-height: 45px;
+            width: auto;
+            object-fit: contain;
+        }
+        .count-banner {
+            color: var(--banner-text);
+            text-align: center;
+            padding: 6px 15px;
+            font-size: 1.2em;
+            font-weight: bold;
+            background-color: var(--banner-bg);
+            border-radius: 6px;
+            flex-shrink: 0;
+        }
+        .ranking-banner {
+            flex-grow: 1;
+            min-width: 200px;
+            font-size: 0.9em;
+            background-color: var(--rank-banner-error-bg);
+            overflow: hidden;
+            white-space: nowrap;
+            color: var(--banner-text);
+            font-weight: bold;
+            border-radius: 6px;
+        }
+        .ticker-wrap {
+            display: inline-block;
+            padding: 6px 0;
+            animation: ticker 40s linear infinite;
+        }
+        .ticker-item {
+            display: inline-block;
+            padding: 0 2rem;
+        }
+        .ticker-item span {
+            font-weight: normal;
+            opacity: 0.9;
+        }
+        @keyframes ticker {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* --- LAYOUT & COMPONENT STYLES --- */
+        .main-content-area {
+            display: grid;
+            grid-template-columns: minmax(320px, 22%) 1fr;
+            min-height: 600px;
+            height: 70vh; /* Give the map/filter area a viewport height */
+        }
+        
+        .left-column {
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--legend-border);
+            background-color: var(--legend-bg);
+            overflow-y: auto;
+        }
+
+        .filters-container {
+            padding: 15px;
+            flex-shrink: 0;
+        }
+
+        .filter-columns-wrapper { 
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .filter-group { 
+            margin-bottom: 10px; 
+            box-sizing: border-box;
+        } 
+        
+        /* MODIFIED: search-container styling */
+        .filter-group.circumstance-filter, 
+        .filter-group.trends-container,
+        .filter-group.search-container,
+        .filter-group.clearance-container { /* NEW */
+            grid-column: 1 / -1; 
+        }
+
+        .trends-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .trend-box {
+            padding: 10px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--input-border);
+            border-radius: 4px;
+            text-align: center;
+        }
+        
+        .trend-box-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .trend-box .trend-label {
+            font-weight: bold;
+            font-size: 0.8em;
+            color: var(--legend-label-text);
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .trend-box .trend-value {
+            font-size: 1.3em;
+            font-weight: bold;
+        }
+        
+        .trend-box-split .trend-value {
+             font-size: 1.2em;
+        }
+
+        /* NEW: Clearance Rate Styles */
+        .clearance-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+        .clearance-table td, .clearance-table th {
+            padding: 4px;
+            border-bottom: 1px solid var(--input-border);
+            text-align: left;
+        }
+        .clearance-table th { font-weight: bold; color: var(--legend-label-text); }
+        .clearance-table td:last-child { text-align: right; font-weight: bold; }
+        
+        .filter-group label.group-label { 
+            display: block; margin-bottom: 5px; 
+            font-weight: bold;
+            font-size: 0.9em; 
+            color: var(--legend-label-text); 
+        }
+        .filter-group select, .filter-group .checkbox-group, .filter-group input[type="text"] {
+            width: 100%; padding: 8px; 
+            border: 1px solid var(--input-border);
+            border-radius: 4px; font-size: 0.9em; 
+            box-sizing: border-box; background-color: var(--input-bg); color: var(--text-color);
+        }
+        .checkbox-group { 
+            max-height: 100px; 
+            overflow-y: auto; 
+            padding: 8px; 
+        }
+        .checkbox-group div { margin-bottom: 3px; display: flex; align-items: center;}
+        .checkbox-group input[type="checkbox"] { margin-right: 5px; }
+        .checkbox-group label { font-weight: normal; font-size: 0.9em; color: var(--legend-label-text);}
+        
+        /* NEW STYLES FOR SEARCH UI */
+        .search-ui {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .search-row {
+            display: flex;
+            gap: 5px;
+        }
+        .search-btn {
+            background-color: var(--tip-button-bg);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        .search-btn:hover { background-color: var(--tip-button-hover-bg); }
+        .location-btn {
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            width: 100%;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+        .location-btn:hover { background-color: #218838; }
+        .reset-search-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 8px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 5px;
+            display: none; /* Hidden by default */
+        }
+
+        .map-container {
+            position: relative;
+        }
+        #map { height: 100%; width: 100%; background-color: var(--map-placeholder-bg); } 
+        
+        /* --- MAP OVERLAYS --- */
+        .map-overlay {
+            position: absolute;
+            background-color: var(--map-overlay-bg);
+            padding: 12px;
+            border-radius: 6px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+            z-index: 1000; /* Above map tiles */
+            max-width: 220px;
+            font-size: 0.9em;
+        }
+        #map-legend {
+            top: 15px;
+            left: 15px;
+        }
+        #map-legend h4 { margin: 0 0 10px 0; font-size: 1em; }
+        #map-legend ul { list-style: none; padding: 0; margin: 0; }
+        #map-legend li { margin-bottom: 5px; display: flex; align-items: center; }
+        .legend-icon, .legend-line, .legend-square { display: inline-block; margin-right: 8px; }
+        .legend-icon.homicide { width: 12px; height: 12px; background-color: var(--marker-color); border-radius: 50%; border: 1px solid var(--marker-border-color); }
+        .legend-line { width: 20px; height: 3px; }
+        .legend-line.city { background-color: var(--boundary-city-color); }
+        .legend-line.ccid { background-color: var(--boundary-ccid-color); }
+        .legend-square { width: 15px; height: 15px; opacity: 0.7; border: 1px solid #333; }
+
+        #map-info-panel {
+            top: 15px;
+            right: 15px;
+        }
+        #map-info-panel h4 { margin: 0 0 10px 0; font-size: 1em; border-bottom: 1px solid var(--header-border); padding-bottom: 5px;}
+        .info-summary .stat-total { text-align: center; margin-bottom: 10px; }
+        .info-summary .stat-total strong { font-size: 2.2em; font-weight: 700; display: block; line-height: 1.1; }
+        .info-summary hr { border: 0; border-top: 1px solid var(--header-border); margin: 10px 0; }
+        .info-summary .stat-breakdown strong { font-weight: 600; display: block; margin-bottom: 5px; }
+        .info-summary .stat-breakdown ul { list-style: none; padding-left: 10px; margin: 0; }
+        .info-summary .prompt { margin-top: 10px; font-style: italic; font-size: 0.85em; color: var(--chart-axis-text); text-align: center;}
+        
+        .info-details .detail-victim { font-size: 1.2em; font-weight: 700; margin-bottom: 10px; }
+        .info-details hr { border: 0; border-top: 1px solid var(--header-border); margin: 10px 0; }
+        .info-details .detail-list { list-style: none; padding: 0; margin: 0; }
+        .info-details .detail-list li { margin-bottom: 4px; }
+        .info-details .detail-list strong { color: var(--legend-label-text); }
+        
+        #back-to-summary-btn {
+            width: 100%;
+            padding: 8px;
+            margin-top: 10px;
+            background-color: var(--tip-button-bg);
+            color: var(--banner-text);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        #back-to-summary-btn:hover {
+            background-color: var(--tip-button-hover-bg);
+        }
+
+        .leaflet-control-layers {
+             background: var(--map-overlay-bg);
+             border: 1px solid var(--legend-border);
+             box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+ /* NEW: CUSTOM STYLES FOR MARKER CLUSTERS TO MATCH RED THEME */
+        .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+            background-color: rgba(217, 83, 79, 0.5); /* Faint red halo */
+        }
+        .marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+            background-color: rgba(217, 83, 79, 0.95); /* Solid red core */
+            color: white; /* White text */
+            font-weight: bold;
+        }
+        /* --- Chart and Tab Styles --- */
+        .charts-container-wrapper {
+            border-top: 1px solid var(--legend-border);
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+        }
+        .charts-container {
+            display: flex;
+            flex-direction: column;
+            min-height: 450px; /* Give charts adequate space */
+        }
+        .chart-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--legend-border);
+            padding: 0 10px;
+            flex-shrink: 0;
+        }
+        .tab-btn {
+            padding: 8px 12px;
+            cursor: pointer;
+            border: none;
+            background-color: transparent;
+            font-weight: bold;
+            color: var(--text-color);
+            border-bottom: 3px solid transparent;
+            margin-bottom: -1px; 
+            font-size: 0.9em;
+        }
+        .tab-btn.active {
+            border-bottom-color: var(--banner-bg);
+            color: var(--banner-bg);
+        }
+        .chart-tab-content {
+            display: none;
+            flex-wrap: nowrap;
+            flex-grow: 1;
+        }
+        .chart-tab-content.active {
+            display: flex;
+        }
+
+        .chart-box { 
+            padding: 15px; 
+            position: relative; 
+            display: flex; 
+            flex-direction: column; 
+            box-sizing: border-box; 
+        }
+        
+        #main-trends-content .chart-box { width: 50%; }
+        #main-trends-content .chart-box:first-child { border-right: 1px solid var(--legend-border); }
+       
+        /* MODIFIED: Use Grid for Details Content to fit 5 charts */
+        #details-content {
+            display: none; /* Initially hidden */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0;
+        }
+        /* Only apply grid when active */
+        #details-content.active { display: grid; }
+        
+        #details-content .chart-box { 
+            width: 100%; 
+            border-right: 1px solid var(--legend-border);
+            border-bottom: 1px solid var(--legend-border);
+        }
+        /* Remove right border for every 3rd item */
+        #details-content .chart-box:nth-child(3n) { border-right: none; }
+        /* Remove bottom border for items in last row */
+        #details-content .chart-box:nth-last-child(-n+3) { border-bottom: 1px solid var(--legend-border); } /* Keep bottom for now to be safe */
+
+        .chart-box h4 { text-align: center; margin-top: 0; margin-bottom: 10px; font-size: 1em; color: var(--chart-title-text); }
+        .chart-canvas-container { flex-grow: 1; position: relative; min-height: 250px; } 
+
+        .footer {
+            padding: 8px 15px; text-align: center; 
+            font-size: 0.75em; color: var(--footer-text); 
+            background-color: var(--footer-bg);
+            border-top: 1px solid var(--header-border); flex-shrink: 0;
+        }
+        .footer p { margin: 3px 0; } 
+        .footer a { color: var(--footer-link); text-decoration: none; } 
+        .footer a:hover { text-decoration: underline; }
+
+        /* --- MODAL STYLES --- */
+        .modal-overlay {
+            display: none; position: fixed;
+            z-index: 1001; left: 0; top: 0;
+            width: 100%; height: 100%;
+            overflow: auto; background-color: rgba(0,0,0,0.5); 
+            justify-content: center; align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe; padding: 20px;
+            border: 1px solid #888; border-radius: 8px;
+            width: 90%; max-width: 600px; position: relative;
+            box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2),0 6px 20px 0 rgba(0,0,0,0.19);
+        }
+        .modal-close {
+            color: #aaa; position: absolute; top: 10px; right: 20px;
+            font-size: 28px; font-weight: bold; line-height: 1;
+            cursor: pointer;
+        }
+        .modal-close:hover, .modal-close:focus { color: black; text-decoration: none; }
+        .modal-content h2 { margin-top: 0; color: #333; }
+        .modal-content p { line-height: 1.6; color: #555; }
+        .modal-content .emergency { color: #d9534f; font-weight: bold; text-align: center; border: 1px solid; padding: 10px; border-radius: 5px; margin-bottom: 15px;}
+        .modal-content ul { list-style: none; padding: 0;}
+        .modal-content li { margin-bottom: 15px; }
+        .modal-content a { color: var(--footer-link); text-decoration: none; font-weight: bold;}
+        .modal-content a:hover { text-decoration: underline; }
+        
+        .tip-button-floating {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background-color: var(--tip-button-bg);
+            color: var(--banner-text);
+            border-radius: 50%;
+            border: none;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+        .tip-button-floating:hover {
+            background-color: var(--tip-button-hover-bg);
+            transform: scale(1.05);
+        }
+        .tip-button-floating svg { width: 28px; height: 28px; }
+        /* FIX #7: inline search status message */
+        .search-status-msg { margin-top: 6px; padding: 6px 8px; font-size: 0.85em; border-radius: 4px; background-color: #fdecea; color: #a94442; border: 1px solid #f5c6cb; }
+
+    /* --- RESPONSIVE LAYOUT FOR MOBILE SCREENS --- */
+        @media (max-width: 900px) {
+            .main-content-area { 
+                display: flex; 
+                flex-direction: column; 
+                height: auto; 
+                min-height: 0; 
+            }
+            
+            /* Push left-column (filters) below the map container */
+            .left-column { 
+                border-right: none; 
+                overflow-y: visible; 
+                height: auto; 
+                order: 2; 
+                border-top: 2px solid var(--header-border); 
+                padding-top: 10px;
+            } 
+            
+            /* Bring map-container to the top */
+            .map-container { 
+                display: flex; 
+                flex-direction: column; 
+                height: auto; 
+                order: 1; 
+            }
+            
+            #map { 
+                height: 50vh; 
+                min-height: 350px; 
+                order: 1; 
+                width: 100%; 
+                flex-shrink: 0;
+            }
+            
+            /* Flatten Overlays: Stops them from floating over the map */
+            .map-overlay {
+                position: static !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                box-sizing: border-box;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                border-bottom: 1px solid var(--header-border) !important;
+                margin: 0 !important;
+            }
+            #map-info-panel { order: 2; }
+            #map-legend { order: 3; }
+            #map-info-panel h4, #map-legend h4 { margin-top: 5px; }
+
+            .charts-container-wrapper { height: auto; }
+            .filter-columns-wrapper { grid-template-columns: 1fr; }
+            .chart-tab-content { flex-direction: column; }
+            #details-content.active { display: flex; flex-direction: column; }
+            #main-trends-content .chart-box, #details-content .chart-box { width: 100%; border-right: none; border-bottom: 1px solid var(--legend-border); }
+        }
+
+        /* ===== DESIGN PASS ===== */
+        .days-since-banner { background-color: var(--wlbt-navy); font-size: 0.95em; }
+        @media (max-width: 1150px) { .header { flex-wrap: wrap; justify-content: center; } }
+        /* Ticker accessibility: pause on hover, honor reduced-motion.
+           !important is required because the animation is set inline by JS. */
+        #tickerWrap:hover { animation-play-state: paused !important; }
+        @media (prefers-reduced-motion: reduce) { #tickerWrap { animation: none !important; } }
+        /* Colorblind-safe percentage labels on ward polygons */
+        .ward-velocity-label { font-weight: 700; font-size: 11px; color: #333; text-shadow: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff; white-space: nowrap; pointer-events: none; }
+        .ward-velocity-label.small { color: #808080; font-weight: 400; font-style: italic; }
+        /* Victims list */
+        .victims-controls { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 15px 0 15px; flex-wrap: wrap; }
+        .victims-controls input { flex-grow: 1; max-width: 340px; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; background: var(--input-bg); color: var(--text-color); font-size: 0.9em; }
+        .victims-count { font-size: 0.85em; color: var(--footer-text); }
+        .victims-table-wrap { max-height: 420px; overflow-y: auto; margin: 10px 15px 5px 15px; border: 1px solid #ddd; border-radius: 6px; }
+        .victims-table { width: 100%; border-collapse: collapse; font-size: 0.88em; }
+        .victims-table th { position: sticky; top: 0; background: var(--wlbt-navy); color: #fff; text-align: left; padding: 8px 10px; z-index: 1; font-weight: 600; }
+        .victims-table td { padding: 7px 10px; border-bottom: 1px solid #eee; vertical-align: top; }
+        .victims-table tr:nth-child(even) td { background: rgba(0,0,0,0.025); }
+        .victims-table .victim-name { font-weight: 600; }
+        .victims-table a { color: var(--wlbt-red); font-weight: 600; text-decoration: none; }
+        .victims-table a:hover { text-decoration: underline; }
+        .victims-note { font-size: 0.78em; color: var(--footer-text); padding: 0 15px 12px 15px; }
+        #victims-content.active { display: block; }
+    </style>
+</head>
+<body>
+<div class="dashboard-container">
+   <div class="header">
+        <div class="header-logo-secondary">
+            <!-- Placeholder for WLBT Logo -->
+            <img id="trackingLogoImg" src="data:image/png;base64,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" alt="Tracking Jackson's Homicides Logo">
+        </div>
+        <div class="count-banner" id="homicideCountBanner">2025 COUNT: ...</div>
+        <!-- DESIGN: hero stat -->
+        <div class="count-banner days-since-banner" id="daysSinceBanner" title="Days since the most recent homicide in this data">...</div>
+        <div class="ranking-banner" id="rankingBanner">
+            <div class="ticker-wrap" id="tickerWrap"></div>
+        </div>
+        <div class="header-logo-main">
+            <!-- Placeholder for Tracking Logo -->
+           <img id="wlbtLogoImg" src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAPwAAABaCAYAAACc7juUAAAiO0lEQVR42u1deZgdRbX/dfedmewJBANkIRAghC3hGVEDhgmQKJAYopAggiBPQXhuLD5FP98LLk+NigtPUQkPFAKaTWQ1EiQLBBAIWwAhEIEEYiAJ2WcyM7e7/aPOefdMpZfq5U7uzHR9X3/3ztzu6qpTdc75nVOnTgHAawB8AB59Rl1t9Pl7qOIgW7Hp8xAAzYbt4DZ8jp4tZWxDCYAF4Byqt2xAB5c+XwHQg54fT213RR1P0jssVK9w3U9pbevoywOwG8B2AG8CeBrAHQC+C2AagKFau+sA9AMwE0BrAtrX6sV0n0xj8gHql1sDbWOe2gQaEFNi84NvA+ibw2RmZv2CxsxRF7dzsSY00hYWWrclaAPf80NRzy/Eb243ZPi4610A9wO4DMD+Wh/GAXi+EzM9t3mFmE931lB/uA13AsBhCbSrLsmyanlm1hUphE4LgIMzMj0zSz8AGxPQgDX5GHq+L4B/Cvp0d4aXSKccQNNNJCzfI/rRjwRCZ2R6pvlE6stJNSZ8mZ6XMbH/QoNSNtRuHoDZGSE1M+lIUadpB1jDXp6xDSysJieYaHzPE9QHC8DHtN8KDR8sBMoaglpLcJ/nQwOAh2q8H2Hz4UEaC4u+15rgagFwFE+YC1PYr2vJfk07oZlJr04ApXUiP5JRw3MbZtOETALnrxD1LNCeLxg+nvklra8UfTkAwAYNKXUG7d5IffhIjTE7t2+VROMDAWxNAesnZID1LA1XpiQQa4xRKZmeGaUHgHWGzMK0aQYwnJ4/EMAO7feC4c0nI4/7xaJPn+wk0J7bt0jwwWM11nYWrL/WYe3tKbTcT1NCambO0TToXoaOfCNlG7jfExIwCtuj94p6Lg1AKAXDJ2f6FgBHCjPp6U7QH56742gMPl6Dgorb8gkI4loAbqVPOwHDnkGM5qZk+LPpu5thok+n727K58+kTy/Bc7eJv8/rAKauVmFUksfFjMsMmmQu+ADqAXxHCP/ZCcelo0uZ2n43gEdpmXFmwr53xPg6pIwe1aF1DwBvJJCqPDDHp4D1Ft3/YkYpzpPtuISwnvtcArA6IZzfBGAfqufIEIdjoeGTtYPHUa68jKR1/TZaz24zvFyk9ykkuVqI6cdSe88VsQhtOVzlHMfgGZ7zJfpHiRq6gBwongHzuPTcVPJYm05qh559HzGMh/RON27DdOqUbagRGFW8F8DhRAPT/t4NYAv9bwb9r4zsAUAdWZjmlwF4LgHdwkoPAPvSEu+JACaRx910bBmh1UMFML1O1zYAgzqAHlbK8VtAPqh9AfyM6mmosXG2ADzMfF4Sqp/t+CsMtTUP5EcJyrgJiMvMgowMz8+dlbINUzVmNnnXbWKCnJNxlWBvl7+RrZx3OYog+QkJxtcXz4K03CwAhxrWwULraPKYmzzj01i+BRWUYhlCcq775/TM4QCWU5utHIQPl2k5CBALwH0ajdvB3KeQLAjGJSKbTHx+Rz2Af+QEQfn5cQlMC27HM4Zt4N/X0ABYAD4U8WytQ3q+ZzzRq54+s1wlcYHMnvVijpg6YX+V0gnL5VNIHrW5qAaF8RRUApeyOOvuJr60dQZ16Ibbg6RBBMy1qXEwlMI+Sf5DEkjhOGkrEYNl2IajARxrCOf5HfPIdvNp6aiWnUqmkM/N6SqLq57MnoU0Hklo1KLNyZLh1YM++6agQz09W5/gfSUx16wcBKZDjr96Epaz6X9WynG1oMKZL5H0twMm9QIiumPAbDo09gzvPycBs5gwsIQ/bswztpCgpisEDrV1Lv3dFyq6rjPD+Y7wEbyRwqu8VlMo5YRXGgHsp3hPWfCHn5PQ9MlB+TWoAKRyyvnF9P88VMg3z989GN4mZ8lSQ4bk598HYESMxraoA72EgHBiNOojUGGKUW1h2+1gchjFaWxPE1JxAoUFyEoAz9L3iTQgbsHwoWPtAdgvoT/GAvB4AoTZlQorn5FQIeMe0gW0sT9qLoA/QFs2t0OIPscQSlgCwp2O6HV8rnsCgMExmpiZ8rcAbjQQPvzbJ2KYmIXDCFSWU0xNituFfXS++N7ZGTOvyxawlJ1XUw1pzBB0DTF8UjOgqwhJH8C1hFT9FHCeFe4G0u6xqy/8ggEANsMs1NZ0uypLq98hPqKPw2YPgdpRtTumLfz/9QB6RzA9212m23G53iZEh9J2VqfdB6vUph4kqE3bw/vhL83gsONnLk3htPvrXjbPmDdOR7ZIPe5zKIIuBWgzByqu/h7yeMYtWTGRTiDNvT5AsvA6az+o6DwrAq649NvTZF7wPuNTImAOa4QDAZwMFfoaZJ8zg55pyIgsMZcIe/RMAH3Q+dbeg0o/uhyki3bk0kB+jeE0D86H2uNg4pRtI1SwjBxVdsa2dFbNXg/gJyk1u4TyNwG4C5X4kEiGl+VWABfAbKnNJdt8EoBbAhieJ9SHya5zIxjeF85D7vxCYnjfABaeQ8IqTCgMpklpKtHZxOHSmUNpdSE9lxgua6mn8a8LEJZhY8zCtw4q+cUMMYbdyX5nAfclEpJpFAkrwnVQcTSJhSavla8xhGUMJe4IgRL893xDON9GzgsuByE+SYcMfR0QwJQM5z9tCJuShNJ2NkhfzXDaqPBWL4B2f4TarZkVUndGSM/vGw4VVZhmIxkvre6Gig1BlLMvyt5uJQaNc5jJF0yACjOUDjlGAPsRAoiD8+wRX41KwMBaVPa+ezFIYyAhCf09TKBphl5glpBBobRdBXLmzfA20ceOcRK2QCW6mAG1w2wzsof3dmakdT6ZVl4G5cBmgdELgyACoJJVmiwPMLMNIOgtmY2DB84A0B/R3nlmwoWifbaA9XGMyhPvHLT3onP79oX5Hn6mDa9YdIVQ2jAGzOuKGpc28sv8D4D3Q6WBYoVSh+63DCfLIRn6L/M63AEVipxquZgfeNwQAjPUnaMxFH/ei/g0Wh4hi8M1hk8K67ejki/NEnD+bMO+MCR9FZVY5kYk94IX++Hbj00zVO7AF6DWiM8jzYYcBGlnhvR55PLjZx8nWgRG6dkGjTENteUXTCQvtiucB4NJs0at07PmfwIq/bMtbL6ksL4vKumCHQ3Om6yfe8LnwKGehxmaN0UJH5seZNodRWhpDtRuva/Rb2mDTTorPRjCD8lBMTjE9McD+K8wLW8SkbaAJHMphlG4A/tDbcqA8NpOJS9u2QDO/zGgbbYG9U3gzzmaxu1j4EOQxPNQyb8PBCxxdIGSJnTV5IpKgiEdTS45rH4AlRpqLKJXcLpi6YdK2u6sSJBXw76OkK3ncQzvQB0q8KAYqDjNKNe5PcF8cR3izBx3BmhSTzjQ4oSPLSD4UOFgGw+1tzrOMSIdh88JoWV1wcmWZHNKkssRaMsPUAwclecIODoGai3+lG7C9DyfBqGyqpRXnXUAfoSANf2SQQWc/mqyoU1iATgNQE9izhFQ695+DJznBICvBnhsWVKtgwrCmYjoIJwyvX8q1HZLCefjgkF8zZRhQdSVCk+EBVCbK/Ja+24gx+jBpGF6a+8Lm2O88tEbwJ/IqfcSurbnnulxAH22or2TOq2CYS0/GWqZ7mEkCKzil/aH+UENLNXZW/+fBk4Ukzzz7Hj7nEF97MBYLjyYJum7ZCjtMM0s+XQCZ1BnCa09tortGgbgKnKgJj3K7BHNYdsVnXbc3s/GtC1LiO1dQggYdZBDbbcJqB0nKVgiT0FliQwxtjtr0bsiHGM8Ye6FCjKIgvUMFccRZBoN5eWP0+78jgcJTZhsEe7MZR+iY0MV4Pw6qI0gk1HZC+EbMEGZxm1yF3fiMS2aoDaJzQJwM5mS0o+UVpj4hLRHIuEyXdJ0zlK7jUJ89BBLsmUGQoh/W2wgBVnKXQSVytpE6suUvhbaZ3Dpihr+RF0D5NwuXtK8OQHteHn3joRt68ybZ/TyPijndZZlVu7/TEkfkw6yk2sF2i+XxTHlESThTbefLjBkeNMgHK7n81AZRePqZqSxGcCfBbGLkl6DsWZZmtAGtciO74n4hCZ7q9gpLivChyGz6DwJFYF4JSpL20mRpkzD/v9p3E2TCzLknhcBufXSByq6Lg7Ol8hhcbdB3UlgPfdtLIBjDBiemfsuMmG6OpzvSMZvTvHc/lDxG6hRhk+Tu98PoY+eRYdXT34KtaaeBt7zXD8GlUg+u5Sgc4Bal746AcyK2+rHNtqjUFthbQOGZ2/9w4j21usIwjRV1pycYS1Lbb9Kk66WhRL3e3iKZxy0j8KrNe1+RAJBxHywGeqo9bj54Iq5812ozNDvR7LlStbqdVDBOP9IyvA2VEjk4+RUMXm5ZUAICORgsgzDSSgXEsP7Gdsg+7eGBEmak2yCCh8oUG2myvKsSSx8mjptVJYzTUyqoD7VmknFy1vjyUwx3bvO950GdVKzyfZVOa9/hMq+gzSOwdFQW6GtUkKp5kHlZR+Xg2aRB2Dck8BUYK12D1TCgJ5InzRAZ/j5ZF6UMjKqXGO9pEqa3SZH3coM9ZQFpMwTwjOz9gBwHYB/Q7L89BbNi801iFiASgJTk/MMZO77pQnmuRR4S6CWN/ulnOsjuC2lhJMMUN7TWVBBElkYTcL5tTAPsuCJ8ybUFssPI/vyjR5K6+U0MYYD+E0VJ+C1qKwEpCn9oaK8sma84VKiOg+CWgE4D+aZb3QGeR0qN1se45FXYajdmGDuc99fgdqXkSSYiIXnZqLH6IQ8x/fxRjKvlIJB1wN4ACqKzUTCxXVmfgI4r8P6BcTwfsZBdIhx8jh2Se9jNWApZ0XZlcEGZVOqLQcfgyUEZ29tTiQ9WYjvf1DMr1rYx8A0Gizs9yQmSmtK5cjvbQmA+qalp5TIaeyzW1Fx92eB880w886Hwfr7qI4ssJ4JeFsKwWNCr2rlvSsh+7pxtZxicpejnVJ43JhhglejsN19GM23pIJsX6RbWmNeGZjBZxN4EIWpNvTJ8fA20i9dcQNWEDS3UzC8TXbRQxlgnxQ8C2sMPnZEqdbedzulQGqjOXUrVLKMvEyNPO33YQnnCdPgSFR2xSU95XgEmUk+0gn57VyfnZJBdkJtckDKAZGZbayUneBAhgUZNAELsAdJ8DjdjOGtKl1pCmevXQPgy6jdjTMDUtC4TKbOjIRMywr1PKRLrcY88VZahpeVzEmJElhoNBGc91MOrA7rS0gHmeTBGxaKsjdQBjP7WqhgrS01BudlqU/xDPucrobav1BGvJO5RHQZBpXR1kd6x/Tf00J61ooW1FbWNFsY+d6HSPLYGRg+C6xnAm5CEUq7N5ic051ZxOxLoda3V9c40tqVgeEHQ60EsbaWm4344ig7RgXzCFWk8VExfz/BdE/r9OF0On9IyWhZ4bwO65NkwtHhfBFK2zHMLbPrWMLOfwtqW/QpqCzPujXaD5DvCimZzwXwEfKBHYr22YHkxqYy1OnGf4U6HShNUko2Hd6GOhYdSLgsF6Sl5wL4JszPAuNGNEHFw2fVqjIIpwmVvGhJIP2chBPXqwHtExSb7ddI28L8A7KUSevcRhrvXSEEvJwEjAktkhx8wfe8mgFesxPyFKigqZug4lpW0/ztA+XcOxvAhahsHkp7qKQDlSBzJ787C8PbBOkfQyUBvmlZDrWe7+TA8DbV9RBJzyQS9zVUQmnjJgd7netrgJm4DfKklx5ItwxW7dJEDL0OwIs0Xx6muaMzQh4IK8k4Ma0aEjD8GigH7zAkX5qDMFf6EbK5HOqswmaovI99tPmd1m5n9HuzLoWzSHAfarngIEMbg+95g4iWh2OG3zkUKrItSTveIekaJeX5t0FQyQSyhvHmBS85yQSfeXccTZZaad9uYvZt5IRrDqBrnozO43QA1Fp5knmwFeq4K1MNfQvU4RFZA89c7JlO2hOMnnYc2QR4BmpvfVKzuyhFyYUhS8gnYGhvFda2k5DvGQD6FtqsF++RmKa1OxdNYDcmHMBBgD8P8K4BrGsySneuYwZgv5OwPybtyFJ/tQu3HwAm1GgqqEGAf5Sg7TVVcoxmHaelgBs3H6+her+lPp+CyglYa2m4GDUsh4r5745HeBWlKLkVVm5nwjyVVkee7lOGitsPTPqSi8ZaPGrUwCHoXb8Ru9Di9yyCV4rS5UqD1ez38Xtafh9746yVK70FgOurwLEpSHfEczUKBzB9FWoP/R5O8UyN9KdPd6z58906r3TqTqd8i++WWuutNqdYzS5KVyu+X+e6tuvs2tG2aD5wFs39i6ESwgzD3j88g5n9LmL2wF2GmbSxT88vHT68wWro+1JPxxne4nlFfGpRumCx4MFHX8fBlra2C0995YVbSpaFsu+PgUpQsc9eZHpGGM9BRSvuREha8My8uaSxsXTysmXlJSOPvbx/yfnp9nK5DMtyiglSlK6o6OtUeOruXWWcNHHNqqccy4Lr+8dDhWcP3AvwnjX7agCnImb3aWaGZy3/8LHHDvBbsdqxrIFtvg+r2IhSlK7I8YDXYFm2D3/99ja38bQ1L75KTH80VIj3EcT01Q6C4mW8ElTU4jQYBLNlbpAF+EsbG53xq1Zt8eHf1Mu2Lcv3i00oRemiwB52i+e5jmUP7lcqPbB41OiRru+jZFkvQJ2hOBeVWIMy8l+G9IVAKUGdWjMBhpGruUigpcuWeQCssu1ev9N1my0F6QvXXVG6JtNbltPsuq5jW8N7A8uWjBz9obLvw/f9LZY6tegCqAhITlHOR2P7GZic6+AApn9AvesiqIhGo01HucHuedOnOzPmz3eXHnHMLX2d0vk7ym4brJpYqihKUfLW8j4Ay/N9t8626xyguexbV4x/+dnfMFP5yon3RaisxUPE48z4clORpTG3L77rpsFaqMSov0Rll6fx+QT5MTzgTAe8FYePGVNfwtMoVHxRuj7jw/V9OJaFPraDLeW2+9uAr0x4edUqsTljHwBnkTb+ICpHaCcpW6HSwc2DyjTFKasSbz7L1bHmA5YF+EtHHnNDL8cZ2+x5ru/7hce+KF2d9X3fglcH9Lct660217v27VeeXzQLsFdWDuMA1CazD0CdBHMUaf4BUDv7WFM3Q6WlfgPq4JcnoM4e2CDqKSG/TUe5CL6iFKXblr+MHt1b44eoDUP1qGyL1VN8y2Ij2w666nO8SbZDH7AIGcTeI6+w+5LUEVdXXLtM3zVTbTAqxT3XCJSmA07a95rSIgl9TNrN980E7Cg6x9Ha5N40fcpjDGUfY7J32hFMyUzLqa2iWEjeZ+XNm3mXXjDL7rkZlQT7NtSeczvAfmnCnnvW34P2CSDehdqD3YvsJl/7LSqR//6opLiy6N7N9P09SBZIsRHtD3eQQRA9oTKaDIdKWOFC5dR7nS4vBQ2Dyi5y6PSBWe55vc3AnsEbR0OdIsNj1AaVPulltE9mEVf2w57JKf6pjYvMxz4oJQ3K1C8/AR24NNG8szQHG9PjYACHQwXaWFAJLN6ESqiyLQce7DTuL2aMT0GF922lyadf2+n3E8WzA4hou+i3HfT9UQGJJHEeo9/5HZPo/4dBJVzgSb8LwA+19kEIlhHa/U1QWUIZbj1Hv+0I6Yt+yV1K/I6BAL4HtZQStMuphey1X0AlsgCAz2h9MLn43p9RHV+MGYcd9PtxGk1s4RT6PFSO+LC935yu6koAByI4pRX/PYiYWx/jCeJ98v2H0327xGfcxXU+Luq53JCW/PvPtfkiz5RbQnMkiBYboFK3XUDKqMubtyUxWU228zWKZ/ehiRl032cCGPY5tE9CINNbLdd+WyMGwNLq+qJ2bxsqh++VUMlhZnqN1up/L73fF/XLRAeexkz/R89dhuTbL/ne66mOrxg+NzZASA2BShsm27kblWASea45/708RGvxevSnRV3y83qNZtyGIwLujbuYls+Jer5qWAfT71f0XJ2A4bND7tWTTvD3fWvRp1Wt0L9WkoLbAzRDmaR1U8CSQlkbGJe+fxtAX7TPIeYGEJrL7eIejxh4LNofAsDwTN/X/BBpYktjRlOvqKx/f6i8+SNE/ZxvfD1BYtmmFlRSQdUFCDkETNIggdsjYBy8gHHYpY2DRCSLoXIVtqES8NGAyjnnW4gR2BRqJTMEIRDVh0rOKGnJbZpC5k5ZYxAbwWvViKAB96F3wL1xkW86/dismQXgs4IWfO9GGsedAp2wmVbTGjmvwtvxFhL08aBS8h6DSpD/YgAXE4He1uxGPRiBo4cGk7aaSW32EJ0VVR4l3Ub1TCUzQGZHHQIVDmkJ54g83FK33xwAi0jah21QeA2V9dEvENO3Cgb+CVTQxDtUx1CoTQ8XQR2rzGNyH5k4nmCqYQKu886sH1G/OJSTz7kHVNjlQoF6RohxuAPAFVTHPwVjeKRxj6R7WTtvA/B9qO2XG+i5Q0hgflb0M8hGden3RkFrXyxFDSPhslij6zoAHw8Y3+to7Hijyv1QwSi2EE7bxHO+Nq+aAPwHwX9ZWKGwwG8lf8uXUckTZwNYRf97hu7pT2bReQDOJYHZbcNQVgo71ceeB9tbAtJvDoBerGV3EHPw/c8IzeJDnSIrNeMi7fdVQmPwJP6Mpt2b6B1S4KzW2v+zBFp+ObWf2/BUBLpyAHyL0ExYGR4AKU8zHIeXtH7cFPB+QK0TszbkcM53hKkSVAaTkH0pQBszrf89BAqzifPrBEroRa0v18UotK9oc2ELxImqMc/OCDBfToho6wehds7t150gPUvxoCUKlpJ1MXW0CCntkaf12waSk985T/P4Hg2Vg8wX/5smtCUz6JuIPpTCN+i7L6ChWOnBEABjNJMCBJV9QjAzRT28LFNH34O89n3ptwaxlGNrtA5a2uHxqdcm5oXY82DIK8gmbhAwnt9VT7B2Ctno+mqKJ+C8LCvQPmvrFDIJypo2LmlXXcCSVkMADeICvlxDz3nvANPhdFTOjJMCooHQ1um0MlRzHvdqxbpLLR1UvBjJx3DqewB+IKDaBSTNn40QVvzee8m26iNg7Efp2TLUcttJmnabp5kSQcKxkWw6CT0ZCq4gyFtH79yg9XUQgEdIAywnT/Lz1E6I5yC0CjSkE9Tfcsgk9hGerlk/uIKh8Alof977WkJlttCQYeWxAJp55L0/Scy5FgBXAbiToL5LwnA8mYC25qOBtkTmB/QliAalEEbuCeDH5C/R62umVZ3d9PebYk6wmfdNYurFtIr0DNGpLOjW7XaMMnGf0uDXQo3JoiD9QVCxw/L5+zUvvQ7pHVH3nVQXP/uEYNxzNYi5A3se5yshvUlK4hs0p89FqORoD0tDvA7qsICTIiAgt+eYAEh/VoTwlpryZY2Ov9UgN6DWqjdqdP2joKsFlfd9SMh1YIh3/mLt3Svp93s1+szW5kZYX3TzJMwc0CG9yYqHi/Znsfcjk8YTz+vjuAvAMqglzN5VRs81CenzFBpXo7LR34Vab59EwiHqOQtqb7IlJPNxUMEjIGeQZOQHke3MewjtzA6e26DOB2sQzqsy3cf24FCCwsvI8VRCdLRWNYVz7wBP+yahRfnQx1dIgLyifV+kMaYO5z3hX3EI6Ugz7Axqg7sXbd9mMf4OrXB8WZgX7NdoE177XiSwfwHgSajDH7xa5K9a3746gCD47VAnfbQSEWdhz6AI3T7zaWJtpXoY1k+kCTpR887PRfSR0b5ggHUaFGRb9HXNrGil1YEfkCe7Z8CqhjQNLiFtceVegoVB57GVNJr0QPiZZ700IeIJqA6y9z2oQ0hdQg8/FPUNJpPpPlT3UEmXHH/lAEi/Q7yXBffvSRB8XygMWZcr6DeK2j8ae65CFZA+BtIfS78fTHauGwCn3ABIr9vlHDTCp8WeqkG8LWgfKGEFQHpu//+mFKiHkd16L9l7YTnFdxNshtaOjoD0PaFOc5WQ/n5RRz0JvKB2ewS1LeGPsABcqtX3OtSRXYdCLRM+LdrlidUDpwqQntuwFeZhy9LB3AAVbTebFFGTRgfZpm/UolKtdUjviUlynebMMRE4UnMz4cdBLX/JQVpMXlUTOM/wU0buhSGDstBsrwK4FsBkqDXu4wF8R0wabnMD/d6R48Pe+GaitXT0jSU7lmn/SYLo08hksdA+LiLMOy8j+J4npn0ZlVBkFjynk6O12rC+Tph7UePItns9MfMd5JMYA7XF9VzySVgCxsvoRb87MLxcTrES/BZWHIJ+SWxsFgwPkFbi5/aDiuFPAud1mjkhl+xTA9SeghJpFofgcB3B9icB/DdU2KelOQUbchxf03HgubBU3OsS8vmSYMD7CaXdicq5435A3S75J04UbeFIwzq0X2rzhUA5AMDJYnyqVZyIS4YYnwrg/agEFTWgsvz3OpknEzT4zmio2zjtfOGY0pPht9L/WhJIP4dg2LeR7DxvB2ot/89ofxa9L37fRELB9Kz6ZgG9ywGXTE/0S6ijkRup7t1onxBBh66sbdbmpB10J6EsLaIfvrDdfyeYm7XWTKgVh3JE24Pm1VQScuUYgWpp43I2QvKq5zg/N2m0kZc8L24SVLj1VWQGtNDlBoybJdq9NsLH1GWcdtzhQ6HWcz2o9W45CQ6FCkHkMNWNhhPXBnAjVLjqqAReUA7C+ZS4n4Mm2FO8zcBJxs+eRgMfJnhmCqfeBqjItaVQa/T3kc26HSpgppE8wHK9/EmCu1kOAeS2jSKPsU8+EtmPUeQIdaCOTHqX5sNqqGjCq1AJCS6Rbf0JqDX5l8mnMjyAYaU3XvfO3wfg64LWfDrKVVAxFkyD04g+O3J2elnCufg7VLZMQ3O+LgEwh/63lbT1j6ECkO6BiqFYS7Q8jObkIM20mVuLkL5aAuQS7LlRQ99Z5RN0g3DavaNJ3aM0GA2yHX2hoRgxTArQOnK5ab12PyOMKRHP2QD+rj0Xt477XuHNXk/P7Ub0AYCtwqk0LkTzAypasKwhjI8HCG/dWSWda0HjcLwGc+toYvvChg1bwy4Lh9trot1DyXThtnpk/weVk0X/ua4pWl+k0+4FqreJPq+PcdpdpdEsLqbiZlEH+3t2In6nHdd7Q636yKoJ6cPspbD7LNKcMjTSCZC+fyKIVS8mp4PgUF22GXehsvbL99eTVluiaSG99NeeM+07M0BdjE3ODsA3oNahH0X4kpSkY0NEvxHQJ8tgHKRg+BjUvnBf2NoIcJoyLS1UNp2AEFUv0Vb2D7BfQfpCniBNWifqujhCQ/KY9KTPXjFj0qDRLG7ee4JmbxE9ehsoO5todqnwWdSkRs6b0ddBBbKEnbXFcPxd8b82gnx9BbTbETLoV0KtxXtCcL0Tci/XdSNBUE/Y7w+QMAiDz+zBH5rAhNgmPPQTSXudQZp7GPWPGXorwfe7oJbJtoaYFtynHURXKQDXB/Sbv78WMw5Mm20B/2uDShxxC9nvE6AiH3sLhLWZ4P0KouXfBB0HQAUdlYmRn6e26jHoNmnP66B2zPEOuN3EoC0BdvADREuOrXg2YuxBKyRRdNCVyirRthvIDzOZHHijoCLx6qn+Zqjw24dpDP+GGl57LxJOduzg9Ef7Ja6tqMTRI6PdXg266Ehjf2q/RQy5iWB1Vxgb09JA5iejll1ov/+9lsawwxjedIlL98TaEZA0rv44r25Ym+IGJ6nZ4wUwjRXg4Zb1J4kvsBP023QcvJj32Qbt1zdMha1pJ6GzlwMNktAhal4yI3sRaNmrZWYvNPzeobeVYKLW4lzprO2vFh26Iw2KUpSiFKUoRSlKUYpSlKIUpShFKUpRilKUohSlKEUpSlGKUpSihJd/AQuVBXvmx/BEAAAAAElFTkSuQmCC" alt="WLBT Logo">
+        </div>
+   </div>
+
+ <div class="main-content-area">
+        <div class="left-column">
+            <div class="filters-container">
+                <div class="filter-columns-wrapper">
+                    <!-- NEW: Search Container is FIRST for mobile accessibility -->
+                    <div class="filter-group search-container">
+                        <label class="group-label">Search Nearby</label>
+                        <div class="search-ui">
+                            <button id="useLocationBtn" class="location-btn">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                Use My Location
+                            </button>
+                            <div class="search-row">
+                                <input type="text" id="addressInput" placeholder="Address or Zip Code..." aria-label="Enter address">
+                                <button id="searchAddressBtn" class="search-btn">Go</button>
+                            </div>
+                            <div class="search-row">
+                                <select id="radiusSelect" aria-label="Select Radius">
+                                    <option value="0.25">0.25 Miles</option>
+                                    <option value="0.5">0.5 Miles</option>
+                                    <option value="1" selected>1 Mile</option>
+                                    <option value="3">3 Miles</option>
+                                    <option value="5">5 Miles</option>
+                                </select>
+                            </div>
+                            <button id="resetSearchBtn" class="reset-search-btn">Clear Search & Reset Map</button>
+                            <!-- FIX #7: inline status/error message (alert() renders as "an embedded page says..." inside the WLBT.com iframe) -->
+                            <div id="searchStatusMsg" class="search-status-msg" role="alert" style="display:none;"></div>
+                        </div>
+                    </div>
+
+                    <div class="filter-group year-filter">
+                        <label class="group-label" for="yearFilter">Year:</label>
+                        <div id="yearFilter" class="checkbox-group"></div>
+                    </div>
+                    <div class="filter-group agency-filter">
+                        <label class="group-label" for="agencyFilter">Agency:</label>
+                        <div id="agencyFilter" class="checkbox-group"></div>
+                    </div>
+                    <div class="filter-group circumstance-filter">
+                        <label class="group-label" for="circumstanceFilter">Circumstance:</label>
+                        <select id="circumstanceFilter"></select>
+                    </div>
+                     <!-- MODIFIED: Trends & Projections Grid -->
+                     <div class="filter-group trends-container">
+                        <label class="group-label">Trends & Projections</label>
+                        <!-- MODIFIED: Reverted to original layout + projection -->
+                        <div class="trends-grid">
+                            <div class="trend-box">
+                                <span class="trend-label">vs. Last Year (YTD)</span>
+                                <div id="percentageChangeText" class="trend-value">...</div>
+                            </div>
+                            <div class="trend-box">
+                                <span class="trend-label">Projected Year-End</span>
+                                <div id="projectedYearEndText" class="trend-value">...</div>
+                            </div>
+                            <div class="trend-box-split">
+                                <div class="trend-box">
+                                    <span class="trend-label">This Month</span>
+                                    <div id="thisMonthValue" class="trend-value">...</div>
+                                </div>
+                                <div class="trend-box">
+                                    <span class="trend-label" title="Average of the same month in the previous 5 years, counted through the same day of the month">5-Yr Avg (to date)</span>
+                                    <div id="fiveYearAvgValue" class="trend-value">...</div>
+                                </div>
+                            </div>
+                             <div class="trend-box">
+                                <span class="trend-label">Last 30 Days</span>
+                                <div id="rolling30DayText" class="trend-value">...</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- NEW: Clearance Rates Container -->
+                    <div class="filter-group clearance-container">
+                        <label class="group-label">Clearance Rates (Selected Data)</label>
+                        <div class="trend-box" style="padding: 5px;">
+                            <table class="clearance-table" id="clearanceRateTable">
+                                <!-- Populated by JS -->
+                                <tr><td>Loading...</td></tr>
+                            </table>
+                            <!-- Added Disclaimer Link -->
+                            <div style="text-align: right; margin-top: 5px;">
+                                <a href="#" id="openClearanceModal" style="font-size: 0.8em; color: var(--footer-link); text-decoration: none;">* Data Accuracy Note</a>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- END MODIFICATION -->
+                </div> 
+            </div>
+        </div>
+        <div class="map-container">
+            <div id="map"></div>
+            <!-- NEW: Map Legend Overlay -->
+            <div id="map-legend" class="map-overlay">
+                <h4>Legend</h4>
+                <ul>
+                    <li><span class="legend-icon homicide"></span> Homicide</li>
+                    <li><span class="legend-line city"></span> City Limits</li>
+                    <li><span class="legend-line ccid"></span> CCID Boundary</li>
+                </ul>
+                <div id="ward-legend-content" style="display:none; margin-top:10px; border-top:1px solid #ccc; padding-top:5px;">
+                    <h5 style="margin: 5px 0;">Ward Velocity (YTD)</h5>
+                    <li><span class="legend-square" style="background-color: var(--velocity-high-increase)"></span> High Increase (&gt;20%)</li>
+                    <li><span class="legend-square" style="background-color: var(--velocity-increase)"></span> Increase (5-20%)</li>
+                    <li><span class="legend-square" style="background-color: var(--velocity-stable)"></span> Stable (+/- 5%)</li>
+                    <li><span class="legend-square" style="background-color: var(--velocity-decrease)"></span> Decrease (5-20%)</li>
+                    <li><span class="legend-square" style="background-color: var(--velocity-high-decrease)"></span> High Decrease (&gt;20%)</li>
+                </div>
+            </div>
+            <!-- NEW: Map Info Panel -->
+            <div id="map-info-panel" class="map-overlay">
+                <!-- Content will be dynamically inserted by JavaScript -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Charts are now outside the main grid area to allow scrolling -->
+    <div class="charts-container-wrapper">
+        <div class="charts-container">
+            <div class="chart-tabs">
+                <button class="tab-btn active" data-tab="main-trends-content">Key Trends</button>
+                <button class="tab-btn" data-tab="details-content">Detailed Breakdowns</button>
+                <button class="tab-btn" data-tab="victims-content">Victims</button>
+            </div>
+
+            <div id="main-trends-content" class="chart-tab-content active">
+                <div class="chart-box">
+                    <h4>Cumulative Homicides by Year</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="homicideTrendsChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <h4 style="margin: 0;">Homicides by Year</h4>
+                        <button id="toggleYearRangeBtn" style="padding: 3px 10px; font-size: 0.8em; cursor: pointer; border-radius: 4px; border: 1px solid #ccc; background-color: #f0f0f0;">Show All Years</button>
+                    </div>
+                    <div class="chart-canvas-container">
+                        <canvas id="homicidesByYearChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div id="details-content" class="chart-tab-content">
+                <div class="chart-box">
+                    <h4>Victims by Age Group</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="victimsByAgeChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <h4>Victims by Race</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="victimsByRaceChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <h4>Homicides by Circumstance</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="homicidesByCircumstanceChart"></canvas>
+                    </div>
+                </div>
+                <div class="chart-box">
+                    <h4>Homicides by Agency</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="homicidesByAgencyChart"></canvas>
+                    </div>
+                </div>
+                <!-- NEW CHART -->
+                <div class="chart-box">
+                    <h4>Clearance Rate by Agency</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="clearanceRateChart"></canvas>
+                    </div>
+                </div>
+                <!-- NEW CHART: Ward Distribution -->
+                <div class="chart-box">
+                    <h4>Homicides by Ward</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="homicidesByWardChart"></canvas>
+                    </div>
+                </div>
+                <!-- NEW CHART: Contributing Factor -->
+                <div class="chart-box">
+                    <h4>Homicides by Contributing Factor</h4>
+                    <div class="chart-canvas-container">
+                        <canvas id="homicidesByFactorChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <!-- DESIGN: victims list. Names, not numbers. -->
+            <div id="victims-content" class="chart-tab-content">
+                <div style="width:100%;">
+                    <div class="victims-controls">
+                        <input type="text" id="victimsSearchInput" placeholder="Search by name or address..." aria-label="Search the victims list">
+                        <span class="victims-count" id="victimsCount"></span>
+                    </div>
+                    <div class="victims-table-wrap">
+                        <table class="victims-table" aria-label="List of homicide victims">
+                            <thead><tr><th>Name</th><th>Age</th><th>Date</th><th>Address</th><th>Status</th><th>Coverage</th></tr></thead>
+                            <tbody id="victimsTableBody"></tbody>
+                        </table>
+                    </div>
+                    <div class="victims-note">Reflects the filters and any search radius currently applied to the map. Names appear as recorded by investigating agencies.</div>
+                </div>
+            </div>
+        </div>
+        <div class="footer">
+            <p><a href="#" id="openAboutModal">About the Data</a></p>
+            <p>Data Sources: JPD, DPS, Hinds County, JSUPD | Design/Layout: C.J. LeMaster</p>
+        </div>
+    </div>
+    
+    <!-- Modals with restored content -->
+    <div id="aboutDataModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" id="closeAboutModal">×</span>
+            <h2>Our Methodology</h2>
+            <p><strong>Homicide</strong> refers to one person killing another, regardless of intent. Unlike <strong>murder</strong>, which implies intent, some homicides—such as <strong>justified or officer-involved deaths</strong>—are not crimes. That’s why the number of homicides is typically higher than murders.</p>
+            <p><strong>WLBT uses the same criteria as the Jackson Police Department:</strong> we count all homicides, including justified ones, but exclude most vehicular homicides unless officially classified as such. Our numbers come from <strong>JPD releases</strong>, <strong>confirmations from police and the coroner</strong>, and 
+                <strong>reports from other lead agencies</strong> when killings occur within Jackson city limits.</p>
+            <p><strong>Because we count all homicides that happen in Jackson</strong>—not just those investigated by JPD—our totals may differ from those reported by individual agencies. For example, <strong>Capitol Police and Jackson State officers</strong> have led several homicide investigations in recent years.</p>
+            <p><strong>Our data may be updated</strong> as new cases surface. In 2023, we discovered JPD had not disclosed 24 homicide cases, prompting a correction in our reporting. Since then, <strong>we regularly request updates</strong> to prevent similar omissions.</p>
+            <p>Some details—like <strong>age, race, or exact location</strong>—may be missing due to gaps in law enforcement reporting. Still, <strong>we work to verify and include as much information as possible</strong> to help the public and investigators.</p>
+        </div>
+    </div>
+    <div id="tipModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" id="closeTipModal">×</span>
+            <h2>Submit a Tip</h2>
+            <p class="emergency">If this is an emergency or you are witnessing a crime in progress, please call 911 immediately.</p>
+            <p>Your information could be crucial to solving a case. You can report tips through the following channels:</p>
+            <ul>
+                <li>
+                    <strong>Jackson Police Department:</strong><br>
+                    Call <a href="tel:601-960-1234">601-960-1234</a> to speak with an officer directly.
+                </li>
+                 <li>
+                    <strong>Capitol Police:</strong><br>
+                    Call their dispatch at <a href="tel:601-359-3125">601-359-3125</a>.
+                </li>
+                <li>
+                    <strong>Crime Stoppers (Anonymous):</strong><br>
+                    Call <a href="tel:601-355-8477">601-355-TIPS (8477)</a> or submit a tip online through <a href="https://www.p3tips.com/TipForm.aspx?ID=116&C=&T=" target="_blank" rel="noopener noreferrer">P3 Tips</a>. You may be eligible for a cash reward.
+                </li>
+            </ul>
+        </div>
+    </div>
+    <!-- NEW: Clearance Rate Disclaimer Modal -->
+    <div id="clearanceModal" class="modal-overlay">
+        <div class="modal-content">
+            <span class="modal-close" id="closeClearanceModal">&times;</span>
+            <h2>Data Accuracy & Clearance Rates</h2>
+            <p>The clearance rates displayed on this dashboard are calculated based on two methods: for 2016 to 2018, the individual case status ("Solved" vs. "Unsolved") provided in daily reports and press releases by the Jackson Police Department.</p>
+            <p>For 2019 to the present, that clearance rate data comes directly from JPD to ensure updated solve rate numbers.</p>
+            <p>The figures shown here represent the most accurate analysis possible based on those two methods provided to WLBT.</p>
+        </div>
+    </div>
+</div>
+
+<button class="tip-button-floating" id="openTipModal" title="Submit a Tip" aria-label="Submit a Tip">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+</button>
+
+<script>
+    // --- Configuration ---
+    const HOMICIDE_DATA_API_URL = './data/homicide.json';
+    // MODIFIED: Replaced array of URLs with single combined GeoJSON URL
+    const WARD_DATA_URL = 'https://dl.dropbox.com/scl/fi/g8y0ecap7g4tug8t2b8ww/CombinedWards2024.geojson?rlkey=t3i2oicns2f5t7rb5fm70ukyk&st=wpaxqdg0&raw=1';
+
+    const API_KEY = 'AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI';
+    const SPREADSHEET_ID = '1xI9D40BPx5DAXJNeonstksYj0g8SMKUoirFJBMWXYlk';
+    const SHEET_NAME = 'Sheet1';
+    const CITY_COMPARISON_API_URL = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+    const JACKSON_POPULATION = 143709;
+    const CURRENT_YEAR = new Date().getFullYear();
+    const PREVIOUS_YEAR = CURRENT_YEAR - 1;
+    const START_YEAR_DATA = 2016;
+    const MAP_CENTER = [32.2988, -90.1848];
+    const MAP_ZOOM = 11;
+    const FIT_BOUNDS_OPTIONS = {
+    paddingTopLeft: [-200, 0] // [x, y] padding in pixels
+};
+    const JACKSON_CITY_LIMITS_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/9ct9dki2dsg68iyr7gley/City-Boundaries.geojson?rlkey=vjrtpish5tixdeygp1ja5h7fq&st=fyrqfq4x&dl=1';
+    const CCID_GEOJSON_URL = 'https://dl.dropbox.com/scl/fi/qz4hkchrk6zonnbr1i5pl/New-CCID-2025.geojson?rlkey=26misdl15h1vgxxj28fzfqhjw&st=82688i24&dl=1';
+    const AGENCY_CATEGORIES = { JPD: 'JPD', CAPITOL_POLICE: 'Capitol Police', OTHER: 'Other Agencies' };
+    // DESIGN: unified brand palette. The red is sampled directly from the WLBT
+    // logo pixels (#c1272d) rather than Bootstrap's stock #d9534f.
+    const WLBT_RED = '#c1272d';
+    const WLBT_NAVY = '#2b3a4a';
+    const UNKNOWN_GRAY = '#c3c9cf';
+    // Neutral palette for demographic/agency breakdowns (red is reserved for
+    // charts where the value itself represents homicides).
+    const NEUTRAL_PALETTE = [WLBT_NAVY, '#7c96ab', '#e0a800', '#5c7d63', '#8d5a97', '#b8860b', '#52514f', '#71b37c'];
+    const neutralPaletteFor = (labels) => {
+        let i = 0;
+        return labels.map(l => /unknown/i.test(l) ? UNKNOWN_GRAY : NEUTRAL_PALETTE[i++ % NEUTRAL_PALETTE.length]);
+    };
+    // DESIGN: accessible text alternative for each chart canvas
+    function setChartAria(canvasId, summary) {
+        const c = document.getElementById(canvasId);
+        if (!c) return;
+        c.setAttribute('role', 'img');
+        c.setAttribute('aria-label', summary);
+    }
+    // DESIGN: population by year for the per-capita rate line.
+    // Anchors: 2010 decennial census 173,514; 2020 decennial census 153,701;
+    // and the JACKSON_POPULATION constant above. Intermediate years are linear
+    // interpolations, NOT official figures. Replace with Census Bureau Vintage
+    // estimates (Annual Estimates of the Resident Population) before air.
+    const POPULATION_BY_YEAR = {
+        2016: 167500, 2017: 165200, 2018: 162700, 2019: 160600,
+        2020: 153701, 2021: 149800, 2022: 146000, 2023: 143800,
+        2024: 142000, 2025: 140300, 2026: JACKSON_POPULATION
+    };
+    const agencyColors = {
+        [AGENCY_CATEGORIES.JPD]: WLBT_RED,
+        [AGENCY_CATEGORIES.CAPITOL_POLICE]: WLBT_NAVY,
+        [AGENCY_CATEGORIES.OTHER]: '#7c96ab',
+        'Historical': '#adb5bd'
+    };
+    const historicalHomicideData = [
+        { year: 1976, total: 40 }, { year: 1977, total: 47 }, { year: 1978, total: 33 }, { year: 1979, total: 55 }, { year: 1980, total: 42 },
+        { year: 1981, total: 49 }, { year: 1982, total: 57 }, { year: 1983, total: 42 }, { year: 1984, total: 34 }, { year: 1985, total: 43 },
+        { year: 1986, total: 35 }, { year: 1987, total: 54 }, { year: 1988, total: 51 }, { year: 1989, total: 49 }, { year: 1990, total: 47 },
+        { year: 1991, total: 80 }, { year: 1992, total: 64 }, { year: 1993, total: 84 }, { year: 1994, total: 91 }, { year: 1995, total: 92 },
+        { year: 1996, total: 61 }, { year: 1997, total: 64 }, { year: 1998, total: 60 }, { year: 1999, total: 45 }, { year: 2000, total: 39 },
+        { year: 2001, total: 50 }, { year: 2002, total: 49 }, { year: 2003, total: 45 }, { year: 2004, total: 53 }, { year: 2005, total: 38 },
+        { year: 2006, total: 40 }, { year: 2007, total: 46 }, { year: 2008, total: 63 }, { year: 2009, total: 37 }, { year: 2010, total: 41 },
+        { year: 2011, total: 52 }, { year: 2012, total: 63 }, { year: 2013, total: 50 }, { year: 2014, total: 61 }, { year: 2015, total: 54 }
+    ];
+
+    // --- Global State ---
+    let allHomicideData = [];
+    let cityComparisonData = [];
+    let filteredHomicideDataForMap = [];
+    let map;
+        // NEW: Initialize MarkerClusterGroup instead of LayerGroup
+    let markersLayer; 
+    let heatLayer;
+    let cityLimitsLayer, ccidLayer, wardsLayer; // NEW: wardsLayer
+    // NEW: Search overlay state
+    let searchCircleLayer = L.layerGroup();
+    let currentSearchCenter = null;
+    let currentSearchRadiusMiles = 1;
+
+    let overlayLayersControl;
+    let currentMapTileLayer;
+    let showAllYears = false;
+    let selectedMarker = null;
+    let homicidesByYearChartInstance, homicideTrendsChartInstance, victimsByAgeChartInstance,
+        victimsByRaceChartInstance, homicidesByCircumstanceChartInstance, homicidesByAgencyChartInstance;
+    
+    // NEW: Clearance Rate Chart Instance
+    let clearanceRateChartInstance;
+    // NEW: Ward Pie Chart Instance & Global Data
+    let homicidesByWardChartInstance;
+    // NEW: Contributing Factor Chart Instance
+    let homicidesByFactorChartInstance;
+    
+    let wardsGeoJsonData = null;
+
+    const infoPanel = document.getElementById('map-info-panel');
+    let defaultMarkerStyle, selectedMarkerStyle;
+
+    // --- Main Execution Block ---
+    document.addEventListener('DOMContentLoaded', () => {
+        defaultMarkerStyle = {
+            radius: 6,
+            fillColor: getComputedStyle(document.documentElement).getPropertyValue('--marker-color').trim(),
+            color: getComputedStyle(document.documentElement).getPropertyValue('--marker-border-color').trim(),
+            weight: 1, opacity: 1, fillOpacity: 0.8
+        };
+        selectedMarkerStyle = {
+            fillColor: getComputedStyle(document.documentElement).getPropertyValue('--marker-selected-color').trim(),
+            color: getComputedStyle(document.documentElement).getPropertyValue('--marker-selected-border-color').trim(),
+            radius: 8,
+        };
+        init();
+    });
+
+    async function init() {
+        initMap();
+        setupModals();
+        setupTabs();
+        setupVictimsSearch(); // DESIGN
+        setupChartToggles();
+        setupSearchFeatures();
+
+        document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: Loading...`;
+        document.querySelector('.ranking-banner .ticker-wrap').innerHTML = '<div class="ticker-item">City Ranking: Loading...</div>';
+        updateInfoPanel([]);
+
+        try {
+            const [homicideDataResult, cityDataResult] = await Promise.all([
+                fetchDataAndProcess(HOMICIDE_DATA_API_URL, true),
+                fetchDataAndProcess(CITY_COMPARISON_API_URL, false)
+            ]);
+
+            allHomicideData = homicideDataResult;
+            cityComparisonData = cityDataResult;
+
+            populateFiltersForMap(true);
+            updateDashboard();
+            loadBoundaryLayers(); // Move loadBoundaryLayers here so it can access allHomicideData
+            if (map) map.invalidateSize();
+        } catch (error) {
+            console.error("Fatal Error initializing dashboard:", error);
+        }
+    }
+
+    // --- Placeholder Data Functions ---
+    function getPlaceholderHomicideData() {
+        console.warn("Using placeholder homicide data due to fetch error.");
+        return {
+            headers: ["Date", "Location", "Victim", "Investigating Agency", "Age", "Race", "Latitude", "Longitude", "Circumstance", "Year", "Case Status", "Contributing Factor"],
+            entries: [
+                [`01/15/${CURRENT_YEAR}`, "123 Main St, Jackson, MS", 'John Doe', "JPD", 30, "Black", 32.3010, -90.1850, "Argument", CURRENT_YEAR, "Solved", "Drugs"],
+                [`02/20/${CURRENT_YEAR}`, "456 Oak Ave, Jackson, MS", 'Jane Smith', "Capitol Police", 25, "White", 32.2950, -90.1900, "Robbery", CURRENT_YEAR, "Unsolved", "Domestic"],
+                [`03/10/${PREVIOUS_YEAR}`, "789 Pine Ln, Jackson, MS", 'Jim Brown', "JPD", 45, "Black", 32.3150, -90.1750, "Unknown", PREVIOUS_YEAR, "Solved", "Gang Related"]
+            ]
+        };
+    }
+
+    function getPlaceholderCityData() {
+        console.warn("Using placeholder city data due to fetch error.");
+        return [
+            { City: 'St. Louis, MO', Homicides: 190, Population: 286578 },
+            { City: 'Baltimore, MD', Homicides: 330, Population: 569931 },
+        ];
+    }
+
+    // --- Data Processing Logic ---
+    function processHomicideData(rawData) {
+        if (!rawData || !rawData.headers || !rawData.entries) {
+            console.error("Invalid rawData structure. 'headers' or 'entries' is missing.");
+            return [];
+        }
+        const headers = rawData.headers.map(h => String(h).trim().toLowerCase());
+        const getHeaderIndex = (names) => names.map(name => headers.indexOf(name.toLowerCase())).find(index => index !== -1) ?? -1;
+        
+        const indices = {
+            victim: getHeaderIndex(['Victim']), age: getHeaderIndex(['Age']), race: getHeaderIndex(['Race']),
+            sex: getHeaderIndex(['Sex']), circumstance: getHeaderIndex(['Circumstance']), date: getHeaderIndex(['Date']),
+            address: getHeaderIndex(['Address', 'Location']), agency: getHeaderIndex(['Investigating Agency', 'Agency']),
+            lat: getHeaderIndex(['Latitude', 'Lat']), lon: getHeaderIndex(['Longitude', 'Lon', 'Long']),
+            year: getHeaderIndex(['Year']), month: getHeaderIndex(['Month']), day: getHeaderIndex(['Day']),
+            // NEW: Add Case Status index
+            status: getHeaderIndex(['Case Status', 'Status']),
+            // NEW: Contributing Factor index
+            factor: getHeaderIndex(['Contributing Factor', 'Factor', 'Contributing']),
+            // DESIGN: WLBT story link, used by the victims list and detail panel
+            url: getHeaderIndex(['URL', 'Link', 'Story URL', 'Story Link'])
+        };
+
+        // TRIM FIX: trailing spaces in the sheet ("Black ", "Unknown ") were
+        // rendering as separate chart categories from their clean counterparts.
+        const clean = (v) => (v === null || v === undefined) ? '' : String(v).trim();
+
+        return rawData.entries.map((entry, i) => {
+            let dateObj;
+            const dateStr = entry[indices.date] ? String(entry[indices.date]).trim() : '';
+            
+            if (dateStr) {
+                if (dateStr.includes('-')) { dateObj = new Date(dateStr + "T00:00:00"); } 
+                else if (dateStr.includes('/')) {
+                    const parts = dateStr.split('/');
+                    if (parts.length === 3) { 
+                        let year = parseInt(parts[2]);
+                        if (year < 100) year += 2000;
+                        dateObj = new Date(year, parseInt(parts[0]) - 1, parseInt(parts[1])); 
+                    }
+                }
+            }
+            if (!dateObj || isNaN(dateObj.getTime())) {
+                const year = parseInt(entry[indices.year]), month = parseInt(entry[indices.month]), day = parseInt(entry[indices.day]);
+                if (!isNaN(year) && !isNaN(month) && !isNaN(day)) { dateObj = new Date(year, month - 1, day); }
+            }
+
+            // MODIFIED: Allow missing coordinates to exist so they appear in stats
+            const lat = parseFloat(entry[indices.lat]);
+            const lon = parseFloat(entry[indices.lon]);
+            const hasCoords = !isNaN(lat) && !isNaN(lon);
+
+            // Only Date is strictly required for year filtering
+            if (!dateObj || isNaN(dateObj.getTime())) return null;
+            
+            // FIX: Robust Age Parsing. If "N/A" or text, convert to null so it goes to "Unknown" category
+            let ageVal = parseInt(entry[indices.age]);
+            if (isNaN(ageVal)) ageVal = null;
+
+            return {
+                Victim: clean(entry[indices.victim]) || 'N/A', Age: ageVal, Race: clean(entry[indices.race]) || 'N/A',
+                Date: dateObj.toISOString().split('T')[0], DisplayDate: dateStr, Address: clean(entry[indices.address]) || 'N/A',
+                'Investigating Agency': clean(entry[indices.agency]) || 'N/A', 
+                Latitude: hasCoords ? lat : null, 
+                Longitude: hasCoords ? lon : null, 
+                Year: dateObj.getFullYear(),
+                Circumstance: clean(entry[indices.circumstance]) || 'N/A',
+                // NEW: Capture Case Status
+                'Case Status': clean(entry[indices.status]) || 'Unknown',
+                // NEW: Capture Contributing Factor
+                'Contributing Factor': clean(entry[indices.factor]) || 'Unknown',
+                // DESIGN: WLBT story link
+                URL: indices.url !== -1 ? clean(entry[indices.url]) : ''
+            };
+        }).filter(Boolean);
+    }
+
+    async function fetchDataAndProcess(url, isMainHomicideData = false) {
+        if (isMainHomicideData) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Network response was not ok for ${url}`);
+                const rawData = await response.json();
+                return processHomicideData(rawData);
+            } catch (error) {
+                console.error(`Failed to fetch main homicide data:`, error);
+                return processHomicideData(getPlaceholderHomicideData());
+            }
+        } else {
+             try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`Network response was not ok for ${url}`);
+                const rawData = await response.json();
+                if (!rawData || !rawData.values) return getPlaceholderCityData();
+                const [headerRow, ...dataRows] = rawData.values;
+                const headers = headerRow.map(h => h.trim().toLowerCase());
+                const cityIndex = headers.indexOf('city'), homicidesIndex = headers.indexOf('homicides'), populationIndex = headers.indexOf('population');
+                return dataRows.map(row => ({
+                    City: row[cityIndex]?.trim(),
+                    Homicides: parseInt(String(row[homicidesIndex]).replace(/,/g, '')),
+                    Population: parseInt(String(row[populationIndex]).replace(/,/g, ''))
+                })).filter(d => d.City && d.Homicides >= 0 && d.Population > 0);
+            } catch (error) {
+                console.error(`Failed to fetch city data:`, error);
+                return getPlaceholderCityData();
+            }
+        }
+    }
+
+    function updateInfoPanel(data) {
+        if (!infoPanel) return;
+        if (data && !Array.isArray(data)) {
+            const d = data;
+            infoPanel.innerHTML = `
+                <h4>Homicide Details</h4>
+                <div class="info-details">
+                    <div class="detail-victim">${d.Victim || 'Unknown Victim'}</div><hr>
+                    <ul class="detail-list">
+                        ${d.Age ? `<li><strong>Age:</strong> ${d.Age}</li>` : ''}
+                        ${d.Race ? `<li><strong>Race:</strong> ${d.Race}</li>` : ''}
+                        ${d.DisplayDate ? `<li><strong>Date:</strong> ${d.DisplayDate}</li>` : ''}
+                        ${d.Address ? `<li><strong>Address:</strong> ${d.Address}</li>` : ''}
+                        ${d['Investigating Agency'] ? `<li><strong>Agency:</strong> ${d['Investigating Agency']}</li>` : ''}
+                        ${d.Circumstance ? `<li><strong>Circumstance:</strong> ${d.Circumstance}</li>` : ''}
+                        ${d['Contributing Factor'] ? `<li><strong>Contributing Factor:</strong> ${d['Contributing Factor']}</li>` : ''}
+                        ${d['Case Status'] ? `<li><strong>Case Status:</strong> ${d['Case Status']}</li>` : ''}
+                        ${d.URL && /^https?:\/\//.test(d.URL) ? `<li><strong>Coverage:</strong> <a href="${d.URL}" target="_blank" rel="noopener">Read WLBT's story</a></li>` : ''}
+                    </ul>
+                    <button id="back-to-summary-btn">Back to Summary</button>
+                </div>`;
+            
+            document.getElementById('back-to-summary-btn').addEventListener('click', () => {
+                if (selectedMarker) {
+                    selectedMarker.setStyle(defaultMarkerStyle);
+                    selectedMarker = null;
+                }
+                updateInfoPanel(filteredHomicideDataForMap);
+            });
+
+        } else {
+            const totalCount = data.length;
+            const yearCounts = data.reduce((acc, d) => { acc[d.Year] = (acc[d.Year] || 0) + 1; return acc; }, {});
+            const yearHtml = Object.keys(yearCounts).sort((a,b) => b-a).map(year => `<li>${year}${year == CURRENT_YEAR ? ' (YTD)' : ''}: ${yearCounts[year]}</li>`).join('');
+            const agencyCounts = data.reduce((acc, d) => { const agency = d['Investigating Agency'] || 'Unknown'; acc[agency] = (acc[agency] || 0) + 1; return acc; }, {});
+            const agencyHtml = Object.keys(agencyCounts).sort().map(agency => `<li>${agency}: ${agencyCounts[agency]}</li>`).join('');
+            
+            // MODIFIED: Info panel now reflects search status
+            const searchStatus = currentSearchCenter ? `<div style="margin-bottom: 5px; color: #d9534f; font-weight: bold;">Showing incidents within ${currentSearchRadiusMiles} mile(s) of search location.</div>` : '';
+
+            infoPanel.innerHTML = `
+                <h4>Map Summary</h4>
+                <div class="info-summary">
+                    ${searchStatus}
+                    <div class="stat-total"><strong>${totalCount}</strong> Homicide${totalCount !== 1 ? 's' : ''} Shown</div>
+                    ${yearHtml ? `<hr><div class="stat-breakdown"><strong>By Year:</strong><ul>${yearHtml}</ul></div>` : ''}
+                    ${agencyHtml ? `<hr><div class="stat-breakdown"><strong>By Agency:</strong><ul>${agencyHtml}</ul></div>` : ''}
+                    <p class="prompt"><i>Click a marker for details</i></p>
+                </div>`;
+        }
+    }
+
+    // DESIGN: victims list. Names, not numbers, each row linking to WLBT's
+    // published story where the URL column is populated.
+    let victimsSearchTerm = '';
+    function updateVictimsList() {
+        const body = document.getElementById('victimsTableBody');
+        const countEl = document.getElementById('victimsCount');
+        if (!body) return;
+        const term = victimsSearchTerm.trim().toLowerCase();
+        const rows = filteredHomicideDataForMap
+            .filter(d => !term || String(d.Victim).toLowerCase().includes(term) || String(d.Address).toLowerCase().includes(term))
+            .slice()
+            .sort((a, b) => (a.Date < b.Date ? 1 : -1));
+        const esc = (s) => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        body.innerHTML = rows.map(d => {
+            const link = d.URL && /^https?:\/\//.test(d.URL) ? `<a href="${esc(d.URL)}" target="_blank" rel="noopener">Read story</a>` : '';
+            return `<tr><td class="victim-name">${esc(d.Victim)}</td><td>${d.Age ?? ''}</td><td>${esc(d.DisplayDate || d.Date)}</td><td>${esc(d.Address)}</td><td>${esc(d['Case Status'])}</td><td>${link}</td></tr>`;
+        }).join('');
+        if (countEl) countEl.textContent = `${rows.length} victim${rows.length === 1 ? '' : 's'} shown`;
+    }
+    function setupVictimsSearch() {
+        const input = document.getElementById('victimsSearchInput');
+        if (!input) return;
+        input.addEventListener('input', () => { victimsSearchTerm = input.value; updateVictimsList(); });
+    }
+
+    function initMap() {
+        map = L.map('map', { 
+            scrollWheelZoom: false, 
+            minZoom: MAP_ZOOM,
+            zoomControl: false 
+        }).setView(MAP_CENTER, MAP_ZOOM);
+        
+        L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+        // NEW: Create custom pane for markers to ensure they are always on top
+        map.createPane('homicideMarkersPane');
+        // zIndex 650 is higher than default overlayPane (400) and markerPane (600)
+        map.getPane('homicideMarkersPane').style.zIndex = 650; 
+        
+// NEW: Initialize the MarkerClusterGroup with options for spiderfying identical coordinates
+        markersLayer = L.markerClusterGroup({
+            maxClusterRadius: 1,        // Distance to group markers
+            spiderfyOnMaxZoom: true,     // Break apart overlapping markers when fully zoomed in
+            showCoverageOnHover: false,  // Don't show the geographic bounds of the cluster on hover
+            zoomToBoundsOnClick: true,
+            clusterPane: 'homicideMarkersPane' // Keep clusters on top
+        });
+        
+        updateMapTiles();
+        markersLayer.addTo(map);
+        searchCircleLayer.addTo(map); // NEW: Add search layer
+        heatLayer = L.heatLayer([], { radius: 25, interactive: false });
+        // loadBoundaryLayers moved to init()
+        
+        // FIXED: Guard the map click handler to ignore stopped events
+        map.on('click', (e) => {
+            if (e.originalEvent && e.originalEvent._stopped) return; 
+            if (selectedMarker) {
+                selectedMarker.setStyle(defaultMarkerStyle);
+                selectedMarker = null;
+            }
+            updateInfoPanel(filteredHomicideDataForMap);
+        });
+
+        // NEW: Show/Hide Ward Legend based on layer control
+        map.on('overlayadd', function(eventLayer) {
+            if (eventLayer.name === 'Ward Trends (Velocity)') {
+                document.getElementById('ward-legend-content').style.display = 'block';
+            }
+        });
+        map.on('overlayremove', function(eventLayer) {
+            if (eventLayer.name === 'Ward Trends (Velocity)') {
+                document.getElementById('ward-legend-content').style.display = 'none';
+            }
+        });
+
+        // HEATMAP TOGGLE: Switch between Markers and Heatmap base layers
+        map.on('baselayerchange', function(eventLayer) {
+            if (eventLayer.name === 'Heatmap') {
+                // Switching TO heatmap: ensure heatLayer is on map, remove markersLayer
+                if (!map.hasLayer(heatLayer)) {
+                    heatLayer.addTo(map);
+                }
+                if (map.hasLayer(markersLayer)) {
+                    map.removeLayer(markersLayer);
+                }
+                // Update legend to reflect heatmap mode
+                const homicideLegendIcon = document.querySelector('#map-legend .legend-icon.homicide');
+                if (homicideLegendIcon) {
+                    homicideLegendIcon.style.background = 'linear-gradient(135deg, #ff0000 0%, #ff8800 50%, #ffff00 100%)';
+                    homicideLegendIcon.style.borderRadius = '2px';
+                    homicideLegendIcon.style.border = 'none';
+                    homicideLegendIcon.style.width = '20px';
+                    homicideLegendIcon.style.height = '10px';
+                }
+                const homicideLegendLabel = document.querySelector('#map-legend li:first-child');
+                if (homicideLegendLabel) {
+                    homicideLegendLabel.lastChild.textContent = ' Homicide Density';
+                }
+            } else if (eventLayer.name === 'Markers') {
+                // Switching TO markers: ensure markersLayer is on map, remove heatLayer
+                if (!map.hasLayer(markersLayer)) {
+                    markersLayer.addTo(map);
+                }
+                if (map.hasLayer(heatLayer)) {
+                    map.removeLayer(heatLayer);
+                }
+                // Restore legend icon to original marker style
+                const homicideLegendIcon = document.querySelector('#map-legend .legend-icon.homicide');
+                if (homicideLegendIcon) {
+                    homicideLegendIcon.style.background = '';
+                    homicideLegendIcon.style.borderRadius = '';
+                    homicideLegendIcon.style.border = '';
+                    homicideLegendIcon.style.width = '';
+                    homicideLegendIcon.style.height = '';
+                }
+                const homicideLegendLabel = document.querySelector('#map-legend li:first-child');
+                if (homicideLegendLabel) {
+                    homicideLegendLabel.lastChild.textContent = ' Homicide';
+                }
+            }
+        });
+    }
+
+    // NEW: Search Feature Logic
+    function setupSearchFeatures() {
+        const addressInput = document.getElementById('addressInput');
+        const searchBtn = document.getElementById('searchAddressBtn');
+        const locationBtn = document.getElementById('useLocationBtn');
+        const radiusSelect = document.getElementById('radiusSelect');
+        const resetBtn = document.getElementById('resetSearchBtn');
+
+        // FIX #7: inline status messaging instead of alert(), which renders as
+        // "an embedded page says..." inside the WLBT.com iframe.
+        const statusMsg = document.getElementById('searchStatusMsg');
+        const showSearchStatus = (msg) => { statusMsg.textContent = msg; statusMsg.style.display = 'block'; };
+        const clearSearchStatus = () => { statusMsg.textContent = ''; statusMsg.style.display = 'none'; };
+
+        // FIX #7: geocode via the U.S. Census Bureau (free, keyless, no usage cap
+        // that WLBT.com traffic would trip). Nominatim remains as a fallback for
+        // queries Census can't resolve (e.g. bare zip codes or place names), which
+        // keeps volume on OSM low enough to respect their usage policy.
+        async function geocodeAddress(query) {
+            const searchContext = `${query}, Jackson, MS`;
+            try {
+                const url = `https://geocoding.geo.census.gov/geocoder/locations/onelineaddress?address=${encodeURIComponent(searchContext)}&benchmark=Public_AR_Current&format=json`;
+                const resp = await fetch(url);
+                const data = await resp.json();
+                const match = data?.result?.addressMatches?.[0];
+                if (match) return { lat: match.coordinates.y, lon: match.coordinates.x };
+            } catch (e) { console.warn('Census geocoder failed, falling back to Nominatim', e); }
+            try {
+                const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchContext)}`);
+                const results = await resp.json();
+                if (results && results.length > 0) return { lat: parseFloat(results[0].lat), lon: parseFloat(results[0].lon) };
+            } catch (e) { console.error('Nominatim geocoder failed', e); }
+            return null;
+        }
+
+        // FIX #3: pressing Enter in the address box triggers the search
+        addressInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); searchBtn.click(); }
+        });
+
+        // Address Search
+        searchBtn.addEventListener('click', async () => {
+            const query = addressInput.value.trim();
+            if (!query) return;
+            clearSearchStatus();
+            searchBtn.disabled = true;
+            searchBtn.textContent = '...';
+            const result = await geocodeAddress(query);
+            searchBtn.disabled = false;
+            searchBtn.textContent = 'Go';
+            if (result) {
+                applyLocationFilter(result.lat, result.lon);
+            } else {
+                showSearchStatus('Address not found. Try adding a street number or check the spelling.');
+            }
+        });
+
+        // Use My Location
+        locationBtn.addEventListener('click', () => {
+            clearSearchStatus();
+            if ("geolocation" in navigator) {
+                locationBtn.textContent = "Locating...";
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        locationBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Use My Location`;
+                        applyLocationFilter(position.coords.latitude, position.coords.longitude);
+                    },
+                    (error) => {
+                        locationBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg> Use My Location`;
+                        // FIX #7: inline message; also the most common cause inside an
+                        // iframe is a missing allow="geolocation" attribute on the embed tag.
+                        showSearchStatus("Unable to retrieve your location. Please make sure location services are enabled for this page.");
+                    }
+                );
+            } else {
+                showSearchStatus("Geolocation is not supported by your browser.");
+            }
+        });
+
+        // Radius Change
+        radiusSelect.addEventListener('change', () => {
+            if (currentSearchCenter) {
+                applyLocationFilter(currentSearchCenter.lat, currentSearchCenter.lng);
+            }
+        });
+
+        // Reset
+        resetBtn.addEventListener('click', () => {
+            clearSearchStatus();
+            currentSearchCenter = null;
+            document.getElementById('addressInput').value = '';
+            document.getElementById('resetSearchBtn').style.display = 'none';
+            searchCircleLayer.clearLayers();
+            updateDashboard();
+            // Removed map.setView(MAP_CENTER, MAP_ZOOM) so updateMapDisplay handles the zoom
+        });
+    }
+
+    function applyLocationFilter(lat, lon) {
+        currentSearchCenter = { lat, lng: lon };
+        currentSearchRadiusMiles = parseFloat(document.getElementById('radiusSelect').value);
+        document.getElementById('resetSearchBtn').style.display = 'block';
+        updateDashboard();
+        
+        // Scroll to map on mobile for better UX
+        if (window.innerWidth <= 900) {
+            document.getElementById('map').scrollIntoView({ behavior: 'smooth' });
+        }
+    }
+
+function updateMapDisplay() {
+    const selectedYears = Array.from(document.querySelectorAll('#yearFilter input:checked')).map(cb => parseInt(cb.value));
+    const selectedAgencies = Array.from(document.querySelectorAll('#agencyFilter input:checked')).map(cb => cb.value);
+    const selectedCircumstance = document.getElementById('circumstanceFilter').value;
+    
+    // 1. First, apply standard filters
+    let filteredData = allHomicideData.filter(d => 
+        selectedYears.includes(d.Year) &&
+        selectedAgencies.includes(d['Investigating Agency']) &&
+        (!selectedCircumstance || d.Circumstance === selectedCircumstance)
+    );
+
+    // 2. Then, apply location filter if active
+    searchCircleLayer.clearLayers();
+    if (currentSearchCenter) {
+        const centerLatLng = L.latLng(currentSearchCenter.lat, currentSearchCenter.lng);
+        const radiusMeters = currentSearchRadiusMiles * 1609.34; // Convert miles to meters
+
+        // Draw the circle
+        L.circle(centerLatLng, {
+            color: '#0d6efd',
+            fillColor: '#0d6efd',
+            fillOpacity: 0.1,
+            radius: radiusMeters,
+            interactive: false
+        }).addTo(searchCircleLayer);
+
+        // Draw a marker for the search center (e.g., "Home")
+        L.marker(centerLatLng, { interactive: false }).addTo(searchCircleLayer);
+
+        // Filter points within radius. Crucial: Only filter items that HAVE coordinates.
+        // Items without coordinates are removed from search results because they can't be "nearby".
+        filteredData = filteredData.filter(d => {
+            if (d.Latitude === null || d.Longitude === null) return false;
+            return centerLatLng.distanceTo(L.latLng(d.Latitude, d.Longitude)) <= radiusMeters;
+        });
+
+        // Fit bounds to circle
+        if (map) {
+            map.fitBounds(L.latLng(currentSearchCenter.lat, currentSearchCenter.lng).toBounds(radiusMeters * 2.2)); // slightly larger to show context
+        }
+    }
+
+    filteredHomicideDataForMap = filteredData;
+
+    markersLayer.clearLayers();
+    const heatPoints = [];
+    const visibleMarkers = [];
+    
+    filteredHomicideDataForMap.forEach(d => {
+        // MODIFIED: Skip mapping for items with no coordinates, but they remain in stats above
+        if (d.Latitude === null || d.Longitude === null) return;
+
+      // No more manual jitter logic! Use exact coordinates.
+        const latLng = [d.Latitude, d.Longitude];
+        heatPoints.push(latLng);
+        
+        const marker = L.circleMarker(latLng, { 
+            ...defaultMarkerStyle, 
+            bubblingMouseEvents: false,
+            pane: 'homicideMarkersPane' 
+        });
+                
+        marker.on('click', (e) => {
+            if (e.originalEvent) L.DomEvent.stop(e.originalEvent); else L.DomEvent.stop(e);
+            if (selectedMarker) {
+                selectedMarker.setStyle(defaultMarkerStyle);
+            }
+            marker.setStyle(selectedMarkerStyle);
+            selectedMarker = marker;
+            updateInfoPanel(d);
+        });
+        
+        // FIX #1: do NOT add markers individually here; the batched addLayers()
+        // call below handles it. Adding twice duplicated markers in the cluster
+        // group whenever filters changed while the Heatmap base layer was active.
+        visibleMarkers.push(marker);
+    });
+
+    // Add all markers to the cluster group at once (better performance)
+        markersLayer.addLayers(visibleMarkers);
+
+    heatLayer.setLatLngs(heatPoints);
+    updateInfoPanel(filteredHomicideDataForMap);
+
+    // Only auto-fit bounds if we are NOT searching (search handles its own zoom)
+    if (!currentSearchCenter && visibleMarkers.length > 0 && map.hasLayer(markersLayer)) {
+        map.fitBounds(L.featureGroup(visibleMarkers).getBounds().pad(0.1), FIT_BOUNDS_OPTIONS);
+    } else if (!currentSearchCenter) {
+        map.setView(MAP_CENTER, MAP_ZOOM);
+    }
+}
+    
+    function setupModals() {
+        const aboutModal = document.getElementById("aboutDataModal");
+        const openAboutBtn = document.getElementById("openAboutModal");
+        const closeAboutBtn = document.getElementById("closeAboutModal");
+        
+        // --- NEW: Clearance Modal Logic ---
+        const clearanceModal = document.getElementById("clearanceModal");
+        const openClearanceBtn = document.getElementById("openClearanceModal");
+        const closeClearanceBtn = document.getElementById("closeClearanceModal");
+
+        if (openAboutBtn) {
+            openAboutBtn.onclick = (e) => { e.preventDefault(); aboutModal.style.display = "flex"; };
+            closeAboutBtn.onclick = () => { aboutModal.style.display = "none"; };
+        }
+        
+        const tipModal = document.getElementById("tipModal");
+        const openTipBtn = document.getElementById("openTipModal");
+        const closeTipBtn = document.getElementById("closeTipModal");
+        if (openTipBtn) {
+            openTipBtn.onclick = () => { tipModal.style.display = "flex"; };
+            closeTipBtn.onclick = () => { tipModal.style.display = "none"; };
+        }
+
+        if (openClearanceBtn && clearanceModal && closeClearanceBtn) {
+             openClearanceBtn.onclick = (e) => { e.preventDefault(); clearanceModal.style.display = "flex"; };
+             closeClearanceBtn.onclick = () => { clearanceModal.style.display = "none"; };
+        }
+
+        window.onclick = (event) => {
+            if (aboutModal && event.target == aboutModal) aboutModal.style.display = "none";
+            if (tipModal && event.target == tipModal) tipModal.style.display = "none";
+            if (clearanceModal && event.target == clearanceModal) clearanceModal.style.display = "none";
+        };
+    }
+
+    function setupTabs() {
+        document.querySelector('.chart-tabs').addEventListener('click', (event) => {
+            if (event.target.classList.contains('tab-btn')) {
+                openTab(event, event.target.dataset.tab);
+            }
+        });
+    }
+    
+    function setupChartToggles() {
+        document.getElementById('toggleYearRangeBtn')?.addEventListener('click', () => {
+            showAllYears = !showAllYears;
+            document.getElementById('toggleYearRangeBtn').textContent = showAllYears ? 'Show Recent Years' : 'Show All Years';
+            updateHomicidesByYearChart();
+        });
+    }
+
+    function openTab(evt, tabName) {
+        document.querySelectorAll('.chart-tab-content').forEach(tab => tab.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(tabName).classList.add('active');
+        evt.target.classList.add('active');
+    }
+
+    function populateFiltersForMap(isInitialLoad = false) {
+        const yearContainer = document.getElementById('yearFilter');
+        if (isInitialLoad) {
+            const allYears = [...new Set(allHomicideData.map(d => d.Year))].sort((a, b) => b - a);
+            populateCheckboxFilter('yearFilter', allYears.filter(y => y >= START_YEAR_DATA), [CURRENT_YEAR], handleYearFilterChange);
+        }
+        const selectedYears = Array.from(yearContainer.querySelectorAll('input:checked')).map(cb => parseInt(cb.value));
+        const dataForDependentFilters = allHomicideData.filter(d => selectedYears.includes(d.Year));
+        const agenciesToShow = [...new Set(dataForDependentFilters.map(d => d['Investigating Agency']))].filter(Boolean).sort();
+        populateCheckboxFilter('agencyFilter', agenciesToShow, agenciesToShow, updateDashboard);
+        const circumstancesToShow = [...new Set(dataForDependentFilters.map(d => d.Circumstance))].filter(Boolean).sort();
+        const circumstanceSelect = document.getElementById('circumstanceFilter');
+        circumstanceSelect.innerHTML = '<option value="">All Circumstances</option>';
+        circumstancesToShow.forEach(c => circumstanceSelect.add(new Option(c, c)));
+        circumstanceSelect.onchange = updateDashboard;
+    }
+
+    function handleYearFilterChange() {
+        populateFiltersForMap(false);
+        updateDashboard();
+    }
+
+    function populateCheckboxFilter(elementId, values, defaultSelected, changeCallback) {
+        const container = document.getElementById(elementId);
+        // FIX #2: remember what existed before the rebuild so user deselections
+        // survive a year-filter change. Previously every rebuild re-checked all
+        // agencies because defaultSelected contained everything.
+        const existingValues = Array.from(container.querySelectorAll('input')).map(cb => cb.value);
+        const previouslySelected = Array.from(container.querySelectorAll('input:checked')).map(cb => cb.value);
+        container.innerHTML = '';
+        values.forEach(val => {
+            const div = document.createElement('div');
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${elementId}_${String(val).replace(/\s+/g, '_')}`;
+            checkbox.value = val;
+            // Keep the user's prior choice for options that already existed;
+            // newly appearing options (e.g. an agency only present in a newly
+            // selected year) fall back to the default.
+            checkbox.checked = existingValues.includes(String(val))
+                ? previouslySelected.includes(String(val))
+                : defaultSelected.includes(val);
+            checkbox.addEventListener('change', changeCallback);
+            const label = document.createElement('label');
+            label.htmlFor = checkbox.id;
+            label.textContent = val;
+            div.append(checkbox, label);
+            container.appendChild(div);
+        });
+    }
+
+    function updateCurrentYearHomicideCount() {
+        const count = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
+        document.getElementById('homicideCountBanner').innerText = `${CURRENT_YEAR} COUNT: ${count}`;
+        // DESIGN: "days since last homicide" hero stat
+        const banner = document.getElementById('daysSinceBanner');
+        if (banner && allHomicideData.length) {
+            const lastDate = allHomicideData.reduce((max, d) => (d.Date > max ? d.Date : max), '');
+            const days = Math.max(0, Math.floor((new Date() - new Date(lastDate + 'T00:00:00')) / 86400000));
+            banner.innerText = `${days} DAY${days === 1 ? '' : 'S'} SINCE LAST HOMICIDE`;
+        }
+    }
+
+    // MODIFIED: Added logic to show placeholder during the first week of January
+    function updateRankingBanner() {
+        const banner = document.getElementById('rankingBanner');
+        const tickerWrap = document.getElementById('tickerWrap');
+        
+        // --- NEW LOGIC ---
+        // Get current date components
+        const today = new Date();
+        const month = today.getMonth(); // 0 = January
+        const dayOfMonth = today.getDate(); // 1-31
+
+        // Check if it's the first week of January (days 1-7)
+        if (month === 0 && dayOfMonth >= 1 && dayOfMonth <= 7) {
+            // It's the first week of Jan, show placeholder
+            tickerWrap.innerHTML = `<div class="ticker-item" style="padding-left: 1rem; padding-right: 1rem;">Homicide rate data will be updated after January 7.</div>`;
+            banner.style.backgroundColor = `var(--rank-banner-error-bg)`; // Use the neutral grey
+            // Ensure animation is stopped and text is centered
+            tickerWrap.style.animation = 'none'; 
+            tickerWrap.style.padding = '6px 0'; // Restore padding
+            tickerWrap.style.display = 'block'; // Ensure it behaves as a block
+            tickerWrap.style.textAlign = 'center'; // Center the text
+            return; // Skip the rest of the function
+        }
+        // --- END NEW LOGIC ---
+
+        // If not the first week of Jan, run the normal ranking logic
+        // Restore animation and styles for ticker
+        tickerWrap.style.animation = 'ticker 40s linear infinite';
+        tickerWrap.style.display = 'inline-block';
+        tickerWrap.style.padding = '6px 0';
+        tickerWrap.style.textAlign = 'left';
+
+        const jacksonCount = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
+        const jacksonRate = (jacksonCount / JACKSON_POPULATION) * 100000;
+        if (!cityComparisonData || cityComparisonData.length === 0) {
+            tickerWrap.innerHTML = `<div class="ticker-item">Comparison data unavailable.</div>`;
+            return;
+        }
+        const citiesWithRates = cityComparisonData.map(c => ({ name: c.City, rate: (c.Homicides / c.Population) * 100000 }));
+        citiesWithRates.push({ name: 'Jackson, MS', rate: jacksonRate });
+        citiesWithRates.sort((a, b) => b.rate - a.rate);
+        const jacksonRank = citiesWithRates.findIndex(c => c.name === 'Jackson, MS') + 1;
+        let bannerColorVar = jacksonRank === 1 ? '--rank-banner-rank1-bg' : (jacksonRank <= 5 ? '--rank-banner-rank2to5-bg' : '--rank-banner-ranklow-bg');
+        banner.style.backgroundColor = `var(${bannerColorVar})`;
+        const top5 = citiesWithRates.slice(0, 5);
+        const tickerItems = ["Top 5 Homicide Rates (per 100k)"];
+        top5.forEach((c, i) => tickerItems.push(`${i + 1}. ${c.name} <span>(${c.rate.toFixed(1)})</span>`));
+        if (!top5.some(c => c.name === 'Jackson, MS') && jacksonRank > 0) {
+            tickerItems.push(`... | ${jacksonRank}. Jackson, MS <span>(${jacksonRate.toFixed(1)})</span>`);
+        }
+        const tickerText = tickerItems.join(' &nbsp; | &nbsp; ');
+        tickerWrap.innerHTML = `<div class="ticker-item">${tickerText}</div><div class="ticker-item">${tickerText}</div>`;
+    }
+    
+    function updatePercentageChangeDisplay() {
+        const div = document.getElementById('percentageChangeText');
+        const today = new Date();
+        const dayOfYear = (Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()) - Date.UTC(today.getFullYear(), 0, 0)) / 86400000;
+        const getCountUpToDay = (year, day) => allHomicideData.filter(d => {
+            if (d.Year !== year || !d.Date) return false;
+            const itemDate = new Date(d.Date + 'T00:00:00');
+            const itemDayOfYear = (Date.UTC(itemDate.getFullYear(), itemDate.getMonth(), itemDate.getDate()) - Date.UTC(itemDate.getFullYear(), 0, 0)) / 86400000;
+            return itemDayOfYear <= day;
+        }).length;
+        const currentYTD = getCountUpToDay(CURRENT_YEAR, dayOfYear);
+        const prevYTD = getCountUpToDay(PREVIOUS_YEAR, dayOfYear);
+        let text = "N/A", colorVar = '--percentage-neutral-color';
+        if (prevYTD > 0) {
+            const change = ((currentYTD - prevYTD) / prevYTD) * 100;
+            text = `${change > 0 ? '+' : ''}${change.toFixed(0)}%`;
+            colorVar = change > 0 ? '--percentage-increase-color' : '--percentage-decrease-color';
+            if (change === 0) colorVar = '--percentage-neutral-color';
+        } else if (currentYTD > 0) {
+            text = `+${currentYTD}`; colorVar = '--percentage-increase-color';
+        } else { text = "0%"; }
+        div.innerText = text;
+        div.style.color = `var(${colorVar})`;
+    }
+
+    // NEW: Calculate projected year-end total
+    function updateProjectedYearEndTotal() {
+        const div = document.getElementById('projectedYearEndText');
+        const today = new Date();
+        const month = today.getMonth(); // 0 = January
+
+        // NEW: Disable projection during January (Month 0) to avoid volatile small-sample extrapolation
+        if (month === 0) {
+            div.innerText = "Pending";
+            div.style.color = "var(--chart-axis-text)"; // Neutral color
+            div.title = "Projections will become available in February after sufficient data is collected.";
+            return; 
+        }
+
+        // Calculate the day of the year (1-366)
+        const start = new Date(today.getFullYear(), 0, 0);
+        const diff = today - start;
+        const oneDay = 1000 * 60 * 60 * 24;
+        const dayOfYear = Math.floor(diff / oneDay);
+
+        const currentYTD = allHomicideData.filter(d => d.Year === CURRENT_YEAR).length;
+
+        if (dayOfYear > 0 && currentYTD > 0) {
+            // Check if current year is a leap year
+            const isLeapYear = (CURRENT_YEAR % 4 === 0 && CURRENT_YEAR % 100 !== 0) || (CURRENT_YEAR % 400 === 0);
+            const daysInYear = isLeapYear ? 366 : 365;
+            const projection = (currentYTD / dayOfYear) * daysInYear;
+            div.innerText = Math.round(projection);
+            div.style.color = ""; // Reset color if it was set to neutral previously
+        } else {
+            div.innerText = currentYTD; // If it's day 1 or 0 homicides, projection is just the current count
+        }
+    }
+
+    // RESTORED: This function is now used again for the restored trend boxes.
+    function updateMonthlyTrend() {
+        const thisMonthDiv = document.getElementById('thisMonthValue');
+        const fiveYearAvgDiv = document.getElementById('fiveYearAvgValue');
+        const today = new Date(), month = today.getMonth(), year = today.getFullYear(), dayOfMonth = today.getDate();
+        const thisMonthCount = allHomicideData.filter(d => new Date(d.Date + 'T00:00:00').getFullYear() === year && new Date(d.Date + 'T00:00:00').getMonth() === month).length;
+        // FIX #4: pro-rate the historical average to the same day of the month.
+        // Comparing a partial current month to five FULL months always showed a
+        // misleading decrease early in the month.
+        let total = 0, years = 0;
+        for (let i = 1; i <= 5; i++) {
+            total += allHomicideData.filter(d => {
+                const dt = new Date(d.Date + 'T00:00:00');
+                return dt.getFullYear() === (year - i) && dt.getMonth() === month && dt.getDate() <= dayOfMonth;
+            }).length;
+            years++;
+        }
+        const avg = years > 0 ? (total / years) : 0;
+        thisMonthDiv.innerText = thisMonthCount;
+        fiveYearAvgDiv.innerText = avg.toFixed(1);
+        thisMonthDiv.style.color = `var(${thisMonthCount > avg ? '--percentage-increase-color' : (thisMonthCount < avg ? '--percentage-decrease-color' : '--percentage-neutral-color')})`;
+    }
+   
+    // MODIFIED: Renamed and generalized rolling average calculation
+    function calculateRollingAverage(days) {
+        const today = new Date();
+        // Set time to end of day to include all of today
+        today.setHours(23, 59, 59, 999);
+        // Calculate 'days' ago from today
+        const daysAgo = new Date(new Date().setDate(today.getDate() - days));
+        daysAgo.setHours(0, 0, 0, 0); // Set to start of that day
+
+        const count = allHomicideData.filter(d => {
+            const date = new Date(d.Date + 'T00:00:00'); // Use T00:00:00 to ensure consistent time
+            return date >= daysAgo && date <= today;
+        }).length;
+        return count;
+    }
+
+    // MODIFIED: Function to update 30-day rolling average
+    function updateRolling30DayTrend() {
+        document.getElementById('rolling30DayText').innerText = calculateRollingAverage(30);
+    }
+
+    function getChartOptions(tooltipCallback) {
+        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-axis-text').trim();
+        const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-grid-color').trim();
+        return {
+            responsive: true, maintainAspectRatio: false,
+            scales: { x: { ticks: { color: textColor }, grid: { color: gridColor } }, y: { beginAtZero: true, ticks: { color: textColor }, grid: { color: gridColor } } },
+            plugins: { legend: { position: 'top' }, tooltip: { mode: 'index', intersect: false, callbacks: { label: tooltipCallback } } }
+        };
+    }
+
+    function updateHomicidesByYearChart() {
+        const ctx = document.getElementById('homicidesByYearChart').getContext('2d');
+        if (homicidesByYearChartInstance) homicidesByYearChartInstance.destroy();
+        const chartOptions = getChartOptions(() => {});
+        if (showAllYears) {
+            const yearlyTotals = {};
+            historicalHomicideData.forEach(d => { yearlyTotals[d.year] = d.total; });
+            allHomicideData.forEach(d => { yearlyTotals[d.Year] = (yearlyTotals[d.Year] || 0) + 1; });
+            const years = Object.keys(yearlyTotals).map(Number).sort((a, b) => a - b).filter(y => y <= CURRENT_YEAR);
+            const totals = years.map(y => yearlyTotals[y]);
+            chartOptions.plugins.legend.display = false;
+            homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: years, datasets: [{ label: 'Total Homicides', data: totals, backgroundColor: agencyColors['Historical'] }] }, options: chartOptions });
+        } else {
+            const yearlyTotals = {};
+            const years = Array.from({length: CURRENT_YEAR - START_YEAR_DATA + 1}, (_, i) => START_YEAR_DATA + i);
+            years.forEach(y => yearlyTotals[y] = { [AGENCY_CATEGORIES.JPD]: 0, [AGENCY_CATEGORIES.CAPITOL_POLICE]: 0, [AGENCY_CATEGORIES.OTHER]: 0 });
+            allHomicideData.forEach(d => {
+                if (d.Year >= START_YEAR_DATA) {
+                    const cat = d['Investigating Agency'] === 'JPD' ? 'JPD' : (d['Investigating Agency'] === 'Capitol Police' ? 'Capitol Police' : 'Other Agencies');
+                    yearlyTotals[d.Year][cat]++;
+                }
+            });
+            chartOptions.scales.x.stacked = true; chartOptions.scales.y.stacked = true;
+            const datasets = Object.values(AGENCY_CATEGORIES).map(cat => ({ label: cat, data: years.map(y => yearlyTotals[y][cat]), backgroundColor: agencyColors[cat] }));
+            // DESIGN: per-capita rate line on a right axis. Jackson's population
+            // has fallen roughly 15% since 2016, so raw counts overstate the
+            // improvement; showing both is the more honest framing.
+            const rateData = years.map(y => {
+                const pop = POPULATION_BY_YEAR[y];
+                const total = Object.values(yearlyTotals[y]).reduce((a, b) => a + b, 0);
+                return pop ? +(total / pop * 100000).toFixed(1) : null;
+            });
+            datasets.push({
+                type: 'line', label: 'Rate per 100,000 residents', data: rateData,
+                borderColor: WLBT_NAVY, backgroundColor: WLBT_NAVY,
+                borderWidth: 2, pointRadius: 3, tension: 0.15, yAxisID: 'y1', order: -1
+            });
+            chartOptions.scales.y1 = { position: 'right', beginAtZero: true, grid: { drawOnChartArea: false }, ticks: { color: WLBT_NAVY }, title: { display: true, text: 'per 100k', color: WLBT_NAVY } };
+            homicidesByYearChartInstance = new Chart(ctx, { type: 'bar', data: { labels: years, datasets }, options: chartOptions });
+        }
+        setChartAria('homicidesByYearChart', showAllYears ? 'Bar chart of Jackson homicides by year since 1976.' : `Stacked bar chart of Jackson homicides by year since ${START_YEAR_DATA}, broken down by investigating agency, with a per-capita rate line per 100,000 residents.`);
+    }
+
+    // This function builds the 6-year pace chart (KEPT AS IS PER REQUEST)
+    function updateHomicideTrendsChart() {
+        const ctx = document.getElementById('homicideTrendsChart').getContext('2d');
+        if (homicideTrendsChartInstance) homicideTrendsChartInstance.destroy();
+        
+        const getRunningTotalData = (year) => {
+            const yearData = allHomicideData.filter(d => d.Year === year).sort((a, b) => new Date(a.Date) - new Date(b.Date));
+            const chartDataPoints = [];
+            const commonAxisYear = 2000; // Use a non-leap year for the common X-axis
+            let cumulativeCount = 0;
+            let homicideDataIndex = 0;
+            // Determine end date: today for current year, Dec 31 for past years
+            let loopEndDate = (year === CURRENT_YEAR) ? new Date() : new Date(year, 11, 31);
+            
+            for (let dLoop = new Date(year, 0, 1); dLoop <= loopEndDate; dLoop.setDate(dLoop.getDate() + 1)) {
+                const currentLoopDayFormatted = dLoop.toISOString().split('T')[0];
+                
+                // Add to cumulative count if any homicides occurred on this day
+                while(homicideDataIndex < yearData.length && yearData[homicideDataIndex].Date <= currentLoopDayFormatted) {
+                    cumulativeCount++;
+                    homicideDataIndex++;
+                }
+                
+                // Use the commonAxisYear for the x-coordinate
+                chartDataPoints.push({
+                    x: `${commonAxisYear}-${(dLoop.getMonth() + 1).toString().padStart(2, '0')}-${dLoop.getDate().toString().padStart(2, '0')}`,
+                    y: cumulativeCount 
+                });
+            }
+            
+            // Ensure the line starts at 0
+            if (chartDataPoints.length === 0 || chartDataPoints[0].x !== `${commonAxisYear}-01-01`) {
+                chartDataPoints.unshift({ x: `${commonAxisYear}-01-01`, y: 0 });
+            }
+            return chartDataPoints;
+        };
+        
+        const trendChartOptions = { 
+            ...getChartOptions(() => {}), 
+            // DESIGN: room on the right for direct line-end labels
+            layout: { padding: { right: 80 } },
+            scales: { 
+                x: { 
+                    type: 'time', 
+                    time: { 
+                        unit: 'month',
+                        tooltipFormat: 'MMM dd', // This formats the hover tooltip
+                        displayFormats: {
+                            month: 'MMM' // This formats the axis label
+                        }
+                    } 
+                }, 
+                y: { beginAtZero: true } 
+            } 
+        };
+        // DESIGN: direct end labels replace the legend entirely
+        trendChartOptions.plugins = { ...trendChartOptions.plugins, legend: { display: false } };
+
+        // DESIGN: brand red for the current year; prior years fade dark to light
+        // so recency is legible even before reading the end labels.
+        const paceColors = [
+            WLBT_RED,   // Current year
+            '#2b3a4a',  // -1 year
+            '#5a6b7c',  // -2 years
+            '#8496a6',  // -3 years
+            '#a9b6c1',  // -4 years
+            '#c9d1d8'   // -5 years
+        ];
+
+        // DESIGN: label each line at its right endpoint ("2023: 118") so readers
+        // never ping-pong to a legend, with simple collision avoidance.
+        const paceEndLabelPlugin = {
+            id: 'paceEndLabels',
+            afterDatasetsDraw(chart) {
+                const { ctx } = chart;
+                const targets = [];
+                chart.data.datasets.forEach((ds, i) => {
+                    const meta = chart.getDatasetMeta(i);
+                    if (!meta || meta.hidden || !meta.data.length) return;
+                    const pt = meta.data[meta.data.length - 1];
+                    const total = ds.data.length ? ds.data[ds.data.length - 1].y : '';
+                    targets.push({ x: pt.x, y: pt.y, text: `${ds.label}: ${total}`, color: ds.borderColor, bold: String(ds.label) === String(CURRENT_YEAR) });
+                });
+                targets.sort((a, b) => a.y - b.y);
+                for (let i = 1; i < targets.length; i++) {
+                    if (targets[i].y - targets[i - 1].y < 13) targets[i].y = targets[i - 1].y + 13;
+                }
+                ctx.save();
+                targets.forEach(t => {
+                    ctx.font = (t.bold ? 'bold ' : '') + '11px Inter, Arial, sans-serif';
+                    ctx.fillStyle = t.color;
+                    ctx.textAlign = 'left';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText(t.text, t.x + 6, t.y);
+                });
+                ctx.restore();
+            }
+        };
+        // DESIGN: subtle dashed vertical line marking today's date
+        const paceTodayLinePlugin = {
+            id: 'paceTodayLine',
+            afterDraw(chart) {
+                const xScale = chart.scales.x;
+                if (!xScale) return;
+                const now = new Date();
+                const commonAxisTime = new Date(2000, now.getMonth(), now.getDate()).getTime();
+                const xPix = xScale.getPixelForValue(commonAxisTime);
+                if (isNaN(xPix) || xPix < xScale.left || xPix > xScale.right) return;
+                const { ctx, chartArea } = chart;
+                ctx.save();
+                ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+                ctx.setLineDash([4, 4]);
+                ctx.beginPath();
+                ctx.moveTo(xPix, chartArea.top);
+                ctx.lineTo(xPix, chartArea.bottom);
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.font = '10px Inter, Arial, sans-serif';
+                ctx.fillStyle = 'rgba(0,0,0,0.55)';
+                ctx.textAlign = 'center';
+                ctx.fillText('Today', xPix, chartArea.top + 10);
+                ctx.restore();
+            }
+        };
+
+        const datasets = [];
+        // Loop for current year + previous 5 years
+        for (let i = 0; i <= 5; i++) {
+            const year = CURRENT_YEAR - i;
+            // Stop if we go before the start of our data
+            if (year < START_YEAR_DATA) break; 
+            
+            datasets.push({
+                label: String(year),
+                data: getRunningTotalData(year),
+                borderColor: paceColors[i % paceColors.length], // Use modulo in case we have fewer colors
+                borderWidth: (year === CURRENT_YEAR) ? 3.5 : 1.5, // Thicker line for current year
+                tension: 0.1,
+                pointRadius: 0, // No points on the line
+                pointHoverRadius: 4 // Show point on hover
+            });
+        }
+
+        homicideTrendsChartInstance = new Chart(ctx, { 
+            type: 'line', 
+            data: { datasets: datasets.reverse() }, // Reverse to draw oldest lines first
+            options: trendChartOptions,
+            plugins: [paceEndLabelPlugin, paceTodayLinePlugin] // DESIGN
+        });
+        setChartAria('homicideTrendsChart', `Line chart comparing the cumulative pace of homicides for ${CURRENT_YEAR} against each of the previous five years.`);
+    }
+
+    function updateDemographicCharts() {
+        const ageGroups = { '0-17': 0, '18-29': 0, '30-49': 0, '50+': 0, 'Unknown': 0 };
+        filteredHomicideDataForMap.forEach(d => {
+            const age = d.Age;
+            if (age === null) ageGroups['Unknown']++;
+            else if (age <= 17) ageGroups['0-17']++;
+            else if (age <= 29) ageGroups['18-29']++;
+            else if (age <= 49) ageGroups['30-49']++;
+            else ageGroups['50+']++;
+        });
+        const ageCtx = document.getElementById('victimsByAgeChart').getContext('2d');
+        if (victimsByAgeChartInstance) victimsByAgeChartInstance.destroy();
+        victimsByAgeChartInstance = new Chart(ageCtx, { type: 'bar', data: { labels: Object.keys(ageGroups), datasets: [{ label: 'Victims by Age', data: Object.values(ageGroups), backgroundColor: Object.keys(ageGroups).map(k => k === 'Unknown' ? UNKNOWN_GRAY : WLBT_NAVY) }] }, options: { ...getChartOptions(() => {}), plugins: { legend: { display: false } } } }); // DESIGN: brand palette
+        setChartAria('victimsByAgeChart', 'Bar chart of homicide victims by age group.');
+    }
+    
+    function updateVictimsByRaceChart() {
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => { acc[d.Race || 'Unknown'] = (acc[d.Race || 'Unknown'] || 0) + 1; return acc; }, {});
+        if (victimsByRaceChartInstance) victimsByRaceChartInstance.destroy();
+        // DESIGN: brand-consistent palette; Unknown rendered in neutral gray so it
+        // reads as missing data rather than a category.
+        victimsByRaceChartInstance = new Chart(document.getElementById('victimsByRaceChart'), { type: 'pie', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: neutralPaletteFor(Object.keys(counts)) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}} });
+        setChartAria('victimsByRaceChart', 'Pie chart of homicide victims by race.');
+    }
+
+    function updateHomicidesByCircumstanceChart() {
+        // DESIGN: collapse near-duplicate sheet values ("Stabbing- blunt force
+        // trauma", "Trauma", etc.) into four legible buckets, sorted descending.
+        // Shooting is roughly 84% of cases; the raw categories buried that.
+        const collapseCircumstance = (c) => {
+            const s = String(c || '').toLowerCase();
+            if (!s || s === 'n/a' || s.includes('unknown') || s.includes('undetermined')) return 'Unknown';
+            if (s.includes('shoot') || s.includes('shot') || s.includes('gun')) return 'Shooting';
+            if (s.includes('stab') || s.includes('cut') || s.includes('sharp')) return 'Stabbing';
+            if (s.includes('blunt') || s.includes('beat') || s.includes('trauma') || s.includes('assault')) return 'Blunt force';
+            return 'Other';
+        };
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => { const k = collapseCircumstance(d.Circumstance); acc[k] = (acc[k] || 0) + 1; return acc; }, {});
+        const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+        if (homicidesByCircumstanceChartInstance) homicidesByCircumstanceChartInstance.destroy();
+        homicidesByCircumstanceChartInstance = new Chart(document.getElementById('homicidesByCircumstanceChart'), { type: 'bar', data: { labels: entries.map(e => e[0]), datasets: [{ label: 'Count', data: entries.map(e => e[1]), backgroundColor: entries.map(e => e[0] === 'Unknown' ? UNKNOWN_GRAY : WLBT_RED) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }}} });
+        setChartAria('homicidesByCircumstanceChart', 'Bar chart of homicides by circumstance: ' + entries.map(e => `${e[0]} ${e[1]}`).join(', ') + '.');
+    }
+
+    // FIXED: Corrected typo 'InvestCigating Agency' to 'Investigating Agency'
+    function updateHomicidesByAgencyChart() {
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => {
+            const agency = d['Investigating Agency'] || 'Unknown';
+            acc[agency] = (acc[agency] || 0) + 1;
+            return acc;
+        }, {});
+        if (homicidesByAgencyChartInstance) homicidesByAgencyChartInstance.destroy();
+        homicidesByAgencyChartInstance = new Chart(document.getElementById('homicidesByAgencyChart'), { type: 'pie', data: { labels: Object.keys(counts), datasets: [{ data: Object.values(counts), backgroundColor: neutralPaletteFor(Object.keys(counts)) }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right' }}} }); // DESIGN: brand palette
+        setChartAria('homicidesByAgencyChart', 'Pie chart of homicides by investigating agency.');
+    }
+
+    // NEW: Clearance Rate Logic and Charts
+    function updateClearanceRateChart() {
+        const agencyStats = {};
+        
+        // Use filtered data (obeys Year/Agency/Filter selection)
+        filteredHomicideDataForMap.forEach(d => {
+            const agency = d['Investigating Agency'] || 'Unknown';
+            if (!agencyStats[agency]) {
+                agencyStats[agency] = { total: 0, solved: 0 };
+            }
+            agencyStats[agency].total++;
+            
+            // Check for Solved status
+            const statusVal = String(d['Case Status'] || '').trim().toLowerCase();
+            // Treat "Solved" as solved
+            if (statusVal === 'solved') {
+                agencyStats[agency].solved++;
+            }
+        });
+
+        // --- Update Sidebar Table ---
+        const table = document.getElementById('clearanceRateTable');
+        table.innerHTML = `<tr><th>Agency</th><th>Rate (Count)</th></tr>`;
+        
+        const sortedAgencies = Object.keys(agencyStats).sort();
+        if (sortedAgencies.length === 0) {
+             table.innerHTML += `<tr><td colspan="2" style="text-align:center; color: #777;">No data available</td></tr>`;
+        }
+
+        // --- Prepare Chart Data ---
+        const chartLabels = [];
+        const chartData = [];
+        const backgroundColors = [];
+
+        sortedAgencies.forEach(agency => {
+            const stats = agencyStats[agency];
+            const rate = stats.total > 0 ? (stats.solved / stats.total) * 100 : 0;
+            
+            // Add row to table
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${agency}</td>
+                <td>${rate.toFixed(1)}% <span style="font-weight:normal; color:#666; font-size:0.9em;">(${stats.solved}/${stats.total})</span></td>
+            `;
+            table.appendChild(row);
+
+            // Add to chart arrays
+            chartLabels.push(agency);
+            chartData.push(rate.toFixed(1));
+            // Use existing agency color map or default grey
+            backgroundColors.push(agencyColors[agency] || '#6c757d');
+        });
+
+        // --- Update/Create Chart ---
+        const ctx = document.getElementById('clearanceRateChart').getContext('2d');
+        if (clearanceRateChartInstance) clearanceRateChartInstance.destroy();
+
+        clearanceRateChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: chartLabels,
+                datasets: [{
+                    label: 'Clearance Rate (%)',
+                    data: chartData,
+                    backgroundColor: backgroundColors,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                ...getChartOptions(() => {}),
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100, // Percentage is always 0-100
+                        title: { display: true, text: 'Percentage Solved' }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.parsed.y}%`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // NEW: Homicides by Ward Chart Logic
+    function updateHomicidesByWardChart() {
+        // Must wait for Ward GeoJSON to be loaded
+        if (!wardsGeoJsonData) return;
+
+        const wardCounts = {};
+        
+        // Iterate through all filtered homicides
+        filteredHomicideDataForMap.forEach(d => {
+            // Must have coordinates
+            if (d.Latitude === null || d.Longitude === null) {
+                wardCounts['Unknown/Outside'] = (wardCounts['Unknown/Outside'] || 0) + 1;
+                return;
+            }
+
+            const pt = [d.Longitude, d.Latitude]; // GeoJSON standard [lng, lat]
+            let matchedWard = null;
+
+            // Iterate features to find polygon match
+            for (const feature of wardsGeoJsonData.features) {
+                const geom = feature.geometry;
+                const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+                
+                // Prioritize "District" or Name fields
+                const p = feature.properties;
+                const rawLabel = p.District || p.Name || p.NAME || p.wardName || "Ward";
+                const labelText = formatLabel(rawLabel);
+
+                for (const poly of polys) {
+                    const outerRing = (geom.type === 'Polygon') ? poly[0] : poly[0];
+                    if (isPointInPolygon(pt, outerRing)) {
+                        matchedWard = labelText;
+                        break;
+                    }
+                }
+                if (matchedWard) break;
+            }
+
+            if (matchedWard) {
+                wardCounts[matchedWard] = (wardCounts[matchedWard] || 0) + 1;
+            } else {
+                wardCounts['Unknown/Outside'] = (wardCounts['Unknown/Outside'] || 0) + 1;
+            }
+        });
+
+        // DESIGN: horizontal bar sorted descending replaces the 8-slice pie.
+        // Wedge angles are hard to compare; ranked bars are not.
+        const entries = Object.entries(wardCounts).sort((a, b) => b[1] - a[1]);
+        const labels = entries.map(e => e[0]);
+        const data = entries.map(e => e[1]);
+        const barColors = labels.map(l => l === 'Unknown/Outside' ? UNKNOWN_GRAY : WLBT_RED);
+
+        const ctx = document.getElementById('homicidesByWardChart').getContext('2d');
+        if (homicidesByWardChartInstance) homicidesByWardChartInstance.destroy();
+        homicidesByWardChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: labels, datasets: [{ label: 'Homicides', data: data, backgroundColor: barColors }] },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { x: { beginAtZero: true } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const value = context.parsed.x;
+                                const total = data.reduce((a, b) => a + b, 0);
+                                const percentage = total ? ((value / total) * 100).toFixed(1) + '%' : '';
+                                return `${value} (${percentage})`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        setChartAria('homicidesByWardChart', 'Horizontal bar chart of homicides by ward, highest first: ' + entries.slice(0, 3).map(e => `${e[0]} ${e[1]}`).join(', ') + '.');
+    }
+
+    // NEW: Homicides by Contributing Factor Chart
+    function updateHomicidesByFactorChart() {
+        const counts = filteredHomicideDataForMap.reduce((acc, d) => {
+            const factor = d['Contributing Factor'] && d['Contributing Factor'] !== 'N/A' ? d['Contributing Factor'] : 'Unknown';
+            acc[factor] = (acc[factor] || 0) + 1;
+            return acc;
+        }, {});
+
+        // Sort data by count descending
+        const sortedLabels = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        const sortedData = sortedLabels.map(label => counts[label]);
+
+        const ctx = document.getElementById('homicidesByFactorChart').getContext('2d');
+        if (homicidesByFactorChartInstance) homicidesByFactorChartInstance.destroy();
+        
+        homicidesByFactorChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: sortedLabels,
+                datasets: [{
+                    label: 'Count',
+                    data: sortedData,
+                    backgroundColor: sortedLabels.map(l => l === 'Unknown' ? UNKNOWN_GRAY : WLBT_RED) // DESIGN: brand palette
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y', // Horizontal bar chart
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true }
+                }
+            }
+        });
+        setChartAria('homicidesByFactorChart', 'Horizontal bar chart of homicides by contributing factor, highest first.');
+    }
+    
+    // MODIFIED: This function calls the restored/updated trend functions
+    function updateDashboard() {
+        updateCurrentYearHomicideCount();
+        updateRankingBanner();
+        updatePercentageChangeDisplay();
+        updateMonthlyTrend(); // RESTORED
+        
+        // MODIFIED: Call rolling average and projection functions
+        updateRolling30DayTrend(); // MODIFIED (was updateAllRollingAverages)
+        updateProjectedYearEndTotal();
+        
+        updateMapDisplay();
+        updateHomicidesByYearChart();
+        updateHomicideTrendsChart();
+        updateDemographicCharts();
+        updateVictimsByRaceChart();
+        updateHomicidesByCircumstanceChart();
+        updateHomicidesByAgencyChart();
+        
+        // NEW: Update Clearance Rate logic
+        updateClearanceRateChart();
+        // NEW: Update Ward Pie Chart
+        updateHomicidesByWardChart();
+        // NEW: Update Factor Chart
+        updateHomicidesByFactorChart();
+        // DESIGN: Update victims list
+        updateVictimsList();
+    }
+
+    // NEW: Helper function to determine if point is inside polygon (Ray Casting Algorithm)
+    function isPointInPolygon(point, vs) {
+        // point: [lat, lng], vs: [[lat, lng], [lat, lng], ...]
+        var x = point[0], y = point[1];
+        var inside = false;
+        for (var i = 0, j = vs.length - 1; i < vs.length; j = i++) {
+            var xi = vs[i][0], yi = vs[i][1];
+            var xj = vs[j][0], yj = vs[j][1];
+            
+            var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
+    }
+
+    // --- Helper: Format Label ---
+    // Inserts space between letter and digit (e.g., "WARD1" -> "WARD 1")
+    function formatLabel(value) {
+        if (value === null || value === undefined) return "";
+        let str = String(value);
+        // Insert space between letter and digit (e.g., "WARD1" -> "WARD 1")
+        str = str.replace(/([a-zA-Z])(\d)/g, '$1 $2');
+        // Convert to Title Case
+        return str.replace(/\w\S*/g, function(txt){
+            return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();
+        });
+    }
+
+    // NEW: Process Wards and Calculate Velocity
+   function processWardsData(wardsGeoJSON) {
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentDay = today.getDate();
+
+        wardsGeoJSON.features.forEach(feature => {
+            let countCurrent = 0;
+            let countPrev = 0;
+            
+            const geom = feature.geometry;
+            const polys = geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates;
+
+            allHomicideData.forEach(d => {
+                const pt = [d.Longitude, d.Latitude]; 
+                let isInside = false;
+                
+                for (const poly of polys) {
+                    const outerRing = (geom.type === 'Polygon') ? poly[0] : poly[0]; 
+                    if (isPointInPolygon(pt, outerRing)) {
+                        isInside = true;
+                        break;
+                    }
+                }
+
+                if (isInside) {
+                    const dDate = new Date(d.Date + 'T00:00:00');
+                    
+                    if (d.Year === CURRENT_YEAR) {
+                        countCurrent++;
+                    } else if (d.Year === PREVIOUS_YEAR) {
+                        // Check if the previous year's case happened on or before today's month and day
+                        if (dDate.getMonth() < currentMonth || (dDate.getMonth() === currentMonth && dDate.getDate() <= currentDay)) {
+                            countPrev++;
+                        }
+                    }
+                }
+            });
+
+            let velocity = 0;
+            if (countPrev > 0) {
+                velocity = ((countCurrent - countPrev) / countPrev) * 100;
+            } else if (countCurrent > 0) {
+                velocity = 100; 
+            }
+            
+            feature.properties.velocity = velocity;
+            feature.properties.countCurrent = countCurrent;
+            feature.properties.countPrev = countPrev;
+        });
+        return wardsGeoJSON;
+    }
+
+    // NEW: Style function for Ward Choropleth
+    function wardStyle(feature) {
+        const vel = feature.properties.velocity;
+        const p = feature.properties;
+        let color = 'var(--velocity-stable)';
+        // FIX #6: with single-digit YTD counts, percentage swings are mostly
+        // noise (0 -> 1 rendered as "High Increase"). Stay neutral until at
+        // least one of the two years has 5+ cases in the ward.
+        const smallSample = Math.max(p.countCurrent || 0, p.countPrev || 0) < 5;
+        if (!smallSample) {
+            if (vel > 20) color = 'var(--velocity-high-increase)';
+            else if (vel > 5) color = 'var(--velocity-increase)';
+            else if (vel < -20) color = 'var(--velocity-high-decrease)';
+            else if (vel < -5) color = 'var(--velocity-decrease)';
+        }
+
+        return {
+            fillColor: color,
+            weight: 2,
+            opacity: 1,
+            color: 'white',
+            dashArray: '3',
+            fillOpacity: 0.6
+        };
+    }
+
+    function loadBoundaryLayers(){
+        const baseLayers = { "Markers": markersLayer, "Heatmap": heatLayer };
+        const overlayMaps = {};
+        
+        // MODIFIED: Fetch single combined Ward file
+        const fetchWards = async () => {
+            try {
+                const response = await fetch(WARD_DATA_URL);
+                if (!response.ok) throw new Error("Failed to fetch wards");
+                const data = await response.json();
+                
+                // Store global data for chart use
+                wardsGeoJsonData = data; 
+
+                // Process data (Spatial Join) for Map Velocity
+                const processedData = processWardsData(data);
+                
+                wardsLayer = L.geoJSON(processedData, {
+                    style: wardStyle,
+                    onEachFeature: (feature, layer) => {
+                        const p = feature.properties;
+                        // Prioritize "District" or Name fields
+                        const rawLabel = p.District || p.Name || p.NAME || p.wardName || "Ward";
+                        // Apply formatting (e.g., "WARD 1")
+                        const labelText = formatLabel(rawLabel);
+
+                        const sign = p.velocity > 0 ? '+' : '';
+                        const trendText = `${sign}${p.velocity.toFixed(0)}%`;
+                        
+                        // FIX #6: flag small samples so a 2 -> 3 change doesn't
+                        // read as a meaningful +50%.
+                        const smallSample = Math.max(p.countCurrent || 0, p.countPrev || 0) < 5;
+                        const sampleNote = smallSample ? '<br><em>Small sample &ndash; interpret with caution</em>' : '';
+                        // Modified to include sticky: true
+                        layer.bindTooltip(`<strong>${labelText}</strong><br>Trend: ${trendText}<br>(YTD: ${p.countCurrent} vs ${p.countPrev})${sampleNote}`, { sticky: true });
+                    },
+                    interactive: true 
+                });
+                
+                wardsLayer.addTo(map); // Add to map by default
+                wardsLayer.bringToBack(); // Ensure it's behind markers
+
+                // DESIGN: colorblind-safe percentage labels centered on each
+                // ward polygon; small samples render lighter and italic.
+                const velocityLabels = [];
+                wardsLayer.eachLayer(l => {
+                    if (!l.feature || !l.getBounds) return;
+                    const p = l.feature.properties;
+                    if (typeof p.velocity !== 'number') return;
+                    const smallSample = Math.max(p.countCurrent || 0, p.countPrev || 0) < 5;
+                    const sign = p.velocity > 0 ? '+' : '';
+                    velocityLabels.push(L.marker(l.getBounds().getCenter(), {
+                        icon: L.divIcon({ className: 'ward-velocity-label' + (smallSample ? ' small' : ''), html: `${sign}${p.velocity.toFixed(0)}%`, iconSize: null }),
+                        interactive: false,
+                        keyboard: false
+                    }));
+                });
+                velocityLabels.forEach(m => wardsLayer.addLayer(m));
+
+                // MODIFIED: Explicitly show legend since the layer is added by default
+                document.getElementById('ward-legend-content').style.display = 'block';
+
+                // Add to overlays
+                overlayMaps["Ward Trends (Velocity)"] = wardsLayer;
+                
+                // Re-add control
+                if (overlayLayersControl) map.removeControl(overlayLayersControl);
+                overlayLayersControl = L.control.layers(baseLayers, overlayMaps, { position: 'bottomleft' }).addTo(map);
+                
+                // NEW: Trigger chart update now that ward data is available
+                updateHomicidesByWardChart();
+
+            } catch (e) {
+                console.log("Could not load wards.", e);
+                // Fallback to just existing layers
+                if (overlayLayersControl) map.removeControl(overlayLayersControl);
+                overlayLayersControl = L.control.layers(baseLayers, overlayMaps, { position: 'bottomleft' }).addTo(map);
+            }
+        };
+
+        const fetchGeoJSON = async (url, style, name) => {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const geojson = await response.json();
+                // FIXED: Make boundary layers non-interactive and send them to the back
+                const layer = L.geoJSON(geojson, { style, interactive: false });
+                layer.addTo(map);
+                layer.bringToBack();
+                overlayMaps[name] = layer;
+                return layer;
+            } catch (error) { console.error(`Error loading ${name} GeoJSON:`, error); return null; }
+        };
+
+        // Load existing boundaries first, then wards
+        Promise.all([
+            fetchGeoJSON(JACKSON_CITY_LIMITS_GEOJSON_URL, { color: `var(--boundary-city-color)`, weight: 3, opacity: 0.85, fillOpacity: 0.0 }, "Jackson City Limits"),
+            fetchGeoJSON(CCID_GEOJSON_URL, { color: `var(--boundary-ccid-color)`, weight: 4, opacity: 0.9, fillOpacity: 0.25 }, "CCID Boundary")
+        ]).then(([cityLayer, ccidLayerResult]) => {
+            cityLimitsLayer = cityLayer;
+            ccidLayer = ccidLayerResult;
+            
+            // Load Wards after (it depends on allHomicideData being ready, which it is by the time loadBoundaryLayers is called)
+            fetchWards();
+        });
+    }
+    function updateMapTiles() {
+        if (currentMapTileLayer) map.removeLayer(currentMapTileLayer);
+        currentMapTileLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+    }
+</script>
+</body>
+</html>
+
