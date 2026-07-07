@@ -1295,6 +1295,18 @@
             pane: 'heatmapPane',
             interactive: false
         });
+        // HEATMAP Z-ORDER FIX: leaflet-heat 0.2.0 ignores the `pane` option and
+        // always attaches its <canvas> to the default overlayPane (z-index 400),
+        // the same pane as the ward/CCID polygons, so the boundaries painted over
+        // it. On every add, relocate the canvas into heatmapPane (z-index 500) so
+        // density sits above the overlays but still below the markers (z-index 650).
+        heatLayer.on('add', function () {
+            const canvas = heatLayer._canvas;
+            const destPane = map.getPane('heatmapPane');
+            if (canvas && destPane && canvas.parentNode !== destPane) {
+                destPane.appendChild(canvas);
+            }
+        });
         // loadBoundaryLayers moved to init()
         
         // FIXED: Guard the map click handler to ignore stopped events
@@ -1309,15 +1321,12 @@
 
         // Ward legend and Heatmap toggle are handled in the overlayadd/overlayremove listeners below
 
-        // HEATMAP TOGGLE: hide/show markers when Heatmap overlay is checked/unchecked
+        // TOGGLE FIX: Markers and Heatmap are independent overlays now, so these
+        // handlers no longer force markers off when the heatmap turns on. They only
+        // swap the legend affordance and toggle the ward legend.
         map.on('overlayadd', function(eventLayer) {
             if (eventLayer.name === 'Heatmap') {
-                // Heatmap turned ON — set flag and hide markers
                 heatmapActive = true;
-                if (map.hasLayer(markersLayer)) {
-                    map.removeLayer(markersLayer);
-                }
-                // Update legend icon to heatmap gradient
                 const homicideLegendIcon = document.querySelector('#map-legend .legend-icon.homicide');
                 if (homicideLegendIcon) {
                     homicideLegendIcon.style.background = 'linear-gradient(135deg, #ff0000 0%, #ff8800 50%, #ffff00 100%)';
@@ -1326,22 +1335,13 @@
                     homicideLegendIcon.style.width = '20px';
                     homicideLegendIcon.style.height = '10px';
                 }
-                const homicideLegendLabel = document.querySelector('#map-legend li:first-child');
-                if (homicideLegendLabel) {
-                    homicideLegendLabel.lastChild.textContent = ' Homicide Density';
-                }
             } else if (eventLayer.name === 'Ward Trends (Velocity)') {
                 document.getElementById('ward-legend-content').style.display = 'block';
             }
         });
         map.on('overlayremove', function(eventLayer) {
             if (eventLayer.name === 'Heatmap') {
-                // Heatmap turned OFF — clear flag and restore markers
                 heatmapActive = false;
-                if (!map.hasLayer(markersLayer)) {
-                    markersLayer.addTo(map);
-                }
-                // Restore legend icon to marker dot
                 const homicideLegendIcon = document.querySelector('#map-legend .legend-icon.homicide');
                 if (homicideLegendIcon) {
                     homicideLegendIcon.style.background = '';
@@ -1349,10 +1349,6 @@
                     homicideLegendIcon.style.border = '';
                     homicideLegendIcon.style.width = '';
                     homicideLegendIcon.style.height = '';
-                }
-                const homicideLegendLabel = document.querySelector('#map-legend li:first-child');
-                if (homicideLegendLabel) {
-                    homicideLegendLabel.lastChild.textContent = ' Homicide';
                 }
             } else if (eventLayer.name === 'Ward Trends (Velocity)') {
                 document.getElementById('ward-legend-content').style.display = 'none';
@@ -1552,14 +1548,9 @@ function updateMapDisplay() {
     // Add all markers to the cluster group at once (better performance)
         markersLayer.addLayers(visibleMarkers);
 
-    // Respect heatmap toggle state: keep markers hidden if heatmap is active
-    if (heatmapActive) {
-        if (map.hasLayer(markersLayer)) map.removeLayer(markersLayer);
-        if (!map.hasLayer(heatLayer)) heatLayer.addTo(map);
-    } else {
-        if (!map.hasLayer(markersLayer)) markersLayer.addTo(map);
-    }
-
+    // TOGGLE FIX: markers and heatmap are independent user-controlled overlays;
+    // updateMapDisplay only refreshes the heat data and never forces either layer
+    // on or off. Whatever the user checked stays checked across filter changes.
     heatLayer.setLatLngs(heatPoints);
     updateInfoPanel(filteredHomicideDataForMap);
 
@@ -2456,8 +2447,12 @@ function updateMapDisplay() {
     }
 
     function loadBoundaryLayers(){
-        const baseLayers = { "Markers": markersLayer };
-        const overlayMaps = { "Heatmap": heatLayer };
+        // TOGGLE FIX: Markers and Heatmap are now independent overlay checkboxes
+        // so either, both, or neither can be shown. Previously Markers was the
+        // sole base layer (a radio that could never be switched off), so turning
+        // the heatmap on left the markers stuck on top of it.
+        const baseLayers = {};
+        const overlayMaps = { "Markers": markersLayer, "Heatmap": heatLayer };
         
         // MODIFIED: Fetch single combined Ward file
         const fetchWards = async () => {
