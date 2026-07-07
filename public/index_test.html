@@ -974,7 +974,7 @@
         // NEW: Initialize MarkerClusterGroup instead of LayerGroup
     let markersLayer; 
     let heatLayer;
-    let heatmapActive = false; // tracks whether heatmap overlay is currently on
+    let heatmapActive = false;
     let cityLimitsLayer, ccidLayer, wardsLayer; // NEW: wardsLayer
     // NEW: Search overlay state
     let searchCircleLayer = L.layerGroup();
@@ -1265,7 +1265,13 @@
         // NEW: Create custom pane for markers to ensure they are always on top
         map.createPane('homicideMarkersPane');
         // zIndex 650 is higher than default overlayPane (400) and markerPane (600)
-        map.getPane('homicideMarkersPane').style.zIndex = 650; 
+        map.getPane('homicideMarkersPane').style.zIndex = 650;
+
+        // Dedicated pane for heatmap — sits above ward/CCID overlays (z=400)
+        // but below markers (z=650) so density is visible without hiding markers
+        map.createPane('heatmapPane');
+        map.getPane('heatmapPane').style.zIndex = 500;
+        map.getPane('heatmapPane').style.pointerEvents = 'none'; 
         
 // NEW: Initialize the MarkerClusterGroup with options for spiderfying identical coordinates
         markersLayer = L.markerClusterGroup({
@@ -1284,8 +1290,9 @@
             blur: 25,
             maxZoom: 17,
             max: 1.0,
-            minOpacity: 0.4,
+            minOpacity: 0.45,
             gradient: { 0.2: '#0000ff', 0.4: '#00ffff', 0.6: '#00ff00', 0.8: '#ffff00', 1.0: '#ff0000' },
+            pane: 'heatmapPane',
             interactive: false
         });
         // loadBoundaryLayers moved to init()
@@ -1305,7 +1312,7 @@
         // HEATMAP TOGGLE: hide/show markers when Heatmap overlay is checked/unchecked
         map.on('overlayadd', function(eventLayer) {
             if (eventLayer.name === 'Heatmap') {
-                // Heatmap turned ON — set flag and hide individual markers
+                // Heatmap turned ON — set flag and hide markers
                 heatmapActive = true;
                 if (map.hasLayer(markersLayer)) {
                     map.removeLayer(markersLayer);
@@ -1329,7 +1336,7 @@
         });
         map.on('overlayremove', function(eventLayer) {
             if (eventLayer.name === 'Heatmap') {
-                // Heatmap turned OFF — clear flag and restore individual markers
+                // Heatmap turned OFF — clear flag and restore markers
                 heatmapActive = false;
                 if (!map.hasLayer(markersLayer)) {
                     markersLayer.addTo(map);
@@ -1545,7 +1552,7 @@ function updateMapDisplay() {
     // Add all markers to the cluster group at once (better performance)
         markersLayer.addLayers(visibleMarkers);
 
-    // If heatmap is active, keep markers hidden and ensure heatLayer is on map
+    // Respect heatmap toggle state: keep markers hidden if heatmap is active
     if (heatmapActive) {
         if (map.hasLayer(markersLayer)) map.removeLayer(markersLayer);
         if (!map.hasLayer(heatLayer)) heatLayer.addTo(map);
