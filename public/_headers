@@ -1,3 +1,4 @@
-/index.html
+/
   Content-Security-Policy: frame-ancestors 'self' https://www.wlbt.com https://wlbt.com
   X-Frame-Options: SAMEORIGIN
+
