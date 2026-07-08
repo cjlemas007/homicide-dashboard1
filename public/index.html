@@ -384,7 +384,7 @@
              border: 1px solid var(--legend-border);
              box-shadow: 0 2px 6px rgba(0,0,0,0.2);
         }
- /* marker cluster styling to match the red theme */
+
         .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
             background-color: rgba(217, 83, 79, 0.5); /* Faint red halo */
         }
@@ -403,7 +403,7 @@
         .charts-container {
             display: flex;
             flex-direction: column;
-            min-height: 450px; /* Give charts adequate space */
+            min-height: 450px;
         }
         .chart-tabs {
             display: flex;
@@ -446,13 +446,13 @@
         #main-trends-content .chart-box { width: 50%; }
         #main-trends-content .chart-box:first-child { border-right: 1px solid var(--legend-border); }
        
-        /* grid layout so the details tab fits five charts */
+   
         #details-content {
             display: none; /* Initially hidden */
             grid-template-columns: repeat(3, 1fr);
             gap: 0;
         }
-        /* Only apply grid when active */
+
         #details-content.active { display: grid; }
         
         #details-content .chart-box { 
@@ -460,9 +460,9 @@
             border-right: 1px solid var(--legend-border);
             border-bottom: 1px solid var(--legend-border);
         }
-        /* Remove right border for every 3rd item */
+
         #details-content .chart-box:nth-child(3n) { border-right: none; }
-        /* Remove bottom border for items in last row */
+
         #details-content .chart-box:nth-last-child(-n+3) { border-bottom: 1px solid var(--legend-border); } /* Keep bottom for now to be safe */
 
         .chart-box h4 { text-align: center; margin-top: 0; margin-bottom: 10px; font-size: 1em; color: var(--chart-title-text); }
@@ -541,7 +541,7 @@
                 min-height: 0; 
             }
             
-            /* Push left-column (filters) below the map container */
+
             .left-column { 
                 border-right: none; 
                 overflow-y: visible; 
@@ -551,7 +551,7 @@
                 padding-top: 10px;
             } 
             
-            /* Bring map-container to the top */
+
             .map-container { 
                 display: flex; 
                 flex-direction: column; 
@@ -567,7 +567,7 @@
                 flex-shrink: 0;
             }
             
-            /* Flatten Overlays: Stops them from floating over the map */
+
             .map-overlay {
                 position: static !important;
                 width: 100% !important;
@@ -706,7 +706,7 @@
                             </div>
                         </div>
                     </div>
-                    <!-- clearance rates -->
+      
                     <div class="filter-group clearance-container">
                         <label class="group-label">Clearance Rates (Selected Data)</label>
                         <div class="trend-box" style="padding: 5px;">
@@ -720,13 +720,13 @@
                             </div>
                         </div>
                     </div>
-                    <!-- END MODIFICATION -->
+
                 </div> 
             </div>
         </div>
         <div class="map-container">
             <div id="map"></div>
-            <!-- map legend overlay -->
+
             <div id="map-legend" class="map-overlay">
                 <h4>Legend</h4>
                 <ul>
@@ -743,14 +743,14 @@
                     <li><span class="legend-square" style="background-color: var(--velocity-high-decrease)"></span> High Decrease (&gt;20%)</li>
                 </div>
             </div>
-            <!-- map info panel -->
+
             <div id="map-info-panel" class="map-overlay">
-                <!-- Content will be dynamically inserted by JavaScript -->
+
             </div>
         </div>
     </div>
     
-    <!-- Charts are now outside the main grid area to allow scrolling -->
+
     <div class="charts-container-wrapper">
         <div class="charts-container">
             <div class="chart-tabs">
@@ -802,21 +802,21 @@
                         <canvas id="homicidesByAgencyChart"></canvas>
                     </div>
                 </div>
-                <!-- NEW CHART -->
+
                 <div class="chart-box">
                     <h4>Clearance Rate by Agency</h4>
                     <div class="chart-canvas-container">
                         <canvas id="clearanceRateChart"></canvas>
                     </div>
                 </div>
-                <!-- NEW CHART: Ward Distribution -->
+ 
                 <div class="chart-box">
                     <h4>Homicides by Ward</h4>
                     <div class="chart-canvas-container">
                         <canvas id="homicidesByWardChart"></canvas>
                     </div>
                 </div>
-                <!-- NEW CHART: Contributing Factor -->
+  
                 <div class="chart-box">
                     <h4>Homicides by Contributing Factor</h4>
                     <div class="chart-canvas-container">
@@ -824,7 +824,7 @@
                     </div>
                 </div>
             </div>
-            <!-- victims list -->
+
             <div id="victims-content" class="chart-tab-content">
                 <div style="width:100%;">
                     <div class="victims-controls">
@@ -847,7 +847,7 @@
         </div>
     </div>
     
-    <!-- Modals with restored content -->
+
     <div id="aboutDataModal" class="modal-overlay">
         <div class="modal-content">
             <span class="modal-close" id="closeAboutModal">×</span>
@@ -882,7 +882,7 @@
             </ul>
         </div>
     </div>
-    <!-- clearance rate disclaimer modal -->
+
     <div id="clearanceModal" class="modal-overlay">
         <div class="modal-content">
             <span class="modal-close" id="closeClearanceModal">&times;</span>
@@ -901,7 +901,6 @@
 <script>
     // --- Configuration ---
     const HOMICIDE_DATA_API_URL = './data/homicide.json';
-    // GeoJSON boundary files — served locally from data/geo/ (see Change 2).
     const WARD_DATA_URL = './data/geo/wards.geojson';
 
     const API_KEY = 'AIzaSyA3lKCL5czCA1DEj3hF7GWVq_QCE0LNaUI';
@@ -920,12 +919,9 @@
     const JACKSON_CITY_LIMITS_GEOJSON_URL = './data/geo/city-boundaries.geojson';
     const CCID_GEOJSON_URL = './data/geo/ccid-boundary.geojson';
     const AGENCY_CATEGORIES = { JPD: 'JPD', CAPITOL_POLICE: 'Capitol Police', OTHER: 'Other Agencies' };
-    // Unified brand palette. Red is sampled from the WLBT logo pixels (#c1272d).
     const WLBT_RED = '#c1272d';
     const WLBT_NAVY = '#2b3a4a';
     const UNKNOWN_GRAY = '#c3c9cf';
-    // Neutral palette for demographic/agency breakdowns (red is reserved for
-    // charts where the value itself represents homicides).
     const NEUTRAL_PALETTE = [WLBT_NAVY, '#7c96ab', '#e0a800', '#5c7d63', '#8d5a97', '#b8860b', '#52514f', '#71b37c'];
     const neutralPaletteFor = (labels) => {
         let i = 0;
@@ -938,10 +934,7 @@
         c.setAttribute('role', 'img');
         c.setAttribute('aria-label', summary);
     }
-    // Population by year for the per-capita rate line. Anchored on the 2010
-    // (173,514) and 2020 (153,701) decennial counts and the JACKSON_POPULATION
-    // constant above; intermediate years are linear interpolations, not official
-    // figures. Swap in Census Bureau Vintage estimates when available.
+
     const POPULATION_BY_YEAR = {
         2016: 167500, 2017: 165200, 2018: 162700, 2019: 160600,
         2020: 153701, 2021: 149800, 2022: 146000, 2023: 143800,
