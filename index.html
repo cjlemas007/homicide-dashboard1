@@ -736,10 +736,8 @@
 
 
         function initMap() {
-            map = L.map('map').setView(MAP_CENTER, MAP_ZOOM);
-            map.attributionControl.setPrefix(false);
-            updateMapTiles(); 
-            markersLayer.addTo(map); 
+            map = L.map('map', { attributionControl: false }).setView(MAP_CENTER, MAP_ZOOM);
+            L.control.attribution({ prefix: false }).addTo(map);
             loadBoundaryLayers();
         }
 
