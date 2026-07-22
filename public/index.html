@@ -1276,6 +1276,7 @@
             minZoom: MAP_ZOOM,
             zoomControl: false 
         }).setView(MAP_CENTER, MAP_ZOOM);
+        map.attributionControl.setPrefix(false);
         
         L.control.zoom({ position: 'bottomright' }).addTo(map);
 
