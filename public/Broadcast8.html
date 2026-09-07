@@ -1665,6 +1665,11 @@ function applyLegend(cfg, id, solo) {
     cfg.scales.y.max = 100;
     cfg.scales.y.ticks.callback = v => v + '%';
   }
+  if (id === 'monthly') {
+    // Anchor the y-axis at 0 so the baseline reads correctly on-air,
+    // rather than auto-fitting the floor to the lowest month.
+    cfg.scales.y.beginAtZero = true;
+  }
   if (id === 'age') cfg.indexAxis = 'y';
   if (id === 'ytdpace') {
     // Replace x scale with time scale
