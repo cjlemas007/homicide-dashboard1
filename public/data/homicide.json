@@ -26819,7 +26819,7 @@
       "32.246621",
       "-90.221396",
       "1",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -26828,7 +26828,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "1/10/2026",
@@ -26894,7 +26894,7 @@
       "32.387767",
       "-90.139193",
       "4",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -26920,7 +26920,7 @@
       "32.393463",
       "-90.158672",
       "3",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -27921,7 +27921,7 @@
       "32.265421",
       "-90.281053",
       "1",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -27930,7 +27930,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "7/14/2026",
@@ -28209,11 +28209,11 @@
     ],
     [
       "8/17/2026",
-      "Unidentified Victim",
+      "Marcus Griffin",
+      "31",
       "N/A",
-      "N/A",
-      "Unknown",
-      "Unknown",
+      "Black",
+      "Shooting",
       "3700 block of Douglas Avenue",
       "Douglas Avenue",
       "",
@@ -28580,7 +28580,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "10/11/2026",
@@ -28696,7 +28696,7 @@
       "32.368493",
       "-90.147586",
       "4",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -28705,7 +28705,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "11/1/2026",
@@ -28721,7 +28721,7 @@
       "32.368423",
       "-90.147559",
       "4",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -28730,7 +28730,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "11/5/2026",
@@ -28809,7 +28809,7 @@
     ],
     [
       "11/15/2026",
-      "Unidentified Victim",
+      "Rashard Washington",
       "N/A",
       "M",
       "Black",
@@ -28821,7 +28821,7 @@
       "32.338294",
       "-90.265539",
       "3",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -28830,7 +28830,7 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "11/15/2026",
@@ -28909,7 +28909,7 @@
     ],
     [
       "11/15/2026",
-      "Unidentified Victim",
+      "Anthony Kendrick Jr.",
       "N/A",
       "M",
       "Black",
@@ -28921,7 +28921,7 @@
       "32.299573",
       "-90.220669",
       "2",
-      "FALSE",
+      "TRUE",
       "MS",
       "Jackson",
       "2026",
@@ -28930,11 +28930,11 @@
       "1",
       "",
       "JPD",
-      "Unsolved"
+      "Solved"
     ],
     [
       "11/16/2026",
-      "Unidentified Victim",
+      "Deli Knoll",
       "26",
       "M",
       "Unknown",
@@ -28963,7 +28963,7 @@
       "50",
       "M",
       "White",
-      "Blunt force trauma",
+      "Strangulation",
       "400 block of Capers Street",
       "Capers Street",
       "",
